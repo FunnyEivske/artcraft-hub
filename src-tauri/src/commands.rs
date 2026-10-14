@@ -216,51 +216,51 @@ fn create_default_webapp_stub(webapps_dir: &Path, app_id: &str, app_name: &str, 
 pub fn get_default_palettes() -> Vec<ColorPalette> {
     vec![
         ColorPalette {
-            id: "palette-artcraft".into(),
-            name: "ArtCraft Signature".into(),
-            description: "Hovedfargene for OpenArt Hub og de 9 kreative studioene.".into(),
+            id: "palette-artcraft".to_string(),
+            name: "ArtCraft Signature".to_string(),
+            description: "Hovedfargene for OpenArt Hub og de 9 kreative studioene.".to_string(),
             colors: vec![
-                ColorSwatch { hex: "#6366f1".into(), name: "Indigo Core".into() },
-                ColorSwatch { hex: "#38bdf8".into(), name: "Sky Cyan".into() },
-                ColorSwatch { hex: "#ec4899".into(), name: "Neon Rose".into() },
-                ColorSwatch { hex: "#10b981".into(), name: "Emerald Pro".into() },
-                ColorSwatch { hex: "#f59e0b".into(), name: "Amber Glow".into() },
+                ColorSwatch { hex: "#6366f1".to_string(), name: "Indigo Core".to_string() },
+                ColorSwatch { hex: "#38bdf8".to_string(), name: "Sky Cyan".to_string() },
+                ColorSwatch { hex: "#ec4899".to_string(), name: "Neon Rose".to_string() },
+                ColorSwatch { hex: "#10b981".to_string(), name: "Emerald Pro".to_string() },
+                ColorSwatch { hex: "#f59e0b".to_string(), name: "Amber Glow".to_string() },
             ],
         },
         ColorPalette {
-            id: "palette-cyberpunk".into(),
-            name: "Cyberpunk Glow".into(),
-            description: "Høykontrast neon-palett for VFX, motion design og UI-effekter.".into(),
+            id: "palette-cyberpunk".to_string(),
+            name: "Cyberpunk Glow".to_string(),
+            description: "Høykontrast neon-palett for VFX, motion design og UI-effekter.".to_string(),
             colors: vec![
-                ColorSwatch { hex: "#06b6d4".into(), name: "Electric Cyan".into() },
-                ColorSwatch { hex: "#8b5cf6".into(), name: "Violet Ray".into() },
-                ColorSwatch { hex: "#f43f5e".into(), name: "Hot Crimson".into() },
-                ColorSwatch { hex: "#eab308".into(), name: "Warning Yellow".into() },
-                ColorSwatch { hex: "#0d0f17".into(), name: "Void Black".into() },
+                ColorSwatch { hex: "#06b6d4".to_string(), name: "Electric Cyan".to_string() },
+                ColorSwatch { hex: "#8b5cf6".to_string(), name: "Violet Ray".to_string() },
+                ColorSwatch { hex: "#f43f5e".to_string(), name: "Hot Crimson".to_string() },
+                ColorSwatch { hex: "#eab308".to_string(), name: "Warning Yellow".to_string() },
+                ColorSwatch { hex: "#0d0f17".to_string(), name: "Void Black".to_string() },
             ],
         },
         ColorPalette {
-            id: "palette-nordic".into(),
-            name: "Nordic Minimalist".into(),
-            description: "Dempede, rolige skandinaviske farger for bøker, typografi og ren layout.".into(),
+            id: "palette-nordic".to_string(),
+            name: "Nordic Minimalist".to_string(),
+            description: "Dempede, rolige skandinaviske farger for bøker, typografi og ren layout.".to_string(),
             colors: vec![
-                ColorSwatch { hex: "#0f172a".into(), name: "Nordic Slate".into() },
-                ColorSwatch { hex: "#334155".into(), name: "Fjord Grey".into() },
-                ColorSwatch { hex: "#64748b".into(), name: "Granite Mist".into() },
-                ColorSwatch { hex: "#cbd5e1".into(), name: "Birch White".into() },
-                ColorSwatch { hex: "#0284c7".into(), name: "Arctic Ice".into() },
+                ColorSwatch { hex: "#0f172a".to_string(), name: "Nordic Slate".to_string() },
+                ColorSwatch { hex: "#334155".to_string(), name: "Fjord Grey".to_string() },
+                ColorSwatch { hex: "#64748b".to_string(), name: "Granite Mist".to_string() },
+                ColorSwatch { hex: "#cbd5e1".to_string(), name: "Birch White".to_string() },
+                ColorSwatch { hex: "#0284c7".to_string(), name: "Arctic Ice".to_string() },
             ],
         },
         ColorPalette {
-            id: "palette-warm".into(),
-            name: "Warm Sunset Editorial".into(),
-            description: "Varme organiske toner for fotografi, matstyling og merkevarebygging.".into(),
+            id: "palette-warm".to_string(),
+            name: "Warm Sunset Editorial".to_string(),
+            description: "Varme organiske toner for fotografi, matstyling og merkevarebygging.".to_string(),
             colors: vec![
-                ColorSwatch { hex: "#451a03".into(), name: "Dark Roast".into() },
-                ColorSwatch { hex: "#b45309".into(), name: "Terracotta".into() },
-                ColorSwatch { hex: "#ea580c".into(), name: "Burnt Orange".into() },
-                ColorSwatch { hex: "#f59e0b".into(), name: "Golden Hour".into() },
-                ColorSwatch { hex: "#fef3c7".into(), name: "Warm Cream".into() },
+                ColorSwatch { hex: "#451a03".to_string(), name: "Dark Roast".to_string() },
+                ColorSwatch { hex: "#b45309".to_string(), name: "Terracotta".to_string() },
+                ColorSwatch { hex: "#ea580c".to_string(), name: "Burnt Orange".to_string() },
+                ColorSwatch { hex: "#f59e0b".to_string(), name: "Golden Hour".to_string() },
+                ColorSwatch { hex: "#fef3c7".to_string(), name: "Warm Cream".to_string() },
             ],
         },
     ]
@@ -509,7 +509,7 @@ pub async fn install_or_update_app(
             downloaded: 0,
             total: 100,
             percent: 5.0,
-            status: "starting".into(),
+            status: "starting".to_string(),
             message: format!("Starter nedlasting av {} ({})...", app_id, target_type),
         },
     );
@@ -543,7 +543,7 @@ pub async fn install_or_update_app(
                             downloaded: current_bytes,
                             total: total_size,
                             percent,
-                            status: "downloading".into(),
+                            status: "downloading".to_string(),
                             message: format!(
                                 "Laster ned... {:.1} MB / {:.1} MB",
                                 current_bytes as f64 / 1_048_576.0,
@@ -570,7 +570,7 @@ pub async fn install_or_update_app(
                     downloaded: current,
                     total: simulated_total,
                     percent: p,
-                    status: "downloading".into(),
+                    status: "downloading".to_string(),
                     message: format!(
                         "Laster ned installasjonspakke... {:.1} MB",
                         current as f64 / 1_048_576.0
@@ -587,8 +587,8 @@ pub async fn install_or_update_app(
             downloaded: 100,
             total: 100,
             percent: 96.0,
-            status: "extracting".into(),
-            message: "Klargjør og installerer applikasjonen...".into(),
+            status: "extracting".to_string(),
+            message: "Klargjør og installerer applikasjonen...".to_string(),
         },
     );
 
@@ -664,7 +664,7 @@ pub async fn install_or_update_app(
             downloaded: 100,
             total: 100,
             percent: 100.0,
-            status: "completed".into(),
+            status: "completed".to_string(),
             message: format!("{} er vellykket installert og klar til bruk!", app_id),
         },
     );
@@ -726,7 +726,7 @@ fn scan_single_project(project_dir: &Path) -> Result<SmartProject, String> {
     let mut description = "".to_string();
     let mut created_at = chrono_now();
     let mut updated_at = chrono_now();
-    let mut recommended_apps = vec!["photocraft".into(), "vectorcraft".into()];
+    let mut recommended_apps: Vec<String> = vec!["photocraft".to_string(), "vectorcraft".to_string()];
 
     if let Ok(content) = fs::read_to_string(&manifest_path) {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -828,16 +828,16 @@ fn traverse_project_files(root_dir: &Path, current_dir: &Path, list: &mut Vec<Pr
 
 pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {
     match ext {
-        ".png" | ".jpg" | ".jpeg" | ".webp" | ".psd" => vec!["photocraft".into(), "lightcraft".into()],
-        ".svg" | ".eps" | ".ai" => vec!["vectorcraft".into(), "designcraft".into(), "figcraft".into()],
-        ".mp4" | ".mov" | ".mkv" | ".webm" => vec!["filmcraft".into(), "effectcraft".into()],
-        ".raw" | ".cr2" | ".nef" | ".dng" | ".arw" => vec!["lightcraft".into(), "photocraft".into()],
-        ".pdf" => vec!["pdfcraft".into(), "designcraft".into()],
-        ".mg" | ".json" => vec!["effectcraft".into(), "figcraft".into()],
-        ".fig" => vec!["figcraft".into()],
-        ".idml" => vec!["designcraft".into()],
-        ".wav" | ".mp3" | ".flac" | ".ogg" | ".aac" => vec!["soundcraft".into(), "filmcraft".into()],
-        _ => vec!["photocraft".into(), "vectorcraft".into()],
+        ".png" | ".jpg" | ".jpeg" | ".webp" | ".psd" => vec!["photocraft".to_string(), "lightcraft".to_string()],
+        ".svg" | ".eps" | ".ai" => vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
+        ".mp4" | ".mov" | ".mkv" | ".webm" => vec!["filmcraft".to_string(), "effectcraft".to_string()],
+        ".raw" | ".cr2" | ".nef" | ".dng" | ".arw" => vec!["lightcraft".to_string(), "photocraft".to_string()],
+        ".pdf" => vec!["pdfcraft".to_string(), "designcraft".to_string()],
+        ".mg" | ".json" => vec!["effectcraft".to_string(), "figcraft".to_string()],
+        ".fig" => vec!["figcraft".to_string()],
+        ".idml" => vec!["designcraft".to_string()],
+        ".wav" | ".mp3" | ".flac" | ".ogg" | ".aac" => vec!["soundcraft".to_string(), "filmcraft".to_string()],
+        _ => vec!["photocraft".to_string(), "vectorcraft".to_string()],
     }
 }
 
@@ -851,7 +851,7 @@ pub fn create_smart_project(
         .trim()
         .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_");
     if sanitized_name.is_empty() {
-        return Err("Ugyldig prosjektnavn".into());
+        return Err("Ugyldig prosjektnavn".to_string());
     }
 
     let projects_dir = get_hub_home().join("Projects");
@@ -901,12 +901,12 @@ pub fn create_smart_project(
 </svg>"##;
     let _ = fs::write(starter_svg, svg_content);
 
-    let recommended = match project_type.as_str() {
-        "Brand Identity" | "Vektor & Logo" => vec!["vectorcraft".into(), "designcraft".into(), "figcraft".into()],
-        "Foto & Retusj" | "Fotografi" => vec!["lightcraft".into(), "photocraft".into()],
-        "Film & Motion" | "Video & VFX" => vec!["filmcraft".into(), "effectcraft".into(), "soundcraft".into()],
-        "Publisering & PDF" => vec!["designcraft".into(), "pdfcraft".into()],
-        _ => vec!["photocraft".into(), "vectorcraft".into(), "figcraft".into()],
+    let recommended: Vec<String> = match project_type.as_str() {
+        "Brand Identity" | "Vektor & Logo" => vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
+        "Foto & Retusj" | "Fotografi" => vec!["lightcraft".to_string(), "photocraft".to_string()],
+        "Film & Motion" | "Video & VFX" => vec!["filmcraft".to_string(), "effectcraft".to_string(), "soundcraft".to_string()],
+        "Publisering & PDF" => vec!["designcraft".to_string(), "pdfcraft".to_string()],
+        _ => vec!["photocraft".to_string(), "vectorcraft".to_string(), "figcraft".to_string()],
     };
 
     let project_manifest = serde_json::json!({

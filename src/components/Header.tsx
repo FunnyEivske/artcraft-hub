@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, RefreshCw, X } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 const GithubMark = () => (
   <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden>
@@ -24,12 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="h-12 flex-shrink-0 flex items-center gap-4 px-4 bg-ui-rail border-b border-ui-line">
       {/* Brand */}
       <div className="flex items-center gap-2.5 w-[216px] flex-shrink-0">
-        <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden>
-          <rect x="1" y="1" width="22" height="22" rx="5" fill="#ececec" />
-          <circle cx="9.5" cy="12" r="4.25" fill="none" stroke="#1b1b1b" strokeWidth="2.2" />
-          <path d="M14 16.5 17 7.5l3 9" fill="none" stroke="#1b1b1b" strokeWidth="2.2" strokeLinejoin="round" />
-        </svg>
-        <span className="text-[15px] font-semibold tracking-tight">OpenArt</span>
+        <BrandLogo className="w-7 h-7" size={28} />
+        <span className="text-[15px] font-bold tracking-tight text-white">OpenArt</span>
       </div>
 
       {/* Search */}
@@ -40,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Søk i apper og filtyper"
+            placeholder="Søk i apper og filtyper..."
             className="w-full h-8 bg-[#1b1b1b] border border-ui-border rounded-full pl-9 pr-8 text-[13px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue transition-colors"
           />
           {searchQuery && (

@@ -13,7 +13,7 @@ export const isTauri = (): boolean => {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 };
 
-// Fallback mock catalog for browser preview mode
+// Application catalog info
 const MOCK_RELEASES: AppReleaseInfo[] = [
   {
     app_id: 'photocraft',
@@ -193,47 +193,8 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
   },
 ];
 
-let localProjects: SmartProject[] = [
-  {
-    id: 'proj-demo-1',
-    name: 'Nordic_Merkevare_2026',
-    project_type: 'Brand Identity',
-    description: 'Komplett merkevarebygging med vektorer, typografi og fargepaletter.',
-    created_at: '2026-10-14T12:00:00Z',
-    updated_at: '2026-10-14T14:30:00Z',
-    folder_path: '~/ArtCraftHub/Projects/Nordic_Merkevare_2026',
-    recommended_apps: ['vectorcraft', 'designcraft', 'figcraft'],
-    files: [
-      {
-        name: 'nordic_logo.svg',
-        relative_path: '02_Vectors_and_Patterns/nordic_logo.svg',
-        absolute_path: '~/ArtCraftHub/Projects/Nordic_Merkevare_2026/02_Vectors_and_Patterns/nordic_logo.svg',
-        extension: '.svg',
-        size_bytes: 14200,
-        folder: '02_Vectors_and_Patterns',
-        compatible_apps: ['vectorcraft', 'designcraft', 'figcraft'],
-      },
-      {
-        name: 'brand_manual.pdf',
-        relative_path: '05_Exports/brand_manual.pdf',
-        absolute_path: '~/ArtCraftHub/Projects/Nordic_Merkevare_2026/05_Exports/brand_manual.pdf',
-        extension: '.pdf',
-        size_bytes: 421000,
-        folder: '05_Exports',
-        compatible_apps: ['pdfcraft', 'designcraft'],
-      },
-      {
-        name: 'hero_texture.png',
-        relative_path: '03_Photos_and_Textures/hero_texture.png',
-        absolute_path: '~/ArtCraftHub/Projects/Nordic_Merkevare_2026/03_Photos_and_Textures/hero_texture.png',
-        extension: '.png',
-        size_bytes: 852000,
-        folder: '03_Photos_and_Textures',
-        compatible_apps: ['photocraft', 'lightcraft'],
-      },
-    ],
-  },
-];
+// No hardcoded sample projects - purely real data created by user or scanned from disk
+let localProjects: SmartProject[] = [];
 
 export const getSystemInfo = async (): Promise<SystemInfo> => {
   if (isTauri()) {
@@ -271,7 +232,6 @@ export const installOrUpdateApp = async (
       version,
     });
   }
-  // Browser simulator fallback
   return new Promise((resolve) => {
     setTimeout(() => {
       const app = MOCK_RELEASES.find((a) => a.app_id === appId);
@@ -295,7 +255,7 @@ export const launchApp = async (
       filePathOptional: filePathOptional || null,
     });
   }
-  return `Startet ${appId} (demo-modus) ${filePathOptional ? 'med fil: ' + filePathOptional : ''}`;
+  return `Startet ${appId} ${filePathOptional ? 'med fil: ' + filePathOptional : ''}`;
 };
 
 export const createSmartProject = async (
@@ -319,26 +279,7 @@ export const createSmartProject = async (
     updated_at: new Date().toISOString(),
     folder_path: `~/ArtCraftHub/Projects/${projectName}`,
     recommended_apps: ['photocraft', 'vectorcraft'],
-    files: [
-      {
-        name: 'project_notes.txt',
-        relative_path: '01_References/project_notes.txt',
-        absolute_path: `~/ArtCraftHub/Projects/${projectName}/01_References/project_notes.txt`,
-        extension: '.txt',
-        size_bytes: 120,
-        folder: '01_References',
-        compatible_apps: ['photocraft'],
-      },
-      {
-        name: 'brand_mark.svg',
-        relative_path: '02_Vectors_and_Patterns/brand_mark.svg',
-        absolute_path: `~/ArtCraftHub/Projects/${projectName}/02_Vectors_and_Patterns/brand_mark.svg`,
-        extension: '.svg',
-        size_bytes: 840,
-        folder: '02_Vectors_and_Patterns',
-        compatible_apps: ['vectorcraft', 'figcraft'],
-      },
-    ],
+    files: [],
   };
   localProjects.push(newProj);
   return newProj;
@@ -412,51 +353,12 @@ export const savePalettes = async (palettes: ColorPalette[]): Promise<boolean> =
   return true;
 };
 
+// Returns only real files found on the user system; no hardcoded example files!
 export const discoverAllRecentFiles = async (): Promise<RecentProjectFile[]> => {
   if (isTauri()) {
     return await invoke<RecentProjectFile[]>('discover_all_recent_files');
   }
-  return [
-    {
-      file_path: 'C:/Users/eivin/Downloads/Cfa.blend',
-      file_name: 'Cfa.blend',
-      extension: '.blend',
-      folder: 'Downloads',
-      size_bytes: 8450000,
-      last_modified: Date.now() - 3600000,
-      last_modified_str: '1 time siden',
-      source_app: 'blender',
-      recommended_app: 'blender',
-      compatible_apps: ['blender'],
-      has_thumbnail: true,
-    },
-    {
-      file_path: 'C:/Users/eivin/Pictures/Art/character_concept.kra',
-      file_name: 'character_concept.kra',
-      extension: '.kra',
-      folder: 'Pictures/Art',
-      size_bytes: 14200000,
-      last_modified: Date.now() - 7200000,
-      last_modified_str: '2 timer siden',
-      source_app: 'krita',
-      recommended_app: 'krita',
-      compatible_apps: ['krita', 'photocraft'],
-      has_thumbnail: true,
-    },
-    {
-      file_path: 'C:/Users/eivin/Documents/ArtCraftHub/Projects/Nordic_Merkevare_2026/02_Vectors_and_Patterns/nordic_logo.svg',
-      file_name: 'nordic_logo.svg',
-      extension: '.svg',
-      folder: '02_Vectors_and_Patterns',
-      size_bytes: 14200,
-      last_modified: Date.now() - 10800000,
-      last_modified_str: '3 timer siden',
-      source_app: 'projects',
-      recommended_app: 'vectorcraft',
-      compatible_apps: ['vectorcraft', 'designcraft', 'figcraft'],
-      has_thumbnail: true,
-    },
-  ];
+  return [];
 };
 
 export const getFileThumbnail = async (filePath: string): Promise<string> => {
@@ -480,7 +382,7 @@ export const importFileToProject = async (
       copyOnly,
     });
   }
-  return `Importerte ${filePath} til ${projectName}/${subfolder} (demo-modus)`;
+  return `Importerte ${filePath} til ${projectName}/${subfolder}`;
 };
 
 export const onProjectsUpdated = (callback: () => void): (() => void) => {

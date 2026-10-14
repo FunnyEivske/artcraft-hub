@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppReleaseInfo } from '../types';
 
-// Distinct Craft & Studio abbreviations: PC (PhotoCraft), VC (VectorCraft), FC (FilmCraft), LC (LightCraft), BL (Blender), KR (Krita), etc.
+// Distinct Craft & Studio abbreviations
 const ABBREVIATIONS: Record<string, string> = {
   photocraft: 'PC',
   vectorcraft: 'VC',
@@ -12,8 +12,6 @@ const ABBREVIATIONS: Record<string, string> = {
   designcraft: 'DC',
   figcraft: 'FG',
   soundcraft: 'SC',
-  blender: 'BL',
-  krita: 'KR',
 };
 
 // Saturated, distinct, vivid studio colors
@@ -45,6 +43,61 @@ interface AppTileProps {
 
 export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
   const key = app.app_id?.toLowerCase() || '';
+  const [loadError, setLoadError] = useState(false);
+
+  // Official brand logo for Blender
+  if (key === 'blender') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.24),
+          background: 'linear-gradient(140deg, rgba(234, 88, 12, 0.22) 0%, #0a0d14 100%)',
+          border: '1.5px solid #ea580c',
+          boxShadow: '0 4px 14px rgba(234, 88, 12, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.12)),
+        }}
+      >
+        <img
+          src={loadError ? '/blender.svg' : '/blender.png'}
+          alt="Blender"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(234, 88, 12, 0.6))"
+          onError={() => setLoadError(true)}
+        />
+      </div>
+    );
+  }
+
+  // Official brand logo for Krita
+  if (key === 'krita') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.24),
+          background: 'linear-gradient(140deg, rgba(2, 132, 199, 0.22) 0%, #0a0d14 100%)',
+          border: '1.5px solid #0284c7',
+          boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.12)),
+        }}
+      >
+        <img
+          src={loadError ? '/krita.svg' : '/krita.png'}
+          alt="Krita"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(2, 132, 199, 0.6))"
+          onError={() => setLoadError(true)}
+        />
+      </div>
+    );
+  }
+
+  // ArtCraft studios with customized bold abbreviation tiles
   const accent = VIVID_COLORS[key] || app.color_accent || '#38bdf8';
   const abbr = appAbbreviation(app);
   const isLong = abbr.length > 2;

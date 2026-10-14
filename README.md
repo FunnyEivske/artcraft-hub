@@ -134,7 +134,7 @@ npx tauri build
 
 ---
 
-## 📄 License
+## 📄 License & Intellectual Property
 
 This project is licensed under a **Source-Available Non-Commercial License** — free for personal, educational, and academic use only.
 
@@ -142,10 +142,16 @@ This project is licensed under a **Source-Available Non-Commercial License** —
 > ### ⛔ Commercial Use Strictly Prohibited
 > **Commercial use, monetization, sublicensing, or business redistribution of this software, binaries, source code, or derivative works is strictly prohibited by anyone other than the author, unless explicit prior written permission and an official commercial license have been granted directly by the copyright holder.**
 
-For commercial licensing requests, custom business integration, or commercial permission inquiries, please contact:  
-📬 **Eivind Røsstad Skeie (FunnyEivske)** — [eivindrosstadskeie@gmail.com](mailto:eivindrosstadskeie@gmail.com)
+For commercial licensing inquiries or permission requests, please contact the author via [GitHub](https://github.com/FunnyEivske/artcraft-hub).
 
-See the full [LICENSE](LICENSE) file for exact terms and conditions.
+See the full [LICENSE](LICENSE) file for exact legal terms and conditions.
+
+---
+
+## ⚖️ Credits & Trademark Notices
+
+- **Creative Studios:** The 9 individual creative studio tools (PhotoCraft, VectorCraft, FilmCraft, LightCraft, PdfCraft, EffectCraft, DesignCraft, FigCraft, and SoundCraft) are developed under the `storytold` open-source organization and are licensed under their respective open-source licenses (MIT and/or Apache-2.0). OpenArt Hub acts as an independent orchestrator and launcher that interfaces with their public releases.
+- **Third-Party Trademarks:** Adobe, Photoshop, Illustrator, Premiere Pro, Lightroom, Acrobat, After Effects, InDesign, and Figma are trademarks or registered trademarks of their respective holders in the United States and other countries. OpenArt Hub is an independent project and is not affiliated with, sponsored by, or endorsed by Adobe Inc. or Figma Inc. These product names are referenced solely to describe workflow compatibility.
 
 <div align="center">
 Copyright © 2026 Eivind Røsstad Skeie. All rights reserved for commercial use.

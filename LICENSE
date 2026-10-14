@@ -1,7 +1,7 @@
 NON-COMMERCIAL SOURCE-AVAILABLE LICENSE
 
 Copyright (c) 2026 Eivind Røsstad Skeie (FunnyEivske)
-Contact: eivindrosstadskeie@gmail.com
+Repository: https://github.com/FunnyEivske/artcraft-hub
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to inspect,
@@ -17,9 +17,12 @@ EDUCATIONAL PURPOSES ONLY, subject to the following conditions:
    AND AN EXPLICIT COMMERCIAL LICENSE GRANTED DIRECTLY BY THE COPYRIGHT HOLDER
    (Eivind Røsstad Skeie).
 
-2. ATTRIBUTION:
+2. ATTRIBUTION & THIRD-PARTY NOTICES:
    The above copyright notice and this permission notice shall be included in all
    copies or substantial portions of the Software.
+   Third-party libraries, bundled components, or external applications launched
+   or managed by this Hub retain their respective licenses (such as MIT, Apache-2.0,
+   or SIL Open Font License).
 
 3. DERIVATIVE WORKS:
    Any modifications or derivative works created from this Software remain subject

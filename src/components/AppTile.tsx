@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { AppReleaseInfo } from '../types';
 
-// Distinct Craft & Studio abbreviations
+// Adobe Creative Cloud style 2-letter capitalization: Pc (PhotoCraft), Vc (VectorCraft), Fc (FilmCraft), etc.
 const ABBREVIATIONS: Record<string, string> = {
-  photocraft: 'PC',
-  vectorcraft: 'VC',
-  filmcraft: 'FC',
-  lightcraft: 'LC',
-  pdfcraft: 'PDF',
-  effectcraft: 'EC',
-  designcraft: 'DC',
-  figcraft: 'FG',
-  soundcraft: 'SC',
+  photocraft: 'Pc',
+  vectorcraft: 'Vc',
+  filmcraft: 'Fc',
+  lightcraft: 'Lc',
+  pdfcraft: 'Pdf',
+  effectcraft: 'Ec',
+  designcraft: 'Dc',
+  figcraft: 'Fg',
+  soundcraft: 'Sc',
 };
 
 // Saturated, distinct, vivid studio colors
@@ -33,7 +33,10 @@ export const appAbbreviation = (app: Pick<AppReleaseInfo, 'app_id' | 'app_name'>
   const key = app.app_id?.toLowerCase() || '';
   if (ABBREVIATIONS[key]) return ABBREVIATIONS[key];
   const base = app.app_name.replace(/craft$/i, '');
-  return base.slice(0, 2).toUpperCase() || '??';
+  if (base.length >= 2) {
+    return base.charAt(0).toUpperCase() + base.charAt(1).toLowerCase();
+  }
+  return base.toUpperCase() || '??';
 };
 
 interface AppTileProps {
@@ -54,8 +57,8 @@ export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
         style={{
           width: size,
           height: size,
-          borderRadius: Math.round(size * 0.24),
-          background: 'linear-gradient(140deg, rgba(234, 88, 12, 0.22) 0%, #0a0d14 100%)',
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(234, 88, 12, 0.22) 0%, #0a0d14 100%)',
           border: '1.5px solid #ea580c',
           boxShadow: '0 4px 14px rgba(234, 88, 12, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
           padding: Math.max(2, Math.round(size * 0.12)),
@@ -80,8 +83,8 @@ export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
         style={{
           width: size,
           height: size,
-          borderRadius: Math.round(size * 0.24),
-          background: 'linear-gradient(140deg, rgba(2, 132, 199, 0.22) 0%, #0a0d14 100%)',
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(2, 132, 199, 0.22) 0%, #0a0d14 100%)',
           border: '1.5px solid #0284c7',
           boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
           padding: Math.max(2, Math.round(size * 0.12)),
@@ -97,7 +100,7 @@ export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
     );
   }
 
-  // ArtCraft studios with customized bold abbreviation tiles
+  // ArtCraft studios with Adobe-style typography (e.g. Pc, Vc, Fc)
   const accent = VIVID_COLORS[key] || app.color_accent || '#38bdf8';
   const abbr = appAbbreviation(app);
   const isLong = abbr.length > 2;
@@ -105,18 +108,19 @@ export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
   return (
     <div
       aria-hidden
-      className="flex-shrink-0 flex items-center justify-center font-extrabold select-none transition-transform hover:scale-105"
+      className="flex-shrink-0 flex items-center justify-center font-bold select-none transition-transform hover:scale-105"
       style={{
         width: size,
         height: size,
-        borderRadius: Math.round(size * 0.24),
-        background: `linear-gradient(140deg, color-mix(in srgb, ${accent} 28%, #141824) 0%, #0a0d14 100%)`,
+        borderRadius: Math.round(size * 0.22),
+        background: `linear-gradient(145deg, color-mix(in srgb, ${accent} 25%, #161822) 0%, #090b10 100%)`,
         border: `2px solid ${accent}`,
         boxShadow: `0 4px 14px color-mix(in srgb, ${accent} 45%, transparent), inset 0 1px 1px rgba(255,255,255,0.25)`,
         color: accent,
-        fontSize: Math.round(size * (isLong ? 0.35 : 0.46)),
-        letterSpacing: '-0.02em',
-        textShadow: `0 0 10px color-mix(in srgb, ${accent} 70%, transparent)`,
+        fontSize: Math.round(size * (isLong ? 0.36 : 0.48)),
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        letterSpacing: isLong ? '-0.04em' : '-0.01em',
+        textShadow: `0 0 12px color-mix(in srgb, ${accent} 65%, transparent)`,
       }}
     >
       {abbr}

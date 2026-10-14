@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
+import { Sidebar, HubTab } from './components/Sidebar';
 import { AppHubView } from './components/AppHubView';
 import { ProjectsView } from './components/ProjectsView';
 import { PalettesView } from './components/PalettesView';
@@ -26,7 +27,9 @@ import {
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'apps' | 'projects' | 'palettes' | 'updates'>('apps');
+  const [activeTab, setActiveTab] = useState<HubTab>('apps');
+  const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [apps, setApps] = useState<AppReleaseInfo[]>([]);
   const [projects, setProjects] = useState<SmartProject[]>([]);
@@ -56,7 +59,7 @@ export function App() {
       setProjects(projs);
       setPalettes(pals);
     } catch {
-      showToast('Koblet til OpenArt Hub i frakoblet/lokal modus', 'info');
+      showToast('Kunne ikke hente versjoner – viser lokal oversikt', 'info');
     } finally {
       setIsRefreshing(false);
     }
@@ -73,7 +76,7 @@ export function App() {
       }));
 
       if (payload.status === 'completed') {
-        showToast(`${payload.app_id} ble installert og er klar!`, 'success');
+        showToast('Installasjonen er fullført', 'success');
         // Refresh app list after installation finishes
         checkGithubReleases().then((updated) => setApps(updated));
       }
@@ -104,7 +107,7 @@ export function App() {
           ? app.web_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`
           : app.native_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`;
 
-      showToast(`Starter nedlasting av ${app.app_name}...`, 'info');
+      showToast(`Laster ned ${app.app_name}`, 'info');
       await installOrUpdateApp(app.app_id, downloadUrl, targetType, app.latest_version);
     } catch (err) {
       showToast(`Feil under installasjon: ${err}`, 'error');
@@ -116,7 +119,7 @@ export function App() {
     try {
       const newProj = await createSmartProject(name, type, description);
       setProjects((prev) => [...prev, newProj]);
-      showToast(`Smart-prosjekt '${name}' opprettet med standard 5-mappers struktur!`, 'success');
+      showToast(`Prosjektet «${name}» er opprettet`, 'success');
     } catch (err) {
       showToast(`Feil ved opprettelse: ${err}`, 'error');
     } finally {
@@ -137,7 +140,7 @@ export function App() {
     setPalettes(updated);
     try {
       await savePalettes(updated);
-      showToast('Fargepaletter oppdatert og lagret!', 'success');
+      showToast('Palettene er lagret', 'success');
     } catch (err) {
       showToast(`Kunne ikke lagre paletter: ${err}`, 'error');
     }
@@ -146,11 +149,11 @@ export function App() {
   const handleUpdateAll = async () => {
     const toUpdate = apps.filter((a) => a.status === 'UpdateAvailable' || a.status === 'NotInstalled');
     if (toUpdate.length === 0) {
-      showToast('Alle apper er allerede oppdatert!', 'info');
+      showToast('Alle apper er oppdatert', 'info');
       return;
     }
 
-    showToast(`Køer oppdatering for ${toUpdate.length} apper...`, 'info');
+    showToast(`Oppdaterer ${toUpdate.length} apper`, 'info');
     for (const app of toUpdate) {
       await handleInstall(app, 'native');
     }
@@ -158,76 +161,89 @@ export function App() {
 
   const updatesCount = apps.filter((a) => a.status === 'UpdateAvailable').length;
 
-  return (
-    <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#141d2c] border border-white/10 shadow-2xl animate-fade-in text-xs font-semibold">
-          {toastMessage.type === 'error' ? (
-            <AlertCircle className="w-4 h-4 text-rose-400" />
-          ) : (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          )}
-          <span className="text-white">{toastMessage.text}</span>
-        </div>
-      )}
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+    if (q && activeTab !== 'apps') setActiveTab('apps');
+  };
 
-      {/* Main Top Header */}
+  return (
+    <div className="h-screen flex flex-col bg-ui-bg text-ui-text">
       <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        systemInfo={systemInfo}
-        updatesCount={updatesCount}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
         onRefreshReleases={loadData}
         isRefreshing={isRefreshing}
       />
 
-      {/* Main Container Views */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8">
-        {activeTab === 'apps' && (
-          <AppHubView
-            apps={apps}
-            onLaunchNative={handleLaunchNative}
-            onLaunchWeb={handleLaunchWeb}
-            onInstall={handleInstall}
-            progressMap={progressMap}
-          />
-        )}
-
-        {activeTab === 'projects' && (
-          <ProjectsView
-            projects={projects}
-            onCreateProject={handleCreateProject}
-            onOpenFileInApp={handleOpenFileInApp}
-            isCreating={isCreatingProject}
-          />
-        )}
-
-        {activeTab === 'palettes' && (
-          <PalettesView
-            palettes={palettes}
-            onSavePalettes={handleSavePalettes}
-          />
-        )}
-
-        {activeTab === 'updates' && (
-          <UpdateCenterView
-            apps={apps}
-            onCheckUpdates={loadData}
-            onUpdateAll={handleUpdateAll}
-            onInstall={handleInstall}
-            isChecking={isRefreshing}
-            progressMap={progressMap}
-          />
-        )}
-      </main>
-
-      {/* In-Hub WebAssembly Studio Modal */}
-      {activeWebStudioApp && (
-        <WebStudioModal
-          app={activeWebStudioApp}
-          onClose={() => setActiveWebStudioApp(null)}
+      <div className="flex-1 flex min-h-0">
+        <Sidebar
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+          appCount={apps.length}
+          updatesCount={updatesCount}
+          systemInfo={systemInfo}
         />
+
+        <main className="flex-1 min-w-0 overflow-y-auto px-8 py-7">
+          {activeTab === 'apps' && (
+            <AppHubView
+              apps={apps}
+              selectedCategory={selectedCategory}
+              searchQuery={searchQuery}
+              onClearFilters={() => {
+                setSelectedCategory('Alle');
+                setSearchQuery('');
+              }}
+              onLaunchNative={handleLaunchNative}
+              onLaunchWeb={handleLaunchWeb}
+              onInstall={handleInstall}
+              progressMap={progressMap}
+            />
+          )}
+
+          {activeTab === 'projects' && (
+            <ProjectsView
+              projects={projects}
+              onCreateProject={handleCreateProject}
+              onOpenFileInApp={handleOpenFileInApp}
+              isCreating={isCreatingProject}
+            />
+          )}
+
+          {activeTab === 'palettes' && (
+            <PalettesView palettes={palettes} onSavePalettes={handleSavePalettes} />
+          )}
+
+          {activeTab === 'updates' && (
+            <UpdateCenterView
+              apps={apps}
+              onCheckUpdates={loadData}
+              onUpdateAll={handleUpdateAll}
+              onInstall={handleInstall}
+              isChecking={isRefreshing}
+              progressMap={progressMap}
+            />
+          )}
+        </main>
+      </div>
+
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 h-10 pl-3 pr-4 rounded-md shadow-menu text-[13px] text-white"
+          style={{ background: toastMessage.type === 'error' ? '#c9252d' : toastMessage.type === 'info' ? '#378ef0' : '#268e6c' }}
+        >
+          {toastMessage.type === 'error' ? (
+            <AlertCircle className="w-4 h-4" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4" />
+          )}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
+      {activeWebStudioApp && (
+        <WebStudioModal app={activeWebStudioApp} onClose={() => setActiveWebStudioApp(null)} />
       )}
     </div>
   );

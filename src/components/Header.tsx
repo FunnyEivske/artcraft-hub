@@ -1,135 +1,79 @@
 import React from 'react';
-import {
-  Layers,
-  FolderKanban,
-  Palette,
-  RefreshCw,
-  Sparkles,
-  Monitor,
-} from 'lucide-react';
-import { SystemInfo } from '../types';
+import { Search, RefreshCw, X } from 'lucide-react';
+
+const GithubMark = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden>
+    <path d="M12 2C6.48 2 2 6.48 2 12.02c0 4.42 2.87 8.17 6.84 9.5.5.09.68-.22.68-.48l-.01-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.03a9.56 9.56 0 0 1 5 0c1.91-1.3 2.75-1.03 2.75-1.03.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.86l-.01 2.75c0 .27.18.58.69.48A10.02 10.02 0 0 0 22 12.02C22 6.48 17.52 2 12 2z" />
+  </svg>
+);
 
 interface HeaderProps {
-  activeTab: 'apps' | 'projects' | 'palettes' | 'updates';
-  setActiveTab: (tab: 'apps' | 'projects' | 'palettes' | 'updates') => void;
-  systemInfo: SystemInfo | null;
-  updatesCount: number;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
   onRefreshReleases: () => void;
   isRefreshing: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  activeTab,
-  setActiveTab,
-  systemInfo,
-  updatesCount,
+  searchQuery,
+  onSearchChange,
   onRefreshReleases,
   isRefreshing,
 }) => {
   return (
-    <header className="glass-panel border-b border-white/5 sticky top-0 z-40 px-6 py-3.5 flex items-center justify-between">
-      {/* Brand & Identity */}
-      <div className="flex items-center gap-3.5">
-        <div className="relative group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-sky-500 to-pink-500 p-[1.5px] shadow-glow">
-            <div className="w-full h-full bg-[#0d121c] rounded-[10px] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-sky-400 group-hover:rotate-12 transition-transform duration-300" />
-            </div>
-          </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0d121c]" />
-        </div>
+    <header className="h-12 flex-shrink-0 flex items-center gap-4 px-4 bg-ui-rail border-b border-ui-line">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 w-[216px] flex-shrink-0">
+        <svg viewBox="0 0 24 24" className="w-6 h-6" aria-hidden>
+          <rect x="1" y="1" width="22" height="22" rx="5" fill="#ececec" />
+          <circle cx="9.5" cy="12" r="4.25" fill="none" stroke="#1b1b1b" strokeWidth="2.2" />
+          <path d="M14 16.5 17 7.5l3 9" fill="none" stroke="#1b1b1b" strokeWidth="2.2" strokeLinejoin="round" />
+        </svg>
+        <span className="text-[15px] font-semibold tracking-tight">OpenArt</span>
+      </div>
 
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-              OpenArt Hub
-            </h1>
-            <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              v1.0.0 Pro
-            </span>
-          </div>
-          <p className="text-xs text-slate-400">
-            Kreativ suite for storytold ArtCraft-apper
-          </p>
+      {/* Search */}
+      <div className="flex-1 flex justify-center">
+        <div className="relative w-full max-w-[460px]">
+          <Search className="w-4 h-4 text-ui-faint absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Søk i apper og filtyper"
+            className="w-full h-8 bg-[#1b1b1b] border border-ui-border rounded-full pl-9 pr-8 text-[13px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue transition-colors"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ui-faint hover:text-ui-text"
+              title="Tøm søk"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Main Navigation Tabs */}
-      <nav className="flex items-center p-1 bg-[#101622]/90 rounded-xl border border-white/5">
-        <button
-          onClick={() => setActiveTab('apps')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            activeTab === 'apps'
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>App Hub</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('projects')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            activeTab === 'projects'
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-          }`}
-        >
-          <FolderKanban className="w-4 h-4" />
-          <span>Prosjekter & Pipeline</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('palettes')}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            activeTab === 'palettes'
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-          }`}
-        >
-          <Palette className="w-4 h-4" />
-          <span>Fargepaletter</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('updates')}
-          className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            activeTab === 'updates'
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-          }`}
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>Oppdateringer</span>
-          {updatesCount > 0 && (
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          )}
-        </button>
-      </nav>
-
-      {/* System Status & Actions */}
-      <div className="flex items-center gap-3">
-        {systemInfo && (
-          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 bg-[#121926] rounded-lg border border-white/5 text-slate-400 text-xs">
-            <Monitor className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="capitalize">{systemInfo.os}</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-[11px] font-mono text-slate-400">{systemInfo.arch}</span>
-          </div>
-        )}
-
+      {/* Actions */}
+      <div className="flex items-center gap-1 w-[216px] justify-end flex-shrink-0">
         <button
           onClick={onRefreshReleases}
           disabled={isRefreshing}
-          title="Synkroniser og sjekk siste releases fra storytold på GitHub"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#172030] hover:bg-[#202c42] active:scale-95 text-slate-300 hover:text-white rounded-lg border border-white/5 text-xs font-medium transition-all"
+          className="icon-btn"
+          title="Se etter nye versjoner"
         >
-          <svg className="w-3.5 h-3.5 text-sky-400 fill-current" viewBox="0 0 24 24">
-            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-          </svg>
-          <span>{isRefreshing ? 'Synkroniserer...' : 'Sjekk GitHub'}</span>
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
+        <a
+          href="https://github.com/storytold"
+          target="_blank"
+          rel="noreferrer"
+          className="icon-btn"
+          title="storytold på GitHub"
+        >
+          <GithubMark />
+        </a>
       </div>
     </header>
   );

@@ -3,68 +3,78 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-[#0b0e14] text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  html,
+  body,
+  #root {
+    height: 100%;
   }
 
-  /* Custom sleek scrollbar */
+  body {
+    @apply bg-ui-bg text-ui-text antialiased;
+    font-size: 14px;
+  }
+
+  ::selection {
+    background: rgba(20, 115, 230, 0.35);
+  }
+
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f141d;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #242f42;
-    border-radius: 4px;
+    background: #3d3d3d;
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #3b4c68;
+    background: #4d4d4d;
+    background-clip: padding-box;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible {
+    outline: 2px solid #2680eb;
+    outline-offset: 2px;
   }
 }
 
-.glass-panel {
-  background: rgba(19, 26, 38, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-}
+@layer components {
+  /* Kept for the views that still use these names — now flat panels. */
+  .glass-panel {
+    background: #262626;
+    border: 1px solid #383838;
+  }
 
-.glass-card {
-  background: rgba(22, 30, 44, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
+  .glass-card {
+    background: #2b2b2b;
+    border: 1px solid #383838;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
 
-.glass-card:hover {
-  background: rgba(26, 36, 54, 0.8);
-  border-color: rgba(99, 102, 241, 0.35);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(99, 102, 241, 0.2);
-}
+  .glass-card:hover {
+    border-color: #4a4a4a;
+  }
 
-.glow-btn {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.2s ease;
-}
-
-.glow-btn::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.glow-btn:hover::after {
-  opacity: 1;
+  /* Buttons, Spectrum-style: pill shaped, quiet, one accent colour. */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-4 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-default;
+  }
+  .btn-primary {
+    @apply btn bg-ui-blue text-white hover:bg-ui-blueHover;
+  }
+  .btn-secondary {
+    @apply btn border-2 border-[#5a5a5a] text-ui-text hover:bg-ui-hover hover:border-[#6a6a6a];
+  }
+  .btn-quiet {
+    @apply btn px-3 text-ui-muted hover:text-ui-text hover:bg-ui-hover;
+  }
+  .icon-btn {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-md text-ui-muted hover:text-ui-text hover:bg-ui-hover transition-colors;
+  }
 }

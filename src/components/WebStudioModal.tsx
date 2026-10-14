@@ -193,17 +193,17 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/70">
       <div
-        className={`glass-panel border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
+        className={`glass-panel border border-white/10 rounded-lg flex flex-col overflow-hidden transition-all duration-300 ${
           isFullscreen ? 'w-full h-full rounded-none' : 'w-full max-w-5xl h-[88vh]'
         }`}
       >
         {/* Modal Top Bar */}
-        <div className="p-4 bg-[#111724] border-b border-white/10 flex items-center justify-between">
+        <div className="p-4 bg-[#212121] border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs border border-white/10"
+              className="w-9 h-9 rounded-md flex items-center justify-center font-bold text-xs border border-white/10"
               style={{ backgroundColor: `${app.color_accent}25`, color: app.color_accent }}
             >
               {app.app_name.substring(0, 2).toUpperCase()}
@@ -224,14 +224,14 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-2 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
               title={isFullscreen ? 'Gjenopprett størrelse' : 'Fullskjerm'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-2 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
               title="Lukk studio"
             >
               <X className="w-4 h-4" />
@@ -240,12 +240,12 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
         </div>
 
         {/* Studio Workspace Content */}
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-[#0a0e17]">
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-[#212121]">
           {/* Left Toolbar */}
-          <div className="w-full md:w-60 bg-[#0f1420] border-r border-white/5 p-4 flex flex-col justify-between space-y-4">
+          <div className="w-full md:w-60 bg-[#212121] border-r border-white/5 p-4 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               <div>
-                <span className="text-[11px] uppercase tracking-wider font-bold text-slate-400">
+                <span className="text-[11px]  font-bold text-slate-400">
                   Verktøy & Farger
                 </span>
                 <div className="grid grid-cols-5 gap-1.5 mt-2">
@@ -256,7 +256,7 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
                         onClick={() => setBrushColor(hex)}
                         style={{ backgroundColor: hex }}
                         className={`w-7 h-7 rounded-lg border transition-transform ${
-                          brushColor === hex ? 'scale-110 border-white shadow-md' : 'border-white/10'
+                          brushColor === hex ? 'scale-110 border-white' : 'border-white/10'
                         }`}
                       />
                     )
@@ -281,7 +281,7 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
 
               {/* Special Audio synthesizer panel if SoundCraft */}
               {app.app_id === 'soundcraft' && (
-                <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-2">
+                <div className="p-3 rounded-md bg-indigo-500/10 border border-indigo-500/20 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-indigo-300 flex items-center gap-1">
                       <Volume2 className="w-3.5 h-3.5" />
@@ -312,7 +312,7 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
               )}
 
               {/* Supported formats tip */}
-              <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-slate-400 space-y-1">
+              <div className="p-2.5 rounded-md bg-white/[0.02] border border-white/5 text-[11px] text-slate-400 space-y-1">
                 <span className="text-slate-300 font-semibold flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-sky-400" />
                   <span>Støttede filtyper:</span>
@@ -326,14 +326,14 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
             <div className="space-y-2 pt-2 border-t border-white/5">
               <button
                 onClick={clearCanvas}
-                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-slate-300 transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md bg-white/5 hover:bg-white/10 text-xs font-medium text-slate-300 transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Tøm lerret</span>
               </button>
               <button
                 onClick={downloadCanvasImage}
-                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all"
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-md bg-ui-blue hover:bg-ui-blueHover text-white text-xs font-semibold transition-all"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Eksporter PNG</span>
@@ -351,7 +351,7 @@ export const WebStudioModal: React.FC<WebStudioModalProps> = ({ app, onClose }) 
               onMouseUp={stopDrawing}
               onMouseLeave={stopDrawing}
               onMouseMove={draw}
-              className="max-w-full max-h-full rounded-2xl shadow-2xl border border-white/10 cursor-crosshair bg-[#0f172a]"
+              className="max-w-full max-h-full rounded-lg border border-white/10 cursor-crosshair bg-[#212121]"
             />
           </div>
         </div>

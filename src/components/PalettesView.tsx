@@ -94,25 +94,22 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-[1080px]">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Palette className="w-5 h-5 text-indigo-400" />
-            <span>Felles Ressursbank & Fargepaletter</span>
-          </h2>
-          <p className="text-xs text-slate-400">
-            Globale fargeprofiler og tokens lagret i ~/ArtCraftHub/Assets/palettes.json
+          <h1 className="text-[22px] font-bold tracking-tight">Fargepaletter</h1>
+          <p className="text-[13px] text-ui-muted mt-1">
+            Delte paletter som alle appene kan bruke.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-95 text-white text-xs font-semibold rounded-xl shadow-md shadow-indigo-600/30 transition-all"
+          className="btn-primary"
         >
           <Plus className="w-4 h-4" />
-          <span>Ny Fargepalett</span>
+          <span>Ny palett</span>
         </button>
       </div>
 
@@ -121,7 +118,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
         {palettes.map((palette) => (
           <div
             key={palette.id}
-            className="glass-card rounded-2xl p-5 border border-white/5 space-y-4 flex flex-col justify-between"
+            className="glass-card rounded-lg p-5 border border-white/5 space-y-4 flex flex-col justify-between"
           >
             <div>
               {/* Palette Card Header */}
@@ -149,7 +146,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
               </div>
 
               {/* Swatches Banner Bar */}
-              <div className="h-10 w-full rounded-xl overflow-hidden flex shadow-inner border border-white/5 my-3">
+              <div className="h-10 w-full rounded-md overflow-hidden flex border border-white/5 my-3">
                 {palette.colors.map((c, i) => (
                   <div
                     key={i}
@@ -169,11 +166,11 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                     <div
                       key={i}
                       onClick={() => copyToClipboard(c.hex)}
-                      className="group flex items-center justify-between p-2 rounded-xl bg-[#111723]/60 hover:bg-[#182132] border border-white/5 cursor-pointer transition-all"
+                      className="group flex items-center justify-between p-2 rounded-md bg-[#212121]/60 hover:bg-[#2a2a2a] border border-white/5 cursor-pointer transition-all"
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-5 h-5 rounded-md border border-white/20 shadow-sm"
+                          className="w-5 h-5 rounded-md border border-white/20"
                           style={{ backgroundColor: c.hex }}
                         />
                         <span className="text-xs font-medium text-slate-300">{c.name}</span>
@@ -210,8 +207,8 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
 
       {/* Add New Palette Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-          <div className="w-full max-w-lg glass-panel rounded-3xl p-6 border border-white/10 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="w-full max-w-lg glass-panel rounded-lg p-6 border border-white/10 relative">
             <button
               onClick={() => setShowAddModal(false)}
               className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
@@ -220,11 +217,11 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
             </button>
 
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-md bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
                 <Palette className="w-5 h-5 text-indigo-400" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Ny Global Fargepalett</h3>
+                <h3 className="text-base font-bold text-white">Ny palett</h3>
                 <p className="text-xs text-slate-400">Lagres i ~/ArtCraftHub/Assets/palettes.json</p>
               </div>
             </div>
@@ -238,7 +235,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                   placeholder="f.eks. Mørk Minimalisme 2026"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#111722] border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 rounded-md bg-[#212121] border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -249,7 +246,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                   placeholder="Formål, bruksområde..."
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#111722] border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 rounded-md bg-[#212121] border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
@@ -258,7 +255,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">Farger ({newColors.length})</label>
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {newColors.map((c, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-1.5 rounded-lg bg-[#0e141f] border border-white/5">
+                    <div key={idx} className="flex items-center justify-between p-1.5 rounded-lg bg-[#212121] border border-white/5">
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded border border-white/20" style={{ backgroundColor: c.hex }} />
                         <span className="text-xs text-slate-300">{c.name}</span>
@@ -277,7 +274,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
               </div>
 
               {/* Add color tool */}
-              <div className="p-3 rounded-xl bg-[#0e141f] border border-white/5 flex items-center gap-3">
+              <div className="p-3 rounded-md bg-[#212121] border border-white/5 flex items-center gap-3">
                 <input
                   type="color"
                   value={pickerHex}
@@ -289,7 +286,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                   value={pickerName}
                   onChange={(e) => setPickerName(e.target.value)}
                   placeholder="Fargenavn"
-                  className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#141b27] border border-white/10 text-xs text-white"
+                  className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#232323] border border-white/10 text-xs text-white"
                 />
                 <button
                   type="button"
@@ -304,13 +301,13 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-slate-300 hover:bg-white/5"
+                  className="px-4 py-2 rounded-md text-xs font-medium text-slate-300 hover:bg-white/5"
                 >
                   Avbryt
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-semibold shadow-md shadow-indigo-600/30 transition-all"
+                  className="px-5 py-2 rounded-md bg-ui-blue hover:bg-ui-blueHover text-white text-xs font-semibold transition-all"
                 >
                   Lagre Palett
                 </button>

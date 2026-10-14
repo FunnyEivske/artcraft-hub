@@ -1,25 +1,9 @@
-import React, { useState } from 'react';
-import {
-  Image,
-  PenTool,
-  Film,
-  Sliders,
-  FileText,
-  Sparkles,
-  LayoutTemplate,
-  Layout,
-  Volume2,
-  Play,
-  Globe,
-  Download,
-  CheckCircle2,
-  ArrowUpCircle,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Ellipsis, Globe, ScrollText, RefreshCw, ExternalLink } from 'lucide-react';
 import { AppReleaseInfo, DownloadProgressPayload } from '../types';
+import { AppTile } from './AppTile';
 
-interface AppCardProps {
+interface AppItemProps {
   app: AppReleaseInfo;
   onLaunchNative: (appId: string) => void;
   onLaunchWeb: (app: AppReleaseInfo) => void;
@@ -27,204 +11,203 @@ interface AppCardProps {
   progress?: DownloadProgressPayload;
 }
 
-export const AppCard: React.FC<AppCardProps> = ({
+const isActive = (p?: DownloadProgressPayload) =>
+  !!p && p.percent < 100 && p.status !== 'error' && p.status !== 'completed';
+
+/* ---------- small pieces ---------- */
+
+const ProgressLine: React.FC<{ progress: DownloadProgressPayload }> = ({ progress }) => (
+  <div className="mt-2">
+    <div className="flex items-center justify-between text-[12px] text-ui-muted mb-1">
+      <span className="truncate">{progress.message || 'Installerer…'}</span>
+      <span className="tabular-nums">{Math.round(progress.percent)} %</span>
+    </div>
+    <div className="h-1 w-full rounded-full bg-[#3a3a3a] overflow-hidden">
+      <div
+        className="h-full bg-ui-blue rounded-full transition-[width] duration-200"
+        style={{ width: `${progress.percent}%` }}
+      />
+    </div>
+  </div>
+);
+
+const ReleaseNotes: React.FC<{ app: AppReleaseInfo }> = ({ app }) => (
+  <div className="mt-3 rounded-md bg-ui-bg border border-ui-line p-3 text-[12.5px] leading-relaxed">
+    <div className="font-semibold text-ui-text mb-1">
+      {app.release_name || `Versjon ${app.latest_version}`}
+    </div>
+    <p className="text-ui-muted whitespace-pre-line">{app.release_notes || 'Ingen merknader for denne versjonen.'}</p>
+  </div>
+);
+
+const AppMenu: React.FC<{
+  app: AppReleaseInfo;
+  onLaunchWeb: (app: AppReleaseInfo) => void;
+  onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
+  onToggleNotes: () => void;
+  notesOpen: boolean;
+}> = ({ app, onLaunchWeb, onInstall, onToggleNotes, notesOpen }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open]);
+
+  const item =
+    'w-full flex items-center gap-2.5 px-3 h-8 text-[13px] text-left text-ui-text hover:bg-ui-hover';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button className="icon-btn" title="Flere valg" onClick={() => setOpen((o) => !o)}>
+        <Ellipsis className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-30 w-56 py-1 rounded-md bg-[#2f2f2f] border border-ui-border shadow-menu">
+          {app.has_web_app !== false && (
+            <button className={item} onClick={() => { setOpen(false); onLaunchWeb(app); }}>
+              <Globe className="w-4 h-4 text-ui-muted" />
+              Åpne i nettleservisning
+            </button>
+          )}
+          <button className={item} onClick={() => { setOpen(false); onToggleNotes(); }}>
+            <ScrollText className="w-4 h-4 text-ui-muted" />
+            {notesOpen ? 'Skjul nyheter' : 'Nyheter i denne versjonen'}
+          </button>
+          {app.status === 'Installed' && (
+            <button className={item} onClick={() => { setOpen(false); onInstall(app, 'web'); }}>
+              <RefreshCw className="w-4 h-4 text-ui-muted" />
+              Hent nettleserpakke
+            </button>
+          )}
+          <div className="my-1 border-t border-ui-border" />
+          <a
+            className={item}
+            href={`https://github.com/storytold/${app.app_id}/releases`}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setOpen(false)}
+          >
+            <ExternalLink className="w-4 h-4 text-ui-muted" />
+            Se utgivelser på GitHub
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ---------- installed / update rows ---------- */
+
+export const AppRow: React.FC<AppItemProps> = ({
   app,
   onLaunchNative,
   onLaunchWeb,
   onInstall,
   progress,
 }) => {
-  const [showNotes, setShowNotes] = useState(false);
-
-  const renderIcon = () => {
-    const props = { className: 'w-6 h-6', style: { color: app.color_accent } };
-    switch (app.icon_name) {
-      case 'Image':
-        return <Image {...props} />;
-      case 'PenTool':
-        return <PenTool {...props} />;
-      case 'Film':
-        return <Film {...props} />;
-      case 'Sliders':
-        return <Sliders {...props} />;
-      case 'FileText':
-        return <FileText {...props} />;
-      case 'Sparkles':
-        return <Sparkles {...props} />;
-      case 'LayoutTemplate':
-        return <LayoutTemplate {...props} />;
-      case 'Figma':
-        return <Layout {...props} />;
-      case 'Volume2':
-        return <Volume2 {...props} />;
-      default:
-        return <Sparkles {...props} />;
-    }
-  };
-
-  const isDownloading = progress && progress.percent < 100 && progress.status !== 'error';
+  const [notesOpen, setNotesOpen] = useState(false);
+  const busy = isActive(progress);
 
   return (
-    <div className="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
-      {/* Top Ambient Glow using app's accent color */}
-      <div
-        className="absolute top-0 right-0 w-36 h-36 rounded-full blur-3xl opacity-10 pointer-events-none transition-opacity group-hover:opacity-20"
-        style={{ backgroundColor: app.color_accent }}
-      />
+    <div className="px-4 py-3 hover:bg-[#2f2f2f] transition-colors">
+      <div className="flex items-center gap-4">
+        <AppTile app={app} size={40} />
 
-      <div>
-        {/* Top Header: Icon + Category + Status */}
-        <div className="flex items-start justify-between gap-3 mb-3.5">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center p-2 border border-white/10 shadow-inner"
-              style={{ backgroundColor: `${app.color_accent}15` }}
-            >
-              {renderIcon()}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  {app.app_name}
-                </h3>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-slate-300 border border-white/5">
-                  {app.installed_version || app.latest_version}
-                </span>
-              </div>
-              <p className="text-xs font-medium text-slate-400">
-                {app.category} • <span className="text-slate-300">{app.alternative_to}</span>-alternativ
-              </p>
-            </div>
-          </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold text-ui-text">{app.app_name}</div>
+          <div className="text-[13px] text-ui-muted truncate">{app.description}</div>
+        </div>
 
-          {/* Status Badge */}
-          {app.status === 'Installed' && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-              <CheckCircle2 className="w-3 h-3" />
-              <span>Installert</span>
-            </span>
-          )}
-          {app.status === 'UpdateAvailable' && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full animate-pulse">
-              <ArrowUpCircle className="w-3 h-3" />
-              <span>Ny versjon</span>
-            </span>
-          )}
-          {app.status === 'NotInstalled' && (
-            <span className="text-[11px] font-medium text-slate-400 bg-slate-800/60 border border-white/5 px-2 py-0.5 rounded-full">
-              Ikke installert
-            </span>
+        <div className="hidden md:block w-28 text-right text-[12px] text-ui-faint tabular-nums">
+          {app.status === 'UpdateAvailable' ? (
+            <span className="text-ui-blueText">Ny versjon {app.latest_version}</span>
+          ) : (
+            app.installed_version || app.latest_version
           )}
         </div>
 
-        {/* Description */}
-        <p className="text-xs text-slate-300/90 leading-relaxed mb-3">
-          {app.description}
-        </p>
-
-        {/* Supported File Formats */}
-        <div className="flex items-center flex-wrap gap-1 mb-4">
-          <span className="text-[10px] font-semibold uppercase text-slate-500 mr-1">Filer:</span>
-          {app.file_types.map((ext) => (
-            <span
-              key={ext}
-              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#101622] text-slate-300 border border-white/5"
-            >
-              {ext}
-            </span>
-          ))}
-        </div>
-
-        {/* Download Progress Bar if active */}
-        {isDownloading && (
-          <div className="mb-4 bg-[#101724] border border-white/10 rounded-xl p-3">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-sky-400 font-medium">{progress.message}</span>
-              <span className="font-mono text-slate-300 font-bold">{Math.round(progress.percent)}%</span>
-            </div>
-            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-sky-500 via-indigo-500 to-pink-500 rounded-full transition-all duration-200"
-                style={{ width: `${progress.percent}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Release Notes Accordion */}
-        <div className="mb-4">
-          <button
-            onClick={() => setShowNotes(!showNotes)}
-            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            <span>Endringslogg & GitHub release ({app.latest_version})</span>
-            {showNotes ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-          {showNotes && (
-            <div className="mt-2 p-2.5 rounded-lg bg-[#0f1522] border border-white/5 text-[11px] text-slate-300 font-mono leading-relaxed">
-              <p className="font-semibold text-slate-200 mb-1">{app.release_name}</p>
-              <p className="text-slate-400 whitespace-pre-line">{app.release_notes}</p>
-            </div>
+        <div className="flex items-center gap-1.5 w-[168px] justify-end">
+          {app.status === 'UpdateAvailable' ? (
+            <button className="btn-primary" disabled={busy} onClick={() => onInstall(app, 'native')}>
+              Oppdater
+            </button>
+          ) : (
+            <button className="btn-secondary" disabled={busy} onClick={() => onLaunchNative(app.app_id)}>
+              Åpne
+            </button>
           )}
+          <AppMenu
+            app={app}
+            onLaunchWeb={onLaunchWeb}
+            onInstall={onInstall}
+            notesOpen={notesOpen}
+            onToggleNotes={() => setNotesOpen((v) => !v)}
+          />
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
-        <div className="grid grid-cols-2 gap-2">
-          {/* Åpne App (Native) */}
-          <button
-            onClick={() => onLaunchNative(app.app_id)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-xs font-semibold text-white border border-white/10 transition-all shadow-sm"
-          >
-            <Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/20" />
-            <span>Åpne Native</span>
-          </button>
-
-          {/* Kjør i Hub (WebAssembly) */}
-          <button
-            onClick={() => onLaunchWeb(app)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 active:scale-95 text-xs font-semibold text-indigo-300 border border-indigo-500/20 transition-all shadow-sm"
-          >
-            <Globe className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Kjør i Hub</span>
-          </button>
+      {(busy || notesOpen) && (
+        <div className="pl-14 pr-[184px]">
+          {busy && progress && <ProgressLine progress={progress} />}
+          {notesOpen && <ReleaseNotes app={app} />}
         </div>
+      )}
+    </div>
+  );
+};
 
-        {/* Primary Install/Update Button */}
-        {app.status === 'NotInstalled' && (
-          <button
-            onClick={() => onInstall(app, 'native')}
-            disabled={isDownloading}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 hover:from-indigo-500 hover:to-sky-400 active:scale-98 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Installer App ({app.latest_version})</span>
-          </button>
-        )}
+/* ---------- available (not installed) cards ---------- */
 
-        {app.status === 'UpdateAvailable' && (
-          <button
-            onClick={() => onInstall(app, 'native')}
-            disabled={isDownloading}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-98 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20 transition-all disabled:opacity-50"
-          >
-            <ArrowUpCircle className="w-4 h-4" />
-            <span>Oppdater til {app.latest_version}</span>
-          </button>
-        )}
+export const AppCard: React.FC<AppItemProps> = ({ app, onLaunchWeb, onInstall, progress }) => {
+  const [notesOpen, setNotesOpen] = useState(false);
+  const busy = isActive(progress);
 
-        {app.status === 'Installed' && (
-          <button
-            onClick={() => onInstall(app, 'web')}
-            disabled={isDownloading}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 text-[11px] font-medium transition-all"
-          >
-            <Download className="w-3 h-3 text-slate-400" />
-            <span>Synkroniser WebAssembly-pakke</span>
-          </button>
-        )}
+  return (
+    <div className="glass-card rounded-lg p-4 flex flex-col">
+      <div className="flex items-start gap-3">
+        <AppTile app={app} size={48} />
+        <div className="flex-1 min-w-0 pt-0.5">
+          <div className="text-[15px] font-semibold text-ui-text leading-tight">{app.app_name}</div>
+          <div className="text-[12px] text-ui-faint mt-0.5">{app.category}</div>
+        </div>
+        <AppMenu
+          app={app}
+          onLaunchWeb={onLaunchWeb}
+          onInstall={onInstall}
+          notesOpen={notesOpen}
+          onToggleNotes={() => setNotesOpen((v) => !v)}
+        />
       </div>
+
+      <p className="mt-3 text-[13px] leading-snug text-ui-muted flex-1">{app.description}</p>
+
+      {notesOpen && <ReleaseNotes app={app} />}
+
+      {busy && progress ? (
+        <ProgressLine progress={progress} />
+      ) : (
+        <div className="mt-4 flex items-center gap-2">
+          <button className="btn-primary" onClick={() => onInstall(app, 'native')}>
+            Installer
+          </button>
+          {app.has_web_app !== false && (
+            <button className="btn-quiet" onClick={() => onLaunchWeb(app)}>
+              Prøv i nettleser
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

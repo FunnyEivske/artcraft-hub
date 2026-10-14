@@ -154,5 +154,5 @@ See the full [LICENSE](LICENSE) file for exact legal terms and conditions.
 - **Third-Party Trademarks:** Adobe, Photoshop, Illustrator, Premiere Pro, Lightroom, Acrobat, After Effects, InDesign, and Figma are trademarks or registered trademarks of their respective holders in the United States and other countries. OpenArt Hub is an independent project and is not affiliated with, sponsored by, or endorsed by Adobe Inc. or Figma Inc. These product names are referenced solely to describe workflow compatibility.
 
 <div align="center">
-Copyright © 2026 Eivind Røsstad Skeie. All rights reserved for commercial use.
+Copyright © 2026 FunnyEivske. All rights reserved for commercial use.
 </div>

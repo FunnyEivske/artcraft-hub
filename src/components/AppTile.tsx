@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppReleaseInfo } from '../types';
 
-// Distinct Craft abbreviations: PC (PhotoCraft), VC (VectorCraft), FC (FilmCraft), LC (LightCraft), etc.
+// Distinct Craft & Studio abbreviations: PC (PhotoCraft), VC (VectorCraft), FC (FilmCraft), LC (LightCraft), BL (Blender), KR (Krita), etc.
 const ABBREVIATIONS: Record<string, string> = {
   photocraft: 'PC',
   vectorcraft: 'VC',
@@ -12,6 +12,8 @@ const ABBREVIATIONS: Record<string, string> = {
   designcraft: 'DC',
   figcraft: 'FG',
   soundcraft: 'SC',
+  blender: 'BL',
+  krita: 'KR',
 };
 
 // Saturated, distinct, vivid studio colors
@@ -25,6 +27,8 @@ const VIVID_COLORS: Record<string, string> = {
   designcraft: '#e11d48', // Vivid Crimson Pink (DesignCraft)
   figcraft: '#10b981', // Vivid Emerald Green (FigCraft)
   soundcraft: '#6366f1', // Vivid Indigo (SoundCraft)
+  blender: '#ea580c', // Vivid Blender Orange
+  krita: '#0284c7', // Vivid Krita Blue
 };
 
 export const appAbbreviation = (app: Pick<AppReleaseInfo, 'app_id' | 'app_name'>) => {

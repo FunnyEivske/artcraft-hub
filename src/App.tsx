@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { Sidebar, HubTab } from './components/Sidebar';
 import { AppHubView } from './components/AppHubView';
@@ -10,17 +10,20 @@ import {
   AppReleaseInfo,
   ColorPalette,
   DownloadProgressPayload,
+  RecentProjectFile,
   SmartProject,
   SystemInfo,
 } from './types';
 import {
   checkGithubReleases,
   createSmartProject,
+  discoverAllRecentFiles,
   getSystemInfo,
   installOrUpdateApp,
   launchApp,
   loadPalettes,
   onDownloadProgress,
+  onProjectsUpdated,
   savePalettes,
   scanProjectsAndFiles,
 } from './services/tauri';
@@ -33,8 +36,10 @@ export function App() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [apps, setApps] = useState<AppReleaseInfo[]>([]);
   const [projects, setProjects] = useState<SmartProject[]>([]);
+  const [recentFiles, setRecentFiles] = useState<RecentProjectFile[]>([]);
   const [palettes, setPalettes] = useState<ColorPalette[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshingRecent, setIsRefreshingRecent] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [progressMap, setProgressMap] = useState<Record<string, DownloadProgressPayload>>({});
   const [activeWebStudioApp, setActiveWebStudioApp] = useState<AppReleaseInfo | null>(null);
@@ -45,19 +50,33 @@ export function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const refreshRecent = useCallback(async () => {
+    setIsRefreshingRecent(true);
+    try {
+      const recents = await discoverAllRecentFiles();
+      setRecentFiles(recents);
+    } catch {
+      // Non-critical
+    } finally {
+      setIsRefreshingRecent(false);
+    }
+  }, []);
+
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [sys, rels, projs, pals] = await Promise.all([
+      const [sys, rels, projs, pals, recents] = await Promise.all([
         getSystemInfo(),
         checkGithubReleases(),
         scanProjectsAndFiles(),
         loadPalettes(),
+        discoverAllRecentFiles().catch(() => [] as RecentProjectFile[]),
       ]);
       setSystemInfo(sys);
       setApps(rels);
       setProjects(projs);
       setPalettes(pals);
+      setRecentFiles(recents);
     } catch {
       showToast('Kunne ikke hente versjoner – viser lokal oversikt', 'info');
     } finally {
@@ -69,7 +88,7 @@ export function App() {
     loadData();
 
     // Listen to live download progress from Rust backend
-    const unsubscribe = onDownloadProgress((payload) => {
+    const unsubDownload = onDownloadProgress((payload) => {
       setProgressMap((prev) => ({
         ...prev,
         [payload.app_id]: payload,
@@ -82,8 +101,15 @@ export function App() {
       }
     });
 
+    // Real-time file watcher on ~/ArtCraftHub/Projects/
+    const unsubWatcher = onProjectsUpdated(() => {
+      scanProjectsAndFiles().then(setProjects);
+      discoverAllRecentFiles().then(setRecentFiles);
+    });
+
     return () => {
-      unsubscribe();
+      unsubDownload();
+      unsubWatcher();
     };
   }, []);
 
@@ -92,7 +118,7 @@ export function App() {
       const res = await launchApp(appId);
       showToast(res, 'success');
     } catch (err) {
-      showToast(`Kunne ikke starte native app: ${err}`, 'error');
+      showToast(`Kunne ikke starte app: ${err}`, 'error');
     }
   };
 
@@ -120,6 +146,7 @@ export function App() {
       const newProj = await createSmartProject(name, type, description);
       setProjects((prev) => [...prev, newProj]);
       showToast(`Prosjektet «${name}» er opprettet`, 'success');
+      refreshRecent();
     } catch (err) {
       showToast(`Feil ved opprettelse: ${err}`, 'error');
     } finally {
@@ -200,15 +227,26 @@ export function App() {
               onLaunchWeb={handleLaunchWeb}
               onInstall={handleInstall}
               progressMap={progressMap}
+              recentFiles={recentFiles}
+              projects={projects}
+              onOpenFileInApp={handleOpenFileInApp}
+              onRefreshRecent={refreshRecent}
+              onShowToast={showToast}
+              isRefreshingRecent={isRefreshingRecent}
             />
           )}
 
           {activeTab === 'projects' && (
             <ProjectsView
               projects={projects}
+              allApps={apps}
+              recentFiles={recentFiles}
               onCreateProject={handleCreateProject}
               onOpenFileInApp={handleOpenFileInApp}
+              onRefreshRecent={refreshRecent}
+              onShowToast={showToast}
               isCreating={isCreatingProject}
+              isRefreshingRecent={isRefreshingRecent}
             />
           )}
 
@@ -230,8 +268,16 @@ export function App() {
       </div>
 
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 h-10 pl-3 pr-4 rounded-md shadow-menu text-[13px] text-white"
-          style={{ background: toastMessage.type === 'error' ? '#c9252d' : toastMessage.type === 'info' ? '#378ef0' : '#268e6c' }}
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 h-10 pl-3 pr-4 rounded-md shadow-menu text-[13px] text-white"
+          style={{
+            background:
+              toastMessage.type === 'error'
+                ? '#c9252d'
+                : toastMessage.type === 'info'
+                ? '#378ef0'
+                : '#268e6c',
+          }}
         >
           {toastMessage.type === 'error' ? (
             <AlertCircle className="w-4 h-4" />

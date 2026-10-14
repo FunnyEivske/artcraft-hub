@@ -4,6 +4,7 @@ import {
   AppReleaseInfo,
   ColorPalette,
   DownloadProgressPayload,
+  RecentProjectFile,
   SmartProject,
   SystemInfo,
 } from '../types';
@@ -57,7 +58,7 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     file_types: ['.mp4', '.mov', '.mkv', '.webm'],
     latest_version: 'v1.0.0',
     release_name: 'FilmCraft v1.0.0 Stable',
-    release_notes: 'Flerspors tidslinje med GPU-akselerert video-render.',
+    release_notes: 'Multi-spor tidslinje, fargehjul og maskinvareakselerert eksport.',
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -70,10 +71,10 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     category: 'RAW & Farge',
     color_accent: '#06b6d4',
     icon_name: 'Sliders',
-    file_types: ['.raw', '.cr2', '.nef', '.dng', '.jpg'],
+    file_types: ['.raw', '.cr2', '.nef', '.dng', '.jpg', '.jpeg'],
     latest_version: 'v1.0.0',
     release_name: 'LightCraft v1.0.0 Stable',
-    release_notes: 'Støtte for CR2, NEF, DNG og RAW med kromatisk fargegradering.',
+    release_notes: 'Full støtte for RAW-formater og ikke-destruktiv fargejustering.',
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -82,14 +83,14 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     app_id: 'pdfcraft',
     app_name: 'PdfCraft',
     alternative_to: 'Acrobat Pro',
-    description: 'Sammenslåing, OCR-skanning, redigering, utfylling og signering av PDF-dokumenter.',
-    category: 'Dokument & Mønsterark',
+    description: 'PDF-redigering, sammenslåing, OCR-skanning, digital signering og skjemautfylling.',
+    category: 'Dokument & PDF',
     color_accent: '#ef4444',
     icon_name: 'FileText',
     file_types: ['.pdf'],
     latest_version: 'v1.0.0',
     release_name: 'PdfCraft v1.0.0 Stable',
-    release_notes: 'Hurtig PDF-editor med dokumentsammenslåing og vektor-eksport.',
+    release_notes: 'Komplett verktøykasse for trykklare PDF-filer og tekstredigering.',
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -98,14 +99,14 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     app_id: 'effectcraft',
     app_name: 'EffectCraft',
     alternative_to: 'After Effects',
-    description: 'Bevegelsesgrafikk, partikkelsystemer, komposittering og visuelle effekter for film.',
+    description: 'Visuelle effekter (VFX), bevegelsesgrafikk, partikkelsystemer og node-basert compositing.',
     category: 'VFX & Motion',
-    color_accent: '#a855f7',
+    color_accent: '#8b5cf6',
     icon_name: 'Sparkles',
-    file_types: ['.mp4', '.mov', '.json', '.mg'],
+    file_types: ['.mp4', '.mov', '.png', '.exr', '.gif'],
     latest_version: 'v1.0.0',
     release_name: 'EffectCraft v1.0.0 Stable',
-    release_notes: 'Partikkeleffekter, 3D transformering og keyframe-animasjon.',
+    release_notes: 'Node-basert komposisjon, keyframe-animasjon og partikkelmotor.',
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -114,14 +115,14 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     app_id: 'designcraft',
     app_name: 'DesignCraft',
     alternative_to: 'InDesign',
-    description: 'Trykksaker, magasiner, hefter, e-bøker og profesjonell typografisk layout.',
-    category: 'Layout & Trykk',
-    color_accent: '#e11d48',
-    icon_name: 'LayoutTemplate',
-    file_types: ['.pdf', '.svg', '.idml'],
+    description: 'Desktop publishing for bøker, magasiner, brosjyrer og trykksaker med rutenett.',
+    category: 'Publisering & Layout',
+    color_accent: '#f97316',
+    icon_name: 'Layout',
+    file_types: ['.pdf', '.epub', '.idml', '.indd'],
     latest_version: 'v1.0.0',
     release_name: 'DesignCraft v1.0.0 Stable',
-    release_notes: 'Rutenett-typografi, flersiders layout og CMYK trykk-klar eksport.',
+    release_notes: 'Typografisk kontroll, mastersider og avansert rutenett-oppsett.',
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -130,14 +131,14 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     app_id: 'figcraft',
     app_name: 'FigCraft',
     alternative_to: 'Figma',
-    description: 'Interaktivt grensesnittdesign, designsystemer, auto-layout og levende prototyper.',
+    description: 'Grensesnittdesign (UI/UX), interaktive prototyper og designsystemer for web og mobil.',
     category: 'UI/UX & Prototyping',
     color_accent: '#10b981',
-    icon_name: 'Figma',
-    file_types: ['.svg', '.png', '.fig', '.json'],
+    icon_name: 'Layers',
+    file_types: ['.svg', '.png', '.json'],
     latest_version: 'v1.0.0',
     release_name: 'FigCraft v1.0.0 Stable',
-    release_notes: 'UI-komponenter, interaktive prototyper og figma-filimport.',
+    release_notes: 'Vektorbasert UI-design, auto-layout og komponentbibliotek.',
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -157,6 +158,38 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     published_at: '2026-10-14T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
+  },
+  {
+    app_id: 'blender',
+    app_name: 'Blender',
+    alternative_to: 'Maya / 3ds Max',
+    description: '3D-modellering, sculpting, rigg, animasjon, fysikk-simulering og fotorealistisk rendering.',
+    category: '3D & Animasjon',
+    color_accent: '#ea580c',
+    icon_name: 'Box',
+    file_types: ['.blend', '.fbx', '.obj', '.stl', '.glb', '.gltf'],
+    latest_version: 'v4.5.0',
+    release_name: 'Blender 4.5 LTS',
+    release_notes: 'Offisiell Blender-støtte med automatisk deteksjon og rask åpning av .blend-filer.',
+    published_at: '2026-10-14T00:00:00Z',
+    status: 'NotInstalled',
+    has_web_app: false,
+  },
+  {
+    app_id: 'krita',
+    app_name: 'Krita',
+    alternative_to: 'Photoshop / Corel Painter',
+    description: 'Digital maling, illustrasjon, konseptkunst, tegneserier og 2D håndtegnet animasjon.',
+    category: 'Maling & Konseptkunst',
+    color_accent: '#0284c7',
+    icon_name: 'Palette',
+    file_types: ['.kra', '.ora', '.psd', '.png', '.jpg'],
+    latest_version: 'v5.2.2',
+    release_name: 'Krita 5.2.2 Stable',
+    release_notes: 'Offisiell Krita-støtte med lynrask visning av .kra-miniatyrbilder direkte fra fil.',
+    published_at: '2026-10-14T00:00:00Z',
+    status: 'NotInstalled',
+    has_web_app: false,
   },
 ];
 
@@ -377,6 +410,93 @@ export const savePalettes = async (palettes: ColorPalette[]): Promise<boolean> =
   }
   localStorage.setItem('artcraft_palettes', jsonStr);
   return true;
+};
+
+export const discoverAllRecentFiles = async (): Promise<RecentProjectFile[]> => {
+  if (isTauri()) {
+    return await invoke<RecentProjectFile[]>('discover_all_recent_files');
+  }
+  return [
+    {
+      file_path: 'C:/Users/eivin/Downloads/Cfa.blend',
+      file_name: 'Cfa.blend',
+      extension: '.blend',
+      folder: 'Downloads',
+      size_bytes: 8450000,
+      last_modified: Date.now() - 3600000,
+      last_modified_str: '1 time siden',
+      source_app: 'blender',
+      recommended_app: 'blender',
+      compatible_apps: ['blender'],
+      has_thumbnail: true,
+    },
+    {
+      file_path: 'C:/Users/eivin/Pictures/Art/character_concept.kra',
+      file_name: 'character_concept.kra',
+      extension: '.kra',
+      folder: 'Pictures/Art',
+      size_bytes: 14200000,
+      last_modified: Date.now() - 7200000,
+      last_modified_str: '2 timer siden',
+      source_app: 'krita',
+      recommended_app: 'krita',
+      compatible_apps: ['krita', 'photocraft'],
+      has_thumbnail: true,
+    },
+    {
+      file_path: 'C:/Users/eivin/Documents/ArtCraftHub/Projects/Nordic_Merkevare_2026/02_Vectors_and_Patterns/nordic_logo.svg',
+      file_name: 'nordic_logo.svg',
+      extension: '.svg',
+      folder: '02_Vectors_and_Patterns',
+      size_bytes: 14200,
+      last_modified: Date.now() - 10800000,
+      last_modified_str: '3 timer siden',
+      source_app: 'projects',
+      recommended_app: 'vectorcraft',
+      compatible_apps: ['vectorcraft', 'designcraft', 'figcraft'],
+      has_thumbnail: true,
+    },
+  ];
+};
+
+export const getFileThumbnail = async (filePath: string): Promise<string> => {
+  if (isTauri()) {
+    return await invoke<string>('get_file_thumbnail', { filePath });
+  }
+  return '';
+};
+
+export const importFileToProject = async (
+  filePath: string,
+  projectName: string,
+  subfolder: string,
+  copyOnly: boolean
+): Promise<string> => {
+  if (isTauri()) {
+    return await invoke<string>('import_file_to_project', {
+      filePath,
+      projectName,
+      subfolder,
+      copyOnly,
+    });
+  }
+  return `Importerte ${filePath} til ${projectName}/${subfolder} (demo-modus)`;
+};
+
+export const onProjectsUpdated = (callback: () => void): (() => void) => {
+  if (isTauri()) {
+    let unlistenFn: UnlistenFn | null = null;
+    listen('projects-updated', () => {
+      callback();
+    }).then((unlisten) => {
+      unlistenFn = unlisten;
+    });
+
+    return () => {
+      if (unlistenFn) unlistenFn();
+    };
+  }
+  return () => {};
 };
 
 export const onDownloadProgress = (

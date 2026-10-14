@@ -105,6 +105,26 @@ pub fn get_app_catalog() -> Vec<AppMetadata> {
             color_accent: "#6366f1".into(),
             icon_name: "Volume2".into(),
         },
+        AppMetadata {
+            id: "blender".into(),
+            name: "Blender".into(),
+            alternative_to: "Maya, 3ds Max & Cinema 4D".into(),
+            category: "3D & Animasjon".into(),
+            description: "Ledende åpen kildekode-studio for 3D-modellering, sculpting, rigging, animasjon, VFX og rendering.".into(),
+            file_types: vec![".blend".into(), ".fbx".into(), ".obj".into(), ".stl".into(), ".glb".into(), ".gltf".into()],
+            color_accent: "#ea580c".into(),
+            icon_name: "Box".into(),
+        },
+        AppMetadata {
+            id: "krita".into(),
+            name: "Krita".into(),
+            alternative_to: "Corel Painter & Clip Studio".into(),
+            category: "Digital Maling & 2D".into(),
+            description: "Profesjonelt digitalt maleprogram for konseptkunstnere, illustratører, tegneserieskapere og 2D-animatører.".into(),
+            file_types: vec![".kra".into(), ".ora".into(), ".psd".into(), ".png".into(), ".jpg".into()],
+            color_accent: "#f43f5e".into(),
+            icon_name: "Brush".into(),
+        },
     ]
 }
 
@@ -197,6 +217,21 @@ pub struct ColorPalette {
     pub name: String,
     pub description: String,
     pub colors: Vec<ColorSwatch>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentProjectFile {
+    pub file_path: String,
+    pub file_name: String,
+    pub extension: String,
+    pub folder: String,
+    pub size_bytes: u64,
+    pub last_modified: u64,
+    pub last_modified_str: String,
+    pub source_app: String, // "blender", "krita", "projects", "windows-recent"
+    pub recommended_app: String,
+    pub compatible_apps: Vec<String>,
+    pub has_thumbnail: bool,
 }
 
 pub fn get_hub_home() -> PathBuf {

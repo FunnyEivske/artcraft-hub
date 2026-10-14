@@ -1,12 +1,13 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter};
 
 use crate::models::{
     get_app_catalog, get_hub_home, AppReleaseInfo, ColorPalette, ColorSwatch,
-    DownloadProgressPayload, InstalledAppInfo, ProjectFileInfo, SmartProject, SystemInfo,
+    DownloadProgressPayload, InstalledAppInfo, ProjectFileInfo, RecentProjectFile, SmartProject, SystemInfo,
 };
 
 fn get_installed_versions_map() -> HashMap<String, InstalledAppInfo> {
@@ -26,6 +27,116 @@ fn save_installed_versions_map(map: &HashMap<String, InstalledAppInfo>) {
     if let Ok(json) = serde_json::to_string_pretty(map) {
         let _ = fs::write(file_path, json);
     }
+}
+
+pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
+    let hub_home = get_hub_home();
+    let os = std::env::consts::OS;
+
+    // Check user's hub installation first: ~/ArtCraftHub/Apps/{app_id}/...
+    let hub_app_dir = hub_home.join("Apps").join(app_id);
+    if hub_app_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&hub_app_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                    if (os == "windows" && ext.eq_ignore_ascii_case("exe"))
+                        || (os == "macos" && ext.eq_ignore_ascii_case("app"))
+                        || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.is_empty()))
+                    {
+                        return Some(path.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    // Check system-wide paths for Blender & Krita
+    match app_id {
+        "blender" => {
+            if os == "windows" {
+                let base = PathBuf::from(r"C:\Program Files\Blender Foundation");
+                if let Ok(entries) = fs::read_dir(&base) {
+                    for entry in entries.flatten() {
+                        let candidate = entry.path().join("blender.exe");
+                        if candidate.is_file() {
+                            return Some(candidate.to_string_lossy().to_string());
+                        }
+                    }
+                }
+                let base86 = PathBuf::from(r"C:\Program Files (x86)\Blender Foundation");
+                if let Ok(entries) = fs::read_dir(&base86) {
+                    for entry in entries.flatten() {
+                        let candidate = entry.path().join("blender.exe");
+                        if candidate.is_file() {
+                            return Some(candidate.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/Blender.app/Contents/MacOS/Blender",
+                    "/Applications/Blender.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/blender",
+                    "/usr/local/bin/blender",
+                    "/var/lib/flatpak/exports/bin/org.blender.Blender",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
+        "krita" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\Krita (x64)\bin\krita.exe",
+                    r"C:\Program Files\Krita\bin\krita.exe",
+                    r"C:\Program Files (x86)\Krita\bin\krita.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/krita.app/Contents/MacOS/krita",
+                    "/Applications/Krita.app/Contents/MacOS/krita",
+                    "/Applications/krita.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/krita",
+                    "/usr/local/bin/krita",
+                    "/var/lib/flatpak/exports/bin/org.kde.krita",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+
+    None
 }
 
 fn create_default_webapp_stub(webapps_dir: &Path, app_id: &str, app_name: &str, color: &str) {
@@ -218,13 +329,15 @@ pub fn get_default_palettes() -> Vec<ColorPalette> {
         ColorPalette {
             id: "palette-artcraft".to_string(),
             name: "ArtCraft Signature".to_string(),
-            description: "Hovedfargene for OpenArt Hub og de 9 kreative studioene.".to_string(),
+            description: "Hovedfargene for OpenArt Hub og de kreative studioene.".to_string(),
             colors: vec![
                 ColorSwatch { hex: "#6366f1".to_string(), name: "Indigo Core".to_string() },
                 ColorSwatch { hex: "#38bdf8".to_string(), name: "Sky Cyan".to_string() },
                 ColorSwatch { hex: "#ec4899".to_string(), name: "Neon Rose".to_string() },
                 ColorSwatch { hex: "#10b981".to_string(), name: "Emerald Pro".to_string() },
                 ColorSwatch { hex: "#f59e0b".to_string(), name: "Amber Glow".to_string() },
+                ColorSwatch { hex: "#ea580c".to_string(), name: "Blender Orange".to_string() },
+                ColorSwatch { hex: "#f43f5e".to_string(), name: "Krita Crimson".to_string() },
             ],
         },
         ColorPalette {
@@ -342,6 +455,96 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
     let mut results = Vec::new();
 
     for app in catalog {
+        // Handle Blender & Krita with their official distribution models
+        if app.id == "blender" {
+            let local_exe = detect_local_app_binary("blender");
+            let is_installed = local_exe.is_some() || installed_map.contains_key("blender");
+
+            let (native_url, native_asset_name) = match os {
+                "windows" => (
+                    Some("https://download.blender.org/release/Blender4.2/blender-4.2.3-windows-x64.msi".into()),
+                    Some("blender-4.2.3-windows-x64.msi".into()),
+                ),
+                "macos" => (
+                    Some("https://download.blender.org/release/Blender4.2/blender-4.2.3-macos-arm64.dmg".into()),
+                    Some("blender-4.2.3-macos-arm64.dmg".into()),
+                ),
+                _ => (
+                    Some("https://download.blender.org/release/Blender4.2/blender-4.2.3-linux-x64.tar.xz".into()),
+                    Some("blender-4.2.3-linux-x64.tar.xz".into()),
+                ),
+            };
+
+            results.push(AppReleaseInfo {
+                app_id: app.id,
+                app_name: app.name,
+                alternative_to: app.alternative_to,
+                description: app.description,
+                category: app.category,
+                color_accent: app.color_accent,
+                icon_name: app.icon_name,
+                file_types: app.file_types,
+                latest_version: "v4.2 LTS".into(),
+                release_name: "Blender 4.2 LTS Official".into(),
+                release_notes: "Blender 4.2 LTS med EEVEE-Next, forbedret Cycles, avansert geometry nodes og stabil støtte for alle 3D-arbeidsflyter.".into(),
+                published_at: "2026-10-14T00:00:00Z".into(),
+                native_download_url: native_url,
+                native_asset_name,
+                web_download_url: None,
+                web_asset_name: None,
+                status: if is_installed { "Installed".into() } else { "NotInstalled".into() },
+                installed_version: if is_installed { Some("v4.x (System)".into()) } else { None },
+                installed_type: if is_installed { Some("native".into()) } else { None },
+                has_web_app: false,
+            });
+            continue;
+        }
+
+        if app.id == "krita" {
+            let local_exe = detect_local_app_binary("krita");
+            let is_installed = local_exe.is_some() || installed_map.contains_key("krita");
+
+            let (native_url, native_asset_name) = match os {
+                "windows" => (
+                    Some("https://download.kde.org/stable/krita/5.2.6/krita-x64-5.2.6-setup.exe".into()),
+                    Some("krita-x64-5.2.6-setup.exe".into()),
+                ),
+                "macos" => (
+                    Some("https://download.kde.org/stable/krita/5.2.6/krita-5.2.6.dmg".into()),
+                    Some("krita-5.2.6.dmg".into()),
+                ),
+                _ => (
+                    Some("https://download.kde.org/stable/krita/5.2.6/krita-5.2.6-x86_64.appimage".into()),
+                    Some("krita-5.2.6-x86_64.appimage".into()),
+                ),
+            };
+
+            results.push(AppReleaseInfo {
+                app_id: app.id,
+                app_name: app.name,
+                alternative_to: app.alternative_to,
+                description: app.description,
+                category: app.category,
+                color_accent: app.color_accent,
+                icon_name: app.icon_name,
+                file_types: app.file_types,
+                latest_version: "v5.2.6".into(),
+                release_name: "Krita 5.2.6 Official".into(),
+                release_notes: "Krita 5.2.6 med avansert penselmotor, bredformat fargehåndtering, vektorgrafikk og forbedret ytelse.".into(),
+                published_at: "2026-10-14T00:00:00Z".into(),
+                native_download_url: native_url,
+                native_asset_name,
+                web_download_url: None,
+                web_asset_name: None,
+                status: if is_installed { "Installed".into() } else { "NotInstalled".into() },
+                installed_version: if is_installed { Some("v5.2.6 (System)".into()) } else { None },
+                installed_type: if is_installed { Some("native".into()) } else { None },
+                has_web_app: false,
+            });
+            continue;
+        }
+
+        // Storytold ArtCraft Apps release checking
         let url = format!("https://api.github.com/repos/storytold/{}/releases/latest", app.id);
         let resp = client
             .get(&url)
@@ -674,6 +877,17 @@ pub async fn install_or_update_app(
 
 #[tauri::command]
 pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<String, String> {
+    // 1. Check if detected locally on system (e.g. Blender or Krita)
+    if let Some(exe_path) = detect_local_app_binary(&app_id) {
+        let mut cmd = std::process::Command::new(&exe_path);
+        if let Some(ref path) = file_path_optional {
+            cmd.arg(path);
+        }
+        cmd.spawn().map_err(|e| format!("Feil ved oppstart av {} ({}): {}", app_id, exe_path, e))?;
+        return Ok(format!("Startet {}: {}", app_id, exe_path));
+    }
+
+    // 2. Check ~/ArtCraftHub/Apps/{app_id}
     let hub_home = get_hub_home();
     let apps_dir = hub_home.join("Apps").join(&app_id);
     let os = std::env::consts::OS;
@@ -709,6 +923,24 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
             }
         }
         Ok(format!("Applikasjon {} åpnet (simulatormodus / system-visning)", app_id))
+    }
+}
+
+pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {
+    match ext {
+        ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" => vec!["blender".to_string(), "effectcraft".to_string()],
+        ".kra" | ".ora" => vec!["krita".to_string(), "photocraft".to_string()],
+        ".psd" => vec!["photocraft".to_string(), "krita".to_string(), "lightcraft".to_string()],
+        ".png" | ".jpg" | ".jpeg" | ".webp" => vec!["photocraft".to_string(), "krita".to_string(), "lightcraft".to_string()],
+        ".svg" | ".eps" | ".ai" => vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
+        ".mp4" | ".mov" | ".mkv" | ".webm" => vec!["filmcraft".to_string(), "effectcraft".to_string(), "blender".to_string()],
+        ".raw" | ".cr2" | ".nef" | ".dng" | ".arw" => vec!["lightcraft".to_string(), "photocraft".to_string()],
+        ".pdf" => vec!["pdfcraft".to_string(), "designcraft".to_string()],
+        ".mg" | ".json" => vec!["effectcraft".to_string(), "figcraft".to_string(), "blender".to_string()],
+        ".fig" => vec!["figcraft".to_string()],
+        ".idml" => vec!["designcraft".to_string()],
+        ".wav" | ".mp3" | ".flac" | ".ogg" | ".aac" => vec!["soundcraft".to_string(), "filmcraft".to_string()],
+        _ => vec!["photocraft".to_string(), "vectorcraft".to_string()],
     }
 }
 
@@ -826,21 +1058,6 @@ fn traverse_project_files(root_dir: &Path, current_dir: &Path, list: &mut Vec<Pr
     }
 }
 
-pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {
-    match ext {
-        ".png" | ".jpg" | ".jpeg" | ".webp" | ".psd" => vec!["photocraft".to_string(), "lightcraft".to_string()],
-        ".svg" | ".eps" | ".ai" => vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
-        ".mp4" | ".mov" | ".mkv" | ".webm" => vec!["filmcraft".to_string(), "effectcraft".to_string()],
-        ".raw" | ".cr2" | ".nef" | ".dng" | ".arw" => vec!["lightcraft".to_string(), "photocraft".to_string()],
-        ".pdf" => vec!["pdfcraft".to_string(), "designcraft".to_string()],
-        ".mg" | ".json" => vec!["effectcraft".to_string(), "figcraft".to_string()],
-        ".fig" => vec!["figcraft".to_string()],
-        ".idml" => vec!["designcraft".to_string()],
-        ".wav" | ".mp3" | ".flac" | ".ogg" | ".aac" => vec!["soundcraft".to_string(), "filmcraft".to_string()],
-        _ => vec!["photocraft".to_string(), "vectorcraft".to_string()],
-    }
-}
-
 #[tauri::command]
 pub fn create_smart_project(
     project_name: String,
@@ -903,10 +1120,12 @@ pub fn create_smart_project(
 
     let recommended: Vec<String> = match project_type.as_str() {
         "Brand Identity" | "Vektor & Logo" => vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
-        "Foto & Retusj" | "Fotografi" => vec!["lightcraft".to_string(), "photocraft".to_string()],
-        "Film & Motion" | "Video & VFX" => vec!["filmcraft".to_string(), "effectcraft".to_string(), "soundcraft".to_string()],
+        "Foto & Retusj" | "Fotografi" => vec!["lightcraft".to_string(), "photocraft".to_string(), "krita".to_string()],
+        "3D & Modellering" | "3D-Scene" => vec!["blender".to_string(), "effectcraft".to_string()],
+        "Digital Maling" | "Illustrasjon" => vec!["krita".to_string(), "photocraft".to_string()],
+        "Film & Motion" | "Video & VFX" => vec!["filmcraft".to_string(), "effectcraft".to_string(), "soundcraft".to_string(), "blender".to_string()],
         "Publisering & PDF" => vec!["designcraft".to_string(), "pdfcraft".to_string()],
-        _ => vec!["photocraft".to_string(), "vectorcraft".to_string(), "figcraft".to_string()],
+        _ => vec!["photocraft".to_string(), "vectorcraft".to_string(), "blender".to_string(), "krita".to_string()],
     };
 
     let project_manifest = serde_json::json!({
@@ -981,4 +1200,488 @@ pub fn save_palettes(palettes_json: String) -> Result<bool, String> {
 
     fs::write(&file_path, palettes_json).map_err(|e| e.to_string())?;
     Ok(true)
+}
+
+/* ========================================================================= */
+/* DEL 2 & DEL 3: RECENT FILES DISCOVERY & THUMBNAIL EXTRACTION              */
+/* ========================================================================= */
+
+fn format_relative_time(last_modified_secs: u64) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    if last_modified_secs > now {
+        return "Nylig".to_string();
+    }
+
+    let diff = now - last_modified_secs;
+    if diff < 90 {
+        "Akkurat nå".to_string()
+    } else if diff < 3600 {
+        format!("{} min siden", diff / 60)
+    } else if diff < 86400 {
+        let hours = diff / 3600;
+        if hours == 1 {
+            "1 time siden".to_string()
+        } else {
+            format!("{} timer siden", hours)
+        }
+    } else if diff < 172800 {
+        "I går".to_string()
+    } else {
+        let days = diff / 86400;
+        format!("{} dager siden", days)
+    }
+}
+
+fn create_recent_file_item(path: &Path, source_app: &str) -> Option<RecentProjectFile> {
+    if !path.is_file() {
+        return None;
+    }
+
+    let metadata = fs::metadata(path).ok()?;
+    let modified = metadata
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| format!(".{}", e.to_lowercase()))
+        .unwrap_or_default();
+
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("Fil")
+        .to_string();
+
+    let parent_folder = path
+        .parent()
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+        .unwrap_or("Mappe")
+        .to_string();
+
+    let compatible_apps = get_compatible_apps_for_ext(&ext);
+    let recommended_app = match ext.as_str() {
+        ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" => "blender".to_string(),
+        ".kra" | ".ora" => "krita".to_string(),
+        ".svg" | ".eps" | ".ai" => "vectorcraft".to_string(),
+        ".mp4" | ".mov" | ".mkv" | ".webm" => "filmcraft".to_string(),
+        ".raw" | ".cr2" | ".nef" | ".dng" | ".arw" => "lightcraft".to_string(),
+        ".pdf" => "pdfcraft".to_string(),
+        ".mg" => "effectcraft".to_string(),
+        ".fig" => "figcraft".to_string(),
+        ".idml" => "designcraft".to_string(),
+        ".wav" | ".mp3" | ".flac" | ".ogg" | ".aac" => "soundcraft".to_string(),
+        _ => "photocraft".to_string(),
+    };
+
+    let has_thumbnail = matches!(
+        ext.as_str(),
+        ".blend" | ".kra" | ".ora" | ".svg" | ".png" | ".jpg" | ".jpeg" | ".webp"
+    );
+
+    Some(RecentProjectFile {
+        file_path: path.to_string_lossy().to_string(),
+        file_name,
+        extension: ext,
+        folder: parent_folder,
+        size_bytes: metadata.len(),
+        last_modified: modified,
+        last_modified_str: format_relative_time(modified),
+        source_app: source_app.to_string(),
+        recommended_app,
+        compatible_apps,
+        has_thumbnail,
+    })
+}
+
+#[tauri::command]
+pub fn discover_all_recent_files() -> Result<Vec<RecentProjectFile>, String> {
+    let mut files_map: HashMap<String, RecentProjectFile> = HashMap::new();
+    let supported_exts = [
+        ".blend", ".kra", ".ora", ".svg", ".png", ".jpg", ".jpeg", ".webp",
+        ".pdf", ".mp4", ".mov", ".wav", ".mp3", ".psd", ".ai", ".eps",
+        ".idml", ".fig", ".fbx", ".obj", ".stl", ".glb", ".gltf",
+    ];
+
+    // 1. Blender recent files (recent-files.txt)
+    let home = dirs::home_dir();
+    if let Some(ref h) = home {
+        let mut blender_dirs = Vec::new();
+        #[cfg(target_os = "windows")]
+        {
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                blender_dirs.push(PathBuf::from(appdata).join("Blender Foundation").join("Blender"));
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            blender_dirs.push(h.join("Library/Application Support/Blender"));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            blender_dirs.push(h.join(".config/blender"));
+        }
+
+        for b_dir in blender_dirs {
+            if let Ok(entries) = fs::read_dir(&b_dir) {
+                for version_entry in entries.flatten() {
+                    let recent_file = version_entry.path().join("config").join("recent-files.txt");
+                    if let Ok(content) = fs::read_to_string(&recent_file) {
+                        for line in content.lines() {
+                            let trimmed = line.trim();
+                            if !trimmed.is_empty() {
+                                let path = PathBuf::from(trimmed);
+                                if path.is_file() {
+                                    let key = path.to_string_lossy().to_lowercase();
+                                    if !files_map.contains_key(&key) {
+                                        if let Some(item) = create_recent_file_item(&path, "blender") {
+                                            files_map.insert(key, item);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Krita recent files (kritarc)
+    let mut kritarc_paths = Vec::new();
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            kritarc_paths.push(PathBuf::from(local).join("kritarc"));
+        }
+        if let Ok(roam) = std::env::var("APPDATA") {
+            kritarc_paths.push(PathBuf::from(roam).join("kritarc"));
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(ref h) = home {
+            kritarc_paths.push(h.join("Library/Preferences/kritarc"));
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(ref h) = home {
+            kritarc_paths.push(h.join(".config/kritarc"));
+        }
+    }
+
+    for k_path in kritarc_paths {
+        if let Ok(content) = fs::read_to_string(&k_path) {
+            let mut in_recent_section = false;
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with('[') {
+                    in_recent_section = trimmed.eq_ignore_ascii_case("[Recent Files]");
+                    continue;
+                }
+                if in_recent_section || trimmed.starts_with("File") {
+                    if let Some(idx) = trimmed.find('=') {
+                        let mut val = trimmed[idx + 1..].trim();
+                        if val.starts_with("[$e]") {
+                            val = &val[4..];
+                        }
+                        let cleaned = val
+                            .replace("file:///", "")
+                            .replace("file://", "")
+                            .replace("%20", " ");
+                        let path = PathBuf::from(&cleaned);
+                        if path.is_file() {
+                            let key = path.to_string_lossy().to_lowercase();
+                            if !files_map.contains_key(&key) {
+                                if let Some(item) = create_recent_file_item(&path, "krita") {
+                                    files_map.insert(key, item);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Dedicated ArtCraft Hub Projects directory
+    let projects_dir = get_hub_home().join("Projects");
+    if projects_dir.is_dir() {
+        fn collect_project_files(dir: &Path, map: &mut HashMap<String, RecentProjectFile>) {
+            if let Ok(entries) = fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                        if file_name != "project.artcraft.json" {
+                            let key = path.to_string_lossy().to_lowercase();
+                            if !map.contains_key(&key) {
+                                if let Some(item) = create_recent_file_item(&path, "projects") {
+                                    map.insert(key, item);
+                                }
+                            }
+                        }
+                    } else if path.is_dir() {
+                        collect_project_files(&path, map);
+                    }
+                }
+            }
+        }
+        collect_project_files(&projects_dir, &mut files_map);
+    }
+
+    // 4. Windows Recent directory (.lnk files scanning) & Linux XBEL
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(recent_dir_str) = std::env::var("APPDATA") {
+            let recent_dir = PathBuf::from(recent_dir_str).join(r"Microsoft\Windows\Recent");
+            if let Ok(entries) = fs::read_dir(recent_dir) {
+                for entry in entries.flatten().take(120) {
+                    let link_path = entry.path();
+                    if link_path.is_file() && link_path.extension().map_or(false, |e| e.eq_ignore_ascii_case("lnk")) {
+                        // Scan file bytes for continuous ASCII path matching creative extensions
+                        if let Ok(mut f) = File::open(&link_path) {
+                            let mut buf = Vec::new();
+                            if f.read_to_end(&mut buf).is_ok() {
+                                let mut current_str = String::new();
+                                for &byte in &buf {
+                                    if (byte >= 32 && byte <= 126) || byte == b'\\' || byte == b'/' {
+                                        current_str.push(byte as char);
+                                    } else {
+                                        if current_str.len() > 8 && current_str.contains(":\\") {
+                                            for &ext in &supported_exts {
+                                                if current_str.to_lowercase().ends_with(ext) {
+                                                    let p = PathBuf::from(&current_str);
+                                                    if p.is_file() {
+                                                        let key = p.to_string_lossy().to_lowercase();
+                                                        if !files_map.contains_key(&key) {
+                                                            if let Some(item) = create_recent_file_item(&p, "system") {
+                                                                files_map.insert(key, item);
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        current_str.clear();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(ref h) = home {
+            let xbel_paths = [
+                h.join(".local/share/recently-used.xbel"),
+                h.join(".config/inkscape/recently-used.xbel"),
+            ];
+            for x_path in &xbel_paths {
+                if let Ok(content) = fs::read_to_string(x_path) {
+                    for line in content.lines() {
+                        if line.contains("<bookmark href=\"file://") {
+                            if let Some(start) = line.find("file://") {
+                                if let Some(end) = line[start..].find('"') {
+                                    let raw_url = &line[start + 7..start + end];
+                                    let cleaned = raw_url.replace("%20", " ");
+                                    let p = PathBuf::from(&cleaned);
+                                    if p.is_file() {
+                                        let key = p.to_string_lossy().to_lowercase();
+                                        if !files_map.contains_key(&key) {
+                                            if let Some(item) = create_recent_file_item(&p, "system") {
+                                                files_map.insert(key, item);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mut result: Vec<RecentProjectFile> = files_map.into_values().collect();
+    // Sort newest first
+    result.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
+    // Limit to top 50 recent files
+    result.truncate(50);
+
+    Ok(result)
+}
+
+#[tauri::command]
+pub fn get_file_thumbnail(file_path: String) -> Result<String, String> {
+    let path = PathBuf::from(&file_path);
+    if !path.is_file() {
+        return Err("Filen finnes ikke".to_string());
+    }
+
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| format!(".{}", e.to_lowercase()))
+        .unwrap_or_default();
+
+    // 1. Krita (.kra og .ora): ZIP-arkiv som inneholder preview.png eller mergedimage.png
+    if ext == ".kra" || ext == ".ora" {
+        if let Ok(file) = File::open(&path) {
+            if let Ok(mut archive) = zip::ZipArchive::new(file) {
+                if let Ok(mut preview) = archive.by_name("preview.png") {
+                    let mut buf = Vec::new();
+                    if preview.read_to_end(&mut buf).is_ok() {
+                        use base64::Engine;
+                        let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+                        return Ok(format!("data:image/png;base64,{}", b64));
+                    }
+                }
+                if let Ok(mut merged) = archive.by_name("mergedimage.png") {
+                    let mut buf = Vec::new();
+                    if merged.read_to_end(&mut buf).is_ok() {
+                        use base64::Engine;
+                        let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+                        return Ok(format!("data:image/png;base64,{}", b64));
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Blender (.blend): TEST-blokk i headeren med 128x128 rå RGBA
+    if ext == ".blend" {
+        if let Ok(mut file) = File::open(&path) {
+            let mut buffer = vec![0u8; 350_000];
+            let bytes_read = file.read(&mut buffer).unwrap_or(0);
+            buffer.truncate(bytes_read);
+
+            if let Some(pos) = buffer.windows(4).position(|w| w == b"TEST") {
+                if pos + 32 <= buffer.len() {
+                    let w = u32::from_le_bytes([buffer[pos + 24], buffer[pos + 25], buffer[pos + 26], buffer[pos + 27]]);
+                    let h = u32::from_le_bytes([buffer[pos + 28], buffer[pos + 29], buffer[pos + 30], buffer[pos + 31]]);
+                    let pixel_count = (w as usize) * (h as usize) * 4;
+                    let start = pos + 32;
+                    let end = start + pixel_count;
+
+                    if w > 0 && w <= 512 && h > 0 && h <= 512 && end <= buffer.len() {
+                        let raw = &buffer[start..end];
+                        let mut bmp = Vec::with_capacity(54 + pixel_count);
+
+                        // 14 byte BITMAPFILEHEADER
+                        let file_size = (54 + pixel_count) as u32;
+                        bmp.extend_from_slice(b"BM");
+                        bmp.extend_from_slice(&file_size.to_le_bytes());
+                        bmp.extend_from_slice(&[0, 0, 0, 0]);
+                        bmp.extend_from_slice(&54u32.to_le_bytes());
+
+                        // 40 byte BITMAPINFOHEADER (Blender TEST block is bottom-up, positive h)
+                        bmp.extend_from_slice(&40u32.to_le_bytes());
+                        bmp.extend_from_slice(&(w as i32).to_le_bytes());
+                        bmp.extend_from_slice(&(h as i32).to_le_bytes());
+                        bmp.extend_from_slice(&1u16.to_le_bytes());
+                        bmp.extend_from_slice(&32u16.to_le_bytes());
+                        bmp.extend_from_slice(&0u32.to_le_bytes()); // BI_RGB
+                        bmp.extend_from_slice(&(pixel_count as u32).to_le_bytes());
+                        bmp.extend_from_slice(&2835u32.to_le_bytes());
+                        bmp.extend_from_slice(&2835u32.to_le_bytes());
+                        bmp.extend_from_slice(&0u32.to_le_bytes());
+                        bmp.extend_from_slice(&0u32.to_le_bytes());
+
+                        // Convert RGBA to BGRA
+                        for chunk in raw.chunks_exact(4) {
+                            let r = chunk[0];
+                            let g = chunk[1];
+                            let b = chunk[2];
+                            let a = chunk[3];
+                            bmp.extend_from_slice(&[b, g, r, a]);
+                        }
+
+                        use base64::Engine;
+                        let b64 = base64::engine::general_purpose::STANDARD.encode(&bmp);
+                        return Ok(format!("data:image/bmp;base64,{}", b64));
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. SVG vektorgrafikk
+    if ext == ".svg" {
+        if let Ok(content) = fs::read_to_string(&path) {
+            use base64::Engine;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(content.as_bytes());
+            return Ok(format!("data:image/svg+xml;base64,{}", b64));
+        }
+    }
+
+    // 4. Standard rasterbilder (.png, .jpg, .jpeg, .webp) under 12 MB
+    if matches!(ext.as_str(), ".png" | ".jpg" | ".jpeg" | ".webp") {
+        if let Ok(metadata) = fs::metadata(&path) {
+            if metadata.len() <= 12 * 1024 * 1024 {
+                if let Ok(bytes) = fs::read(&path) {
+                    let mime = match ext.as_str() {
+                        ".png" => "image/png",
+                        ".jpg" | ".jpeg" => "image/jpeg",
+                        ".webp" => "image/webp",
+                        _ => "image/png",
+                    };
+                    use base64::Engine;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    return Ok(format!("data:{};base64,{}", mime, b64));
+                }
+            }
+        }
+    }
+
+    Err("Ingen miniatyrbilde-støtte for denne filtypen".to_string())
+}
+
+#[tauri::command]
+pub fn import_file_to_project(
+    file_path: String,
+    project_name: String,
+    subfolder: String,
+    copy_only: bool,
+) -> Result<String, String> {
+    let source_path = PathBuf::from(&file_path);
+    if !source_path.exists() {
+        return Err("Kildefilen finnes ikke lenger på disken".to_string());
+    }
+
+    let file_name = source_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "Ugyldig filnavn".to_string())?;
+
+    let hub_home = get_hub_home();
+    let target_dir = hub_home.join("Projects").join(&project_name).join(&subfolder);
+    fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
+
+    let destination = target_dir.join(file_name);
+
+    if copy_only {
+        fs::copy(&source_path, &destination).map_err(|e| format!("Kunne ikke kopiere filen: {}", e))?;
+        Ok(format!("Kopierte '{}' til prosjektet '{}' / {}", file_name, project_name, subfolder))
+    } else {
+        if fs::rename(&source_path, &destination).is_err() {
+            fs::copy(&source_path, &destination).map_err(|e| format!("Kunne ikke flytte filen: {}", e))?;
+            let _ = fs::remove_file(&source_path);
+        }
+        Ok(format!("Flyttet '{}' til prosjektet '{}' / {}", file_name, project_name, subfolder))
+    }
 }

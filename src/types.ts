@@ -1,4 +1,4 @@
-export interface AppMetadata {
+﻿export interface AppMetadata {
   id: string;
   name: string;
   alternative_to: string;
@@ -83,4 +83,18 @@ export interface ColorPalette {
   name: string;
   description: string;
   colors: ColorSwatch[];
+}
+
+export interface RecentProjectFile {
+  file_path: string;
+  file_name: string;
+  extension: string;
+  folder: string;
+  size_bytes: number;
+  last_modified: number;
+  last_modified_str: string;
+  source_app: string;
+  recommended_app: string;
+  compatible_apps: string[];
+  has_thumbnail: boolean;
 }

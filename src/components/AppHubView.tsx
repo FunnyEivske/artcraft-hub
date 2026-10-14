@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { AppReleaseInfo, DownloadProgressPayload } from '../types';
+import { AppReleaseInfo, DownloadProgressPayload, RecentProjectFile, SmartProject } from '../types';
 import { AppCard, AppRow } from './AppCard';
+import { RecentFilesGrid } from './RecentFilesGrid';
 
 interface AppHubViewProps {
   apps: AppReleaseInfo[];
@@ -11,6 +12,12 @@ interface AppHubViewProps {
   onLaunchWeb: (app: AppReleaseInfo) => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   progressMap: Record<string, DownloadProgressPayload>;
+  recentFiles: RecentProjectFile[];
+  projects: SmartProject[];
+  onOpenFileInApp: (appId: string, filePath: string) => void;
+  onRefreshRecent?: () => void;
+  onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
+  isRefreshingRecent?: boolean;
 }
 
 const SectionHeading: React.FC<{ title: string; count: number }> = ({ title, count }) => (
@@ -28,6 +35,12 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   onLaunchWeb,
   onInstall,
   progressMap,
+  recentFiles,
+  projects,
+  onOpenFileInApp,
+  onRefreshRecent,
+  onShowToast,
+  isRefreshingRecent,
 }) => {
   const filteredApps = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -53,12 +66,31 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
     <div className="max-w-[1080px]">
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-tight">{title}</h1>
-        {searchQuery && (
+        {searchQuery ? (
           <p className="text-[13px] text-ui-muted mt-1">
             Treff for «{searchQuery}»
           </p>
+        ) : (
+          <p className="text-[13px] text-ui-muted mt-1">
+            Komplett kreativ pakke med 9 ArtCraft-studioer pluss Blender og Krita.
+          </p>
         )}
       </div>
+
+      {/* Live Recent Files from all apps (Blender, Krita, ArtCraft, etc.) */}
+      {!searchQuery && selectedCategory === 'Alle' && recentFiles.length > 0 && (
+        <RecentFilesGrid
+          files={recentFiles}
+          allApps={apps}
+          projects={projects}
+          onOpenFileInApp={onOpenFileInApp}
+          onRefresh={onRefreshRecent}
+          onShowToast={onShowToast}
+          isRefreshing={isRefreshingRecent}
+          maxItems={6}
+          title="Sist jobbet med (Live fra alle apper)"
+        />
+      )}
 
       {filteredApps.length === 0 && (
         <div className="py-16 text-center">
@@ -71,7 +103,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
 
       {installed.length > 0 && (
         <section className="mb-8">
-          <SectionHeading title="Installert" count={installed.length} />
+          <SectionHeading title="Installert & Klare til bruk" count={installed.length} />
           <div className="rounded-lg border border-ui-border bg-ui-panel divide-y divide-ui-line">
             {installed.map((app) => (
               <AppRow key={app.app_id} app={app} progress={progressMap[app.app_id]} {...itemProps} />
@@ -82,7 +114,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
 
       {available.length > 0 && (
         <section>
-          <SectionHeading title="Tilgjengelig" count={available.length} />
+          <SectionHeading title="Tilgjengelig for installasjon" count={available.length} />
           <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
             {available.map((app) => (
               <AppCard key={app.app_id} app={app} progress={progressMap[app.app_id]} {...itemProps} />

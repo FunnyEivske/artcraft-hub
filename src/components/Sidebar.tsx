@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Home,
   LayoutGrid,
   ArrowDownCircle,
   FolderOpen,
@@ -7,7 +8,7 @@ import {
 } from 'lucide-react';
 import { SystemInfo } from '../types';
 
-export type HubTab = 'apps' | 'projects' | 'palettes' | 'updates';
+export type HubTab = 'home' | 'apps' | 'projects' | 'palettes' | 'updates';
 
 interface SidebarProps {
   activeTab: HubTab;
@@ -55,6 +56,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="w-[220px] flex-shrink-0 bg-ui-rail border-r border-ui-line flex flex-col justify-between">
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        <Item
+          active={activeTab === 'home'}
+          onClick={() => onSelectTab('home')}
+          icon={Home}
+          label="Hjem"
+        />
         <Item
           active={activeTab === 'apps'}
           onClick={() => {

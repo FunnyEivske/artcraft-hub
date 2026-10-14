@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { Sidebar, HubTab } from './components/Sidebar';
+import { HomeView } from './components/HomeView';
 import { AppHubView } from './components/AppHubView';
 import { ProjectsView } from './components/ProjectsView';
 import { PalettesView } from './components/PalettesView';
 import { UpdateCenterView } from './components/UpdateCenterView';
+import { UpdateNotificationModal } from './components/UpdateNotificationModal';
 import {
   AppReleaseInfo,
   ColorPalette,
@@ -28,8 +30,11 @@ import {
 } from './services/tauri';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
+const RECENT_APPS_KEY = 'openart_recent_launched_apps';
+const SNOOZE_PREFIX = 'openart_snoozed_update_';
+
 export function App() {
-  const [activeTab, setActiveTab] = useState<HubTab>('apps');
+  const [activeTab, setActiveTab] = useState<HubTab>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
@@ -43,10 +48,35 @@ export function App() {
   const [progressMap, setProgressMap] = useState<Record<string, DownloadProgressPayload>>({});
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
+  // Track recently launched app IDs for Quick Launch
+  const [recentLaunchedAppIds, setRecentLaunchedAppIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_APPS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // App pending update notification popup
+  const [notifyingUpdateApp, setNotifyingUpdateApp] = useState<AppReleaseInfo | null>(null);
+
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  const markAppLaunched = useCallback((appId: string) => {
+    setRecentLaunchedAppIds((prev) => {
+      const updated = [appId, ...prev.filter((id) => id !== appId)].slice(0, 10);
+      try {
+        localStorage.setItem(RECENT_APPS_KEY, JSON.stringify(updated));
+      } catch {
+        // Non-critical
+      }
+      return updated;
+    });
+  }, []);
 
   const refreshRecent = useCallback(async () => {
     setIsRefreshingRecent(true);
@@ -57,6 +87,23 @@ export function App() {
       // Non-critical
     } finally {
       setIsRefreshingRecent(false);
+    }
+  }, []);
+
+  const checkForUpdatePrompts = useCallback((appList: AppReleaseInfo[]) => {
+    // Check if any installed app has an update available and hasn't been snoozed
+    const updateCandidate = appList.find((a) => {
+      if (a.status !== 'UpdateAvailable') return false;
+      try {
+        const snoozeKey = `${SNOOZE_PREFIX}${a.app_id}_${a.latest_version}`;
+        return sessionStorage.getItem(snoozeKey) !== 'true';
+      } catch {
+        return false;
+      }
+    });
+
+    if (updateCandidate) {
+      setNotifyingUpdateApp(updateCandidate);
     }
   }, []);
 
@@ -75,8 +122,9 @@ export function App() {
       setProjects(projs);
       setPalettes(pals);
       setRecentFiles(recents);
+      checkForUpdatePrompts(rels);
     } catch {
-      showToast('Kunne ikke hente versjoner – viser lokal oversikt', 'info');
+      showToast('Kunne ikke hente versjoner — viser lokal oversikt', 'info');
     } finally {
       setIsRefreshing(false);
     }
@@ -95,7 +143,11 @@ export function App() {
       if (payload.status === 'completed') {
         showToast('Installasjonen er fullført', 'success');
         // Refresh app list after installation finishes
-        checkGithubReleases().then((updated) => setApps(updated));
+        checkGithubReleases().then((updated) => {
+          setApps(updated);
+          // If modal was for this app, close it
+          setNotifyingUpdateApp((curr) => (curr?.app_id === payload.app_id ? null : curr));
+        });
       }
     });
 
@@ -109,9 +161,10 @@ export function App() {
       unsubDownload();
       unsubWatcher();
     };
-  }, []);
+  }, [checkForUpdatePrompts]);
 
   const handleLaunchNative = async (appId: string) => {
+    markAppLaunched(appId);
     try {
       const res = await launchApp(appId);
       showToast(res, 'success');
@@ -127,7 +180,7 @@ export function App() {
           ? app.web_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`
           : app.native_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`;
 
-      showToast(`Laster ned ${app.app_name}`, 'info');
+      showToast(`Laster ned og oppdaterer ${app.app_name}...`, 'info');
       await installOrUpdateApp(app.app_id, downloadUrl, targetType, app.latest_version);
     } catch (err) {
       showToast(`Feil under installasjon: ${err}`, 'error');
@@ -149,6 +202,7 @@ export function App() {
   };
 
   const handleOpenFileInApp = async (appId: string, filePath: string) => {
+    markAppLaunched(appId);
     try {
       const res = await launchApp(appId, filePath);
       showToast(res, 'success');
@@ -168,16 +222,26 @@ export function App() {
   };
 
   const handleUpdateAll = async () => {
-    const toUpdate = apps.filter((a) => a.status === 'UpdateAvailable' || a.status === 'NotInstalled');
+    const toUpdate = apps.filter((a) => a.status === 'UpdateAvailable');
     if (toUpdate.length === 0) {
-      showToast('Alle apper er oppdatert', 'info');
+      showToast('Alle installerte apper er oppdatert', 'info');
       return;
     }
 
-    showToast(`Oppdaterer ${toUpdate.length} apper`, 'info');
+    showToast(`Oppdaterer ${toUpdate.length} apper...`, 'info');
     for (const app of toUpdate) {
       await handleInstall(app, 'native');
     }
+  };
+
+  const handleLaterUpdate = (app: AppReleaseInfo) => {
+    try {
+      sessionStorage.setItem(`${SNOOZE_PREFIX}${app.app_id}_${app.latest_version}`, 'true');
+    } catch {
+      // Non-critical
+    }
+    setNotifyingUpdateApp(null);
+    showToast(`Oppdatering for ${app.app_name} utsatt. Du kan oppdatere når du vil under Oppdateringer.`, 'info');
   };
 
   const updatesCount = apps.filter((a) => a.status === 'UpdateAvailable').length;
@@ -208,6 +272,24 @@ export function App() {
         />
 
         <main className="flex-1 min-w-0 overflow-y-auto px-8 py-7">
+          {activeTab === 'home' && (
+            <HomeView
+              apps={apps}
+              recentFiles={recentFiles}
+              projects={projects}
+              recentLaunchedAppIds={recentLaunchedAppIds}
+              onLaunchNative={handleLaunchNative}
+              onOpenFileInApp={handleOpenFileInApp}
+              onRefreshRecent={refreshRecent}
+              onShowToast={showToast}
+              isRefreshingRecent={isRefreshingRecent}
+              onNavigateToApps={() => {
+                setSelectedCategory('Alle');
+                setActiveTab('apps');
+              }}
+            />
+          )}
+
           {activeTab === 'apps' && (
             <AppHubView
               apps={apps}
@@ -220,12 +302,6 @@ export function App() {
               onLaunchNative={handleLaunchNative}
               onInstall={handleInstall}
               progressMap={progressMap}
-              recentFiles={recentFiles}
-              projects={projects}
-              onOpenFileInApp={handleOpenFileInApp}
-              onRefreshRecent={refreshRecent}
-              onShowToast={showToast}
-              isRefreshingRecent={isRefreshingRecent}
             />
           )}
 
@@ -260,9 +336,19 @@ export function App() {
         </main>
       </div>
 
+      {/* Non-intrusive Update Available Popup Modal */}
+      {notifyingUpdateApp && (
+        <UpdateNotificationModal
+          app={notifyingUpdateApp}
+          onUpdateNow={(app) => handleInstall(app, 'native')}
+          onLater={handleLaterUpdate}
+          progress={progressMap[notifyingUpdateApp.app_id]}
+        />
+      )}
+
       {toastMessage && (
         <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 h-10 pl-3 pr-4 rounded-md shadow-menu text-[13px] text-white"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 h-10 pl-3 pr-4 rounded-md shadow-menu text-[13px] text-white animate-in fade-in slide-in-from-bottom-2"
           style={{
             background:
               toastMessage.type === 'error'

@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { AppReleaseInfo, DownloadProgressPayload, RecentProjectFile, SmartProject } from '../types';
+import { AppReleaseInfo, DownloadProgressPayload } from '../types';
 import { AppCard, AppRow } from './AppCard';
-import { RecentFilesGrid } from './RecentFilesGrid';
 
 interface AppHubViewProps {
   apps: AppReleaseInfo[];
@@ -11,12 +10,6 @@ interface AppHubViewProps {
   onLaunchNative: (appId: string) => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   progressMap: Record<string, DownloadProgressPayload>;
-  recentFiles: RecentProjectFile[];
-  projects: SmartProject[];
-  onOpenFileInApp: (appId: string, filePath: string) => void;
-  onRefreshRecent?: () => void;
-  onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
-  isRefreshingRecent?: boolean;
 }
 
 const SectionHeading: React.FC<{ title: string; count: number }> = ({ title, count }) => (
@@ -33,12 +26,6 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   onLaunchNative,
   onInstall,
   progressMap,
-  recentFiles,
-  projects,
-  onOpenFileInApp,
-  onRefreshRecent,
-  onShowToast,
-  isRefreshingRecent,
 }) => {
   const filteredApps = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -70,25 +57,10 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
           </p>
         ) : (
           <p className="text-[13px] text-ui-muted mt-1">
-            Komplett kreativ pakke med 9 ArtCraft-studioer pluss Blender og Krita.
+            Komplett kreativ pakke med 9 ArtCraft-studioer samt Blender og Krita.
           </p>
         )}
       </div>
-
-      {/* Live Recent Files from all apps (Blender, Krita, ArtCraft, etc.) */}
-      {!searchQuery && selectedCategory === 'Alle' && recentFiles.length > 0 && (
-        <RecentFilesGrid
-          files={recentFiles}
-          allApps={apps}
-          projects={projects}
-          onOpenFileInApp={onOpenFileInApp}
-          onRefresh={onRefreshRecent}
-          onShowToast={onShowToast}
-          isRefreshing={isRefreshingRecent}
-          maxItems={6}
-          title="Sist jobbet med (Live fra alle apper)"
-        />
-      )}
 
       {filteredApps.length === 0 && (
         <div className="py-16 text-center">

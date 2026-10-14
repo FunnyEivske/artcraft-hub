@@ -44,7 +44,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
         <div className="flex items-center gap-2">
           <button className="btn-quiet" onClick={onCheckUpdates} disabled={isChecking}>
             <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin' : ''}`} />
-            {isChecking ? 'Ser etter…' : 'Se etter oppdateringer'}
+            {isChecking ? 'Ser etter...' : 'Se etter oppdateringer'}
           </button>
           {updates.length > 0 && (
             <button className="btn-primary" onClick={onUpdateAll}>
@@ -56,7 +56,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
 
       {updates.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-[13px] font-semibold text-ui-muted mb-2">Tilgjengelig</h2>
+          <h2 className="text-[13px] font-semibold text-ui-muted mb-2">Tilgjengelig for oppdatering</h2>
           <div className="rounded-lg border border-ui-border bg-ui-panel divide-y divide-ui-line">
             {updates.map((app) => {
               const p = progressMap[app.app_id];
@@ -69,7 +69,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
                       <div className="text-[14px] font-semibold">{app.app_name}</div>
                       <div className="text-[12.5px] text-ui-muted tabular-nums">
                         {app.installed_version} → {app.latest_version}
-                        {formatDate(app.published_at) && ` · ${formatDate(app.published_at)}`}
+                        {formatDate(app.published_at) && ` • ${formatDate(app.published_at)}`}
                       </div>
                     </div>
                     {busy ? (

@@ -1,4 +1,4 @@
-﻿pub mod commands;
+pub mod commands;
 pub mod models;
 
 use std::time::Duration;
@@ -12,7 +12,7 @@ pub fn run() {
         .plugin(tauri_plugin_log::Builder::default().build())
         .setup(|app| {
             let handle = app.handle().clone();
-            let projects_dir = get_hub_home().join(Projects);
+            let projects_dir = get_hub_home().join("Projects");
             let _ = std::fs::create_dir_all(&projects_dir);
 
             std::thread::spawn(move || {
@@ -25,13 +25,13 @@ pub fn run() {
                 ) {
                     Ok(w) => w,
                     Err(e) => {
-                        eprintln!([FileWatcher] Kunne ikke opprette watcher: {}, e);
+                        eprintln!("[FileWatcher] Kunne ikke opprette watcher: {}", e);
                         return;
                     }
                 };
 
                 if let Err(e) = watcher.watch(&projects_dir, RecursiveMode::Recursive) {
-                    eprintln!([FileWatcher] Kunne ikke overvaake {:?}: {}, projects_dir, e);
+                    eprintln!("[FileWatcher] Kunne ikke overvaake {:?}: {}", projects_dir, e);
                     return;
                 }
 
@@ -40,7 +40,7 @@ pub fn run() {
                     if let Ok(_event) = event_res {
                         if last_emit.elapsed() > Duration::from_millis(300) {
                             last_emit = std::time::Instant::now();
-                            let _ = handle.emit(projects-updated, ());
+                            let _ = handle.emit("projects-updated", ());
                         }
                     }
                 }
@@ -62,5 +62,5 @@ pub fn run() {
             commands::import_file_to_project,
         ])
         .run(tauri::generate_context!())
-        .expect(error while running OpenArt Hub);
+        .expect("error while running OpenArt Hub");
 }

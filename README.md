@@ -12,7 +12,7 @@ Manage, launch, and collaborate across 9 open-source creative studios with seaml
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-38bdf8?style=for-the-badge&logo=linux)](https://github.com/FunnyEivske/artcraft-hub/releases/latest)
 [![Built with Tauri v2](https://img.shields.io/badge/Built%20with-Tauri%20v2%20(Rust)-ea580c?style=for-the-badge&logo=tauri)](https://tauri.app)
 [![React](https://img.shields.io/badge/Frontend-React%2018%20%2B%20TypeScript-61dafb?style=for-the-badge&logo=react)](https://react.dev)
-[![License](https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-Non--Commercial-orange?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -136,8 +136,17 @@ npx tauri build
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE) — free for personal, commercial, and educational use.
+This project is licensed under a **Source-Available Non-Commercial License** — free for personal, educational, and academic use only.
+
+> [!CAUTION]
+> ### ⛔ Commercial Use Strictly Prohibited
+> **Commercial use, monetization, sublicensing, or business redistribution of this software, binaries, source code, or derivative works is strictly prohibited by anyone other than the author, unless explicit prior written permission and an official commercial license have been granted directly by the copyright holder.**
+
+For commercial licensing requests, custom business integration, or commercial permission inquiries, please contact:  
+📬 **Eivind Røsstad Skeie (FunnyEivske)** — [eivindrosstadskeie@gmail.com](mailto:eivindrosstadskeie@gmail.com)
+
+See the full [LICENSE](LICENSE) file for exact terms and conditions.
 
 <div align="center">
-Made with ❤️ by the OpenArt & ArtCraft Community
+Copyright © 2026 Eivind Røsstad Skeie. All rights reserved for commercial use.
 </div>

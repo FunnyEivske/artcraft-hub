@@ -30,6 +30,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "copyright": "Copyright © 2026 OpenArt Creative Suite",
+    "publisher": "OpenArt Team",
+    "shortDescription": "OpenArt Hub - Creative Desktop Suite",
+    "longDescription": "OpenArt Hub controls PhotoCraft, VectorCraft, FilmCraft, Blender, Krita and your creative projects with unified recent files and thumbnail engine.",
     "icon": [
       "icons/32x32.png",
       "icons/64x64.png",
@@ -38,6 +42,16 @@
       "icons/icon.icns",
       "icons/icon.ico",
       "icons/icon.png"
-    ]
+    ],
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "headerImage": null,
+        "sidebarImage": null
+      }
+    }
   }
 }

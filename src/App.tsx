@@ -5,7 +5,6 @@ import { AppHubView } from './components/AppHubView';
 import { ProjectsView } from './components/ProjectsView';
 import { PalettesView } from './components/PalettesView';
 import { UpdateCenterView } from './components/UpdateCenterView';
-import { WebStudioModal } from './components/WebStudioModal';
 import {
   AppReleaseInfo,
   ColorPalette,
@@ -42,7 +41,6 @@ export function App() {
   const [isRefreshingRecent, setIsRefreshingRecent] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [progressMap, setProgressMap] = useState<Record<string, DownloadProgressPayload>>({});
-  const [activeWebStudioApp, setActiveWebStudioApp] = useState<AppReleaseInfo | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
@@ -120,10 +118,6 @@ export function App() {
     } catch (err) {
       showToast(`Kunne ikke starte app: ${err}`, 'error');
     }
-  };
-
-  const handleLaunchWeb = (app: AppReleaseInfo) => {
-    setActiveWebStudioApp(app);
   };
 
   const handleInstall = async (app: AppReleaseInfo, targetType: 'native' | 'web') => {
@@ -224,7 +218,6 @@ export function App() {
                 setSearchQuery('');
               }}
               onLaunchNative={handleLaunchNative}
-              onLaunchWeb={handleLaunchWeb}
               onInstall={handleInstall}
               progressMap={progressMap}
               recentFiles={recentFiles}
@@ -286,10 +279,6 @@ export function App() {
           )}
           <span>{toastMessage.text}</span>
         </div>
-      )}
-
-      {activeWebStudioApp && (
-        <WebStudioModal app={activeWebStudioApp} onClose={() => setActiveWebStudioApp(null)} />
       )}
     </div>
   );

@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Ellipsis, Globe, ScrollText, RefreshCw, ExternalLink } from 'lucide-react';
+import { Ellipsis, ScrollText, ExternalLink } from 'lucide-react';
 import { AppReleaseInfo, DownloadProgressPayload } from '../types';
 import { AppTile } from './AppTile';
 
 interface AppItemProps {
   app: AppReleaseInfo;
   onLaunchNative: (appId: string) => void;
-  onLaunchWeb: (app: AppReleaseInfo) => void;
+  onLaunchWeb?: (app: AppReleaseInfo) => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   progress?: DownloadProgressPayload;
 }
@@ -19,7 +19,7 @@ const isActive = (p?: DownloadProgressPayload) =>
 const ProgressLine: React.FC<{ progress: DownloadProgressPayload }> = ({ progress }) => (
   <div className="mt-2">
     <div className="flex items-center justify-between text-[12px] text-ui-muted mb-1">
-      <span className="truncate">{progress.message || 'Installerer…'}</span>
+      <span className="truncate">{progress.message || 'Installerer...'}</span>
       <span className="tabular-nums">{Math.round(progress.percent)} %</span>
     </div>
     <div className="h-1 w-full rounded-full bg-[#3a3a3a] overflow-hidden">
@@ -42,11 +42,9 @@ const ReleaseNotes: React.FC<{ app: AppReleaseInfo }> = ({ app }) => (
 
 const AppMenu: React.FC<{
   app: AppReleaseInfo;
-  onLaunchWeb: (app: AppReleaseInfo) => void;
-  onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   onToggleNotes: () => void;
   notesOpen: boolean;
-}> = ({ app, onLaunchWeb, onInstall, onToggleNotes, notesOpen }) => {
+}> = ({ app, onToggleNotes, notesOpen }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -67,6 +65,13 @@ const AppMenu: React.FC<{
   const item =
     'w-full flex items-center gap-2.5 px-3 h-8 text-[13px] text-left text-ui-text hover:bg-ui-hover';
 
+  const repoUrl =
+    app.app_id === 'blender'
+      ? 'https://www.blender.org/download/releases/'
+      : app.app_id === 'krita'
+      ? 'https://krita.org/en/download/'
+      : `https://github.com/storytold/${app.app_id}/releases`;
+
   return (
     <div className="relative" ref={ref}>
       <button className="icon-btn" title="Flere valg" onClick={() => setOpen((o) => !o)}>
@@ -74,32 +79,20 @@ const AppMenu: React.FC<{
       </button>
       {open && (
         <div className="absolute right-0 top-9 z-30 w-56 py-1 rounded-md bg-[#2f2f2f] border border-ui-border shadow-menu">
-          {app.has_web_app !== false && (
-            <button className={item} onClick={() => { setOpen(false); onLaunchWeb(app); }}>
-              <Globe className="w-4 h-4 text-ui-muted" />
-              Åpne i nettleservisning
-            </button>
-          )}
           <button className={item} onClick={() => { setOpen(false); onToggleNotes(); }}>
             <ScrollText className="w-4 h-4 text-ui-muted" />
             {notesOpen ? 'Skjul nyheter' : 'Nyheter i denne versjonen'}
           </button>
-          {app.status === 'Installed' && (
-            <button className={item} onClick={() => { setOpen(false); onInstall(app, 'web'); }}>
-              <RefreshCw className="w-4 h-4 text-ui-muted" />
-              Hent nettleserpakke
-            </button>
-          )}
           <div className="my-1 border-t border-ui-border" />
           <a
             className={item}
-            href={`https://github.com/storytold/${app.app_id}/releases`}
+            href={repoUrl}
             target="_blank"
             rel="noreferrer"
             onClick={() => setOpen(false)}
           >
             <ExternalLink className="w-4 h-4 text-ui-muted" />
-            Se utgivelser på GitHub
+            Offisiell nettside / utgivelser
           </a>
         </div>
       )}
@@ -112,7 +105,6 @@ const AppMenu: React.FC<{
 export const AppRow: React.FC<AppItemProps> = ({
   app,
   onLaunchNative,
-  onLaunchWeb,
   onInstall,
   progress,
 }) => {
@@ -149,8 +141,6 @@ export const AppRow: React.FC<AppItemProps> = ({
           )}
           <AppMenu
             app={app}
-            onLaunchWeb={onLaunchWeb}
-            onInstall={onInstall}
             notesOpen={notesOpen}
             onToggleNotes={() => setNotesOpen((v) => !v)}
           />
@@ -169,7 +159,7 @@ export const AppRow: React.FC<AppItemProps> = ({
 
 /* ---------- available (not installed) cards ---------- */
 
-export const AppCard: React.FC<AppItemProps> = ({ app, onLaunchWeb, onInstall, progress }) => {
+export const AppCard: React.FC<AppItemProps> = ({ app, onInstall, progress }) => {
   const [notesOpen, setNotesOpen] = useState(false);
   const busy = isActive(progress);
 
@@ -183,8 +173,6 @@ export const AppCard: React.FC<AppItemProps> = ({ app, onLaunchWeb, onInstall, p
         </div>
         <AppMenu
           app={app}
-          onLaunchWeb={onLaunchWeb}
-          onInstall={onInstall}
           notesOpen={notesOpen}
           onToggleNotes={() => setNotesOpen((v) => !v)}
         />
@@ -198,14 +186,9 @@ export const AppCard: React.FC<AppItemProps> = ({ app, onLaunchWeb, onInstall, p
         <ProgressLine progress={progress} />
       ) : (
         <div className="mt-4 flex items-center gap-2">
-          <button className="btn-primary" onClick={() => onInstall(app, 'native')}>
+          <button className="btn-primary w-full justify-center" onClick={() => onInstall(app, 'native')}>
             Installer
           </button>
-          {app.has_web_app !== false && (
-            <button className="btn-quiet" onClick={() => onLaunchWeb(app)}>
-              Prøv i nettleser
-            </button>
-          )}
         </div>
       )}
     </div>

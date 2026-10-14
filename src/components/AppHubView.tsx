@@ -9,7 +9,6 @@ interface AppHubViewProps {
   searchQuery: string;
   onClearFilters: () => void;
   onLaunchNative: (appId: string) => void;
-  onLaunchWeb: (app: AppReleaseInfo) => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   progressMap: Record<string, DownloadProgressPayload>;
   recentFiles: RecentProjectFile[];
@@ -32,7 +31,6 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   searchQuery,
   onClearFilters,
   onLaunchNative,
-  onLaunchWeb,
   onInstall,
   progressMap,
   recentFiles,
@@ -60,7 +58,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   const available = filteredApps.filter((a) => a.status === 'NotInstalled');
 
   const title = selectedCategory === 'Alle' ? 'Alle apper' : selectedCategory;
-  const itemProps = { onLaunchNative, onLaunchWeb, onInstall };
+  const itemProps = { onLaunchNative, onInstall };
 
   return (
     <div className="max-w-[1080px]">

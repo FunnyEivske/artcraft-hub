@@ -1,128 +1,143 @@
 # OpenArt Hub (`artcraft-hub`)
 
-> **En moderne, personvernfokusert "Creative Cloud"-launcher, pakkebehandler og prosjekt-hub for det åpne ArtCraft-økosystemet.**  
-> Bygget med **Tauri v2 (Rust)** + **React 18** + **TypeScript** + **Tailwind CSS**.
+<div align="center">
+
+<img src="./src-tauri/icons/128x128.png" alt="OpenArt Hub Logo" width="128" height="128" />
+
+### Modern, Privacy-First Creative Suite Desktop Hub
+**A free, open-source alternative to proprietary creative cloud launchers.**  
+Manage, launch, and collaborate across 9 open-source creative studios with seamless cross-app workflows.
+
+[![Latest Release](https://img.shields.io/github/v/release/FunnyEivske/artcraft-hub?style=for-the-badge&color=6366f1&logo=github)](https://github.com/FunnyEivske/artcraft-hub/releases/latest)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-38bdf8?style=for-the-badge&logo=linux)](https://github.com/FunnyEivske/artcraft-hub/releases/latest)
+[![Built with Tauri v2](https://img.shields.io/badge/Built%20with-Tauri%20v2%20(Rust)-ea580c?style=for-the-badge&logo=tauri)](https://tauri.app)
+[![React](https://img.shields.io/badge/Frontend-React%2018%20%2B%20TypeScript-61dafb?style=for-the-badge&logo=react)](https://react.dev)
+[![License](https://img.shields.io/badge/License-MIT-10b981?style=for-the-badge)](LICENSE)
+
+</div>
 
 ---
 
-## 🎨 Oversikt over de 9 ArtCraft-studioene
+## 📥 Download OpenArt Hub
 
-OpenArt Hub styrer, oppdaterer og lanserer følgende 9 frittstående kreative apper fra GitHub-organisasjonen [`storytold`](https://github.com/storytold):
+Download the latest stable release (**v1.0.0**) for your operating system:
 
-| App | Navn | Kategori | Alternativ til | Støttede filformater |
-| :--- | :--- | :--- | :--- | :--- |
-| **`photocraft`** | **PhotoCraft** | Foto & Piksel | Adobe Photoshop | `.png`, `.jpg`, `.jpeg`, `.webp`, `.psd` |
-| **`vectorcraft`** | **VectorCraft** | Vektor & Mønster | Adobe Illustrator | `.svg`, `.eps`, `.ai` |
-| **`filmcraft`** | **FilmCraft** | Video | Adobe Premiere Pro | `.mp4`, `.mov`, `.mkv`, `.webm` |
-| **`lightcraft`** | **LightCraft** | RAW & Farge | Adobe Lightroom | `.raw`, `.cr2`, `.nef`, `.dng`, `.jpg` |
-| **`pdfcraft`** | **PdfCraft** | Dokument & Mønsterark | Adobe Acrobat Pro | `.pdf` |
-| **`effectcraft`** | **EffectCraft** | VFX & Motion | Adobe After Effects | `.mp4`, `.mov`, `.json`, `.mg` |
-| **`designcraft`** | **DesignCraft** | Layout & Trykk | Adobe InDesign | `.pdf`, `.svg`, `.idml` |
-| **`figcraft`** | **FigCraft** | UI/UX & Prototyping | Figma | `.svg`, `.png`, `.fig`, `.json` |
-| **`soundcraft`** | **SoundCraft** | Lyd & Miksing | Adobe Audition | `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac` |
+<div align="center">
 
----
+| Operating System | Architecture | File Format | Direct Download Button |
+| :--- | :--- | :--- | :---: |
+| 🪟 **Windows** | 64-bit (`x64`) | `.exe` Installer | [![Download Windows](https://img.shields.io/badge/Download-Windows_EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub_1.0.0_x64-setup.exe) |
+| 🪟 **Windows (MSI)** | 64-bit (`x64`) | `.msi` Package | [![Download MSI](https://img.shields.io/badge/Download-Windows_MSI-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub_1.0.0_x64_en-US.msi) |
+| 🍏 **macOS** | Apple Silicon (`M1/M2/M3/M4`) | `.dmg` Disk Image | [![Download Apple Silicon](https://img.shields.io/badge/Download-macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub_1.0.0_aarch64.dmg) |
+| 🍏 **macOS** | Intel (`x86_64`) | `.dmg` Disk Image | [![Download Intel Mac](https://img.shields.io/badge/Download-macOS_Intel-555555?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub_1.0.0_x64.dmg) |
+| 🐧 **Linux** | Universal (`x86_64`) | `.AppImage` | [![Download AppImage](https://img.shields.io/badge/Download-Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub_1.0.0_amd64.AppImage) |
+| 🐧 **Linux (Debian/Ubuntu)** | 64-bit (`amd64`) | `.deb` Package | [![Download DEB](https://img.shields.io/badge/Download-Ubuntu%2FDebian_DEB-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub_1.0.0_amd64.deb) |
+| 🐧 **Linux (Fedora/RHEL)** | 64-bit (`x86_64`) | `.rpm` Package | [![Download RPM](https://img.shields.io/badge/Download-Fedora_RPM-51A2DA?style=for-the-badge&logo=fedora&logoColor=white)](https://github.com/FunnyEivske/artcraft-hub/releases/download/v1.0.0/OpenArt.Hub-1.0.0-1.x86_64.rpm) |
 
-## 🚀 Hovedfunksjoner
+👉 **[View All Release Assets and Checksums on GitHub](https://github.com/FunnyEivske/artcraft-hub/releases/latest)**
 
-1. **App Hub (Launcher & Manager):**
-   - Sanntids versjonssjekk mot `storytold/<app_id>` releases via GitHub REST API.
-   - Ett-klikks valg mellom **"Åpne App (Native)"**, **"Kjør i Hub (WebAssembly)"** og **"Installer / Oppdater"**.
-   - Sanntids fremdriftslinje for nedlasting, utpakking og klargjøring via Tauri event-streams.
-2. **Smart-Prosjekter & Cross-App Pipeline ("Send til..."):**
-   - Opprett nye prosjekter med standardisert 5-delt struktur:
-     - `01_References/` (prosjektnotater og inspirasjon)
-     - `02_Vectors_and_Patterns/` (SVG, vektor-elementer)
-     - `03_Photos_and_Textures/` (bilder, textures, pikselkunst)
-     - `04_Audio_and_Video/` (lydspor, råopptak, animasjoner)
-     - `05_Exports/` (ferdigstilte trykksaker, videoer og eksportfiler)
-     - `project.artcraft.json` (prosjektkonfigurasjon og metadata)
-   - Intelligent filruting: Klikk **"Send til..."** på en hvilken som helst fil for å åpne den direkte i kompatible ArtCraft-apper.
-3. **Felles Ressursbank & Fargepaletter:**
-   - Lagre og administrer globale fargepaletter i `~/ArtCraftHub/Assets/palettes.json`.
-   - 1-klikks kopiering av HEX- og RGB-fargekoder til utklippstavlen.
-   - Eksport som CSS-variabler (`:root`).
-4. **Oppdateringssenter:**
-   - Automatisk kontroll av alle 9 apper mot GitHub releases.
-   - "Oppdater alle"-knapp for batch-installasjon.
-5. **In-Hub WebAssembly Studio:**
-   - Interaktivt innebygd lerret som lar deg tegne, skissere og teste funksjoner uten å forlate huben.
+</div>
 
 ---
 
-## 🛠️ Arkitektur & Teknologistabel
+## 🎨 The 9 ArtCraft Creative Studios
 
-- **Backend:** [Tauri v2](https://v2.tauri.app/) (Rust 2021)
-  - `reqwest` med `default-features = false` og `rustls-tls` (unngår OpenSSL-kompileringsproblemer på kryssplattformer).
-  - `tokio` (asynkron I/O, streaming nedlastinger)
-  - `zip` (utpakking av WebAssembly-distribusjoner)
-  - `dirs` (plattformuavhengig `~/ArtCraftHub`-hjemmemappe)
+OpenArt Hub acts as the centralized launcher, updater, and file bridge for the 9 independent creative applications from the [`storytold`](https://github.com/storytold) organization:
+
+| Studio | Name | Category | Alternative To | Supported File Formats | Accent |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **`photocraft`** | **PhotoCraft** | Photo & Pixel | Adobe Photoshop | `.png`, `.jpg`, `.jpeg`, `.webp`, `.psd` | `Sky Cyan` |
+| **`vectorcraft`** | **VectorCraft** | Vector & Pattern | Adobe Illustrator | `.svg`, `.eps`, `.ai` | `Amber Glow` |
+| **`filmcraft`** | **FilmCraft** | Video Production | Adobe Premiere Pro | `.mp4`, `.mov`, `.mkv`, `.webm` | `Neon Rose` |
+| **`lightcraft`** | **LightCraft** | RAW & Color Grading | Adobe Lightroom | `.raw`, `.cr2`, `.nef`, `.dng`, `.jpg` | `Teal Light` |
+| **`pdfcraft`** | **PdfCraft** | Document & Forms | Adobe Acrobat Pro | `.pdf` | `Crimson Red` |
+| **`effectcraft`** | **EffectCraft** | VFX & Motion Graphics | Adobe After Effects | `.mp4`, `.mov`, `.json`, `.mg` | `Purple Glow` |
+| **`designcraft`** | **DesignCraft** | Layout & Publishing | Adobe InDesign | `.pdf`, `.svg`, `.idml` | `Ruby Rose` |
+| **`figcraft`** | **FigCraft** | UI/UX & Prototyping | Figma | `.svg`, `.png`, `.fig`, `.json` | `Emerald UI` |
+| **`soundcraft`** | **SoundCraft** | Audio & Mastering | Adobe Audition | `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac` | `Indigo Wave` |
+
+---
+
+## ✨ Key Features
+
+### 1. Unified App Hub & Package Manager
+- **Zero telemetry & local first:** No forced cloud accounts, no subscription lock-ins.
+- **GitHub Release Integration:** Automatically checks `storytold/<app_id>` repository releases in real-time.
+- **Dual-Engine Execution:** Choose between running apps as high-performance **Native Desktop Binaries** or sandboxed **In-Hub WebAssembly Studios**.
+- **Real-Time Progress Streams:** Live download and extraction progress bars powered by Tauri v2 event streams.
+
+### 2. Smart Projects & Cross-App "Send To..." Pipeline
+- **Standardized Creative Folder Hierarchy:**
+  - `01_References/`: Project briefs, reference art, moodboards, and notes.
+  - `02_Vectors_and_Patterns/`: SVGs, logos, vector icons, patterns.
+  - `03_Photos_and_Textures/`: RAW photos, textures, mockups, raster graphics.
+  - `04_Audio_and_Video/`: Voiceovers, Foley sounds, background music, raw footage.
+  - `05_Exports/`: Final printable PDFs, 4K videos, web assets.
+  - `project.artcraft.json`: Project manifest with recommended app pairings.
+- **Intelligent File Routing:** Click **"Send To..."** on any file in any project folder to immediately launch the optimal studio with the file pre-loaded.
+
+### 3. Global Asset Bank & Color Palettes
+- Centralized color palette management saved locally at `~/ArtCraftHub/Assets/palettes.json`.
+- 1-click clipboard copy for **HEX** and **RGB** values.
+- Instant export to **CSS Custom Properties (`:root`)** ready for web and UI design.
+- Built-in curated palettes: *ArtCraft Signature*, *Cyberpunk Glow*, *Nordic Minimalist*, and *Warm Sunset Editorial*.
+
+### 4. Interactive In-Hub WebAssembly Studio
+- Built-in live canvas sandbox directly inside the hub.
+- Draw, test brush sizes, create color sketches, and export quick PNG snapshots without opening external editors.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Core Framework:** [Tauri v2](https://tauri.app/) (Rust backend for ultra-low memory footprint and native performance)
 - **Frontend:** [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vitejs.dev/)
-- **Design & Styling:** [Tailwind CSS](https://tailwindcss.com/) med skreddersydd Adobe Creative Cloud-inspirert Dark Mode, glassmorphism og neon-aksenter.
-- **Ikoner:** [Lucide React](https://lucide.dev/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) with custom dark-mode glassmorphic aesthetics
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Cross-Platform Release Automation:** [GitHub Actions](https://github.com/features/actions) with multi-target runners for Windows (`x86_64-pc-windows-msvc`), macOS (`aarch64` & `x86_64`), and Linux (`x86_64-unknown-linux-gnu`).
 
 ---
 
-## 📦 Filstruktur på brukerens maskin (`~/ArtCraftHub/`)
+## 🚀 Development & Building from Source
 
-```text
-~/ArtCraftHub/
-├── Apps/                      # Native binærfiler og installerte apper
-│   ├── photocraft/
-│   ├── vectorcraft/
-│   └── ...
-├── WebApps/                   # Lokale WebAssembly/HTML5-distribusjoner
-│   ├── photocraft/index.html
-│   └── ...
-├── Projects/                  # Brukerens Smart-Prosjekter
-│   └── <Prosjektnavn>/
-│       ├── 01_References/
-│       ├── 02_Vectors_and_Patterns/
-│       ├── 03_Photos_and_Textures/
-│       ├── 04_Audio_and_Video/
-│       ├── 05_Exports/
-│       └── project.artcraft.json
-├── Assets/                    # Globale fargepaletter og ressurser
-│   └── palettes.json
-└── installed_versions.json    # Versjonsregister for installerte apper
-```
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v20 or v22 recommended)
+- [Rust & Cargo](https://rustup.rs/) (stable toolchain)
+- **Platform-specific dependencies:**
+  - **Windows:** Visual Studio C++ Build Tools (Desktop development with C++)
+  - **macOS:** Xcode Command Line Tools (`xcode-select --install`)
+  - **Linux (Ubuntu/Debian):**
+    ```bash
+    sudo apt update
+    sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libappindicator3-dev librsvg2-dev patchelf
+    ```
 
----
-
-## ⚙️ GitHub Actions Automatisk Release Workflow
-
-Prosjektet inneholder en ferdig konfigurert `.github/workflows/release.yml` som automatisk bygger og publiserer installasjonsfiler:
-
-- **Windows:** `.msi` og `-setup.exe` (via `windows-latest`)
-- **macOS:** `.dmg` for både Apple Silicon (`aarch64-apple-darwin`) og Intel Mac (`x86_64-apple-darwin`) (via `macos-latest`)
-- **Linux:** `.deb` og `.AppImage` (via `ubuntu-22.04` med GTK4/Webkit2gtk-avhengigheter)
-- **Opplasting:** Både til en GitHub Release (`v*`) og som direkte nedlastbare artefakter i Actions-fanen.
-
----
-
-## 💻 Kjøre og bygge lokalt
-
-### Forutsetninger
-- Node.js 18+ og `npm`
-- Rust toolchain (`rustup`)
-
-### Utviklingsmodus
+### Setup & Run Locally
 ```bash
-# Installer avhengigheter
+# Clone the repository
+git clone https://github.com/FunnyEivske/artcraft-hub.git
+cd artcraft-hub
+
+# Install npm dependencies
 npm install
 
-# Start frontend i dev-modus
+# Run frontend in development mode
 npm run dev
 
-# Start hele desktop-applikasjonen med Tauri v2
-npm run tauri dev
-```
+# Run full Desktop Hub with hot reload
+npx tauri dev
 
-### Produksjonsbygg
-```bash
-# Bygg frontend
+# Build production bundle for your current OS
 npm run build
-
-# Bygg kryssplattform desktop-installasjonspakke
-npm run tauri build
+npx tauri build
 ```
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) — free for personal, commercial, and educational use.
+
+<div align="center">
+Made with ❤️ by the OpenArt & ArtCraft Community
+</div>

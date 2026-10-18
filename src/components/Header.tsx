@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, RefreshCw, X } from 'lucide-react';
+import { Search, RefreshCw, X, ArrowDownCircle } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
 const GithubMark = () => (
@@ -13,6 +13,9 @@ interface HeaderProps {
   onSearchChange: (q: string) => void;
   onRefreshReleases: () => void;
   isRefreshing: boolean;
+  hasUpdatesAvailable?: boolean;
+  updatesCount?: number;
+  onOpenUpdatePrompt?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +23,9 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   onRefreshReleases,
   isRefreshing,
+  hasUpdatesAvailable = false,
+  updatesCount = 0,
+  onOpenUpdatePrompt,
 }) => {
   return (
     <header className="h-12 flex-shrink-0 flex items-center gap-4 px-4 bg-ui-rail border-b border-ui-line">
@@ -54,14 +60,26 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Actions */}
       <div className="flex items-center gap-1 w-[216px] justify-end flex-shrink-0">
-        <button
-          onClick={onRefreshReleases}
-          disabled={isRefreshing}
-          className="icon-btn"
-          title="Se etter nye versjoner"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </button>
+        {hasUpdatesAvailable ? (
+          <button
+            onClick={onOpenUpdatePrompt}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 transition-all text-[12px] font-semibold shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:scale-105 cursor-pointer animate-pulse"
+            title={`Ny oppdatering tilgjengelig (${updatesCount}) — Klikk for å installere!`}
+          >
+            <ArrowDownCircle className="w-4 h-4 text-emerald-400" />
+            <span className="text-[11.5px] font-medium tracking-tight">Oppdatering</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-ui-rail"></span>
+          </button>
+        ) : (
+          <button
+            onClick={onRefreshReleases}
+            disabled={isRefreshing}
+            className="icon-btn hover:text-white"
+            title="Se etter nye versjoner"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-ui-blue' : ''}`} />
+          </button>
+        )}
         <a
           href="https://github.com/storytold"
           target="_blank"

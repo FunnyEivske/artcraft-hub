@@ -352,5 +352,18 @@ impl Default for ScannerSettings {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HubUpdateInfo {
+    pub current_version: String,
+    pub latest_version: String,
+    pub update_available: bool,
+    pub release_name: String,
+    pub release_notes: String,
+    pub published_at: String,
+    pub download_url: Option<String>,
+    pub asset_name: Option<String>,
+}
+
 
 

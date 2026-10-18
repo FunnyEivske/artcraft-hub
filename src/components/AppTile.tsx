@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AppReleaseInfo } from '../types';
+import { BrandLogo } from './BrandLogo';
 
 // Adobe Creative Cloud style 2-letter capitalization: Pc (PhotoCraft), Vc (VectorCraft), Fc (FilmCraft), etc.
 const ABBREVIATIONS: Record<string, string> = {
@@ -47,6 +48,26 @@ interface AppTileProps {
 export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
   const key = app.app_id?.toLowerCase() || '';
   const [loadError, setLoadError] = useState(false);
+
+  // Official logo for OpenArt Hub
+  if (key === 'openart-hub' || key === 'artcraft-hub') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'radial-gradient(circle at 30% 30%, #312e81 0%, #111827 100%)',
+          border: '1.5px solid rgba(129, 140, 248, 0.4)',
+          boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+        }}
+      >
+        <BrandLogo size={Math.round(size * 0.65)} />
+      </div>
+    );
+  }
 
   // Official brand logo for Blender
   if (key === 'blender') {

@@ -13,6 +13,7 @@ import {
   AppReleaseInfo,
   ColorPalette,
   DownloadProgressPayload,
+  HubUpdateInfo,
   RecentProjectFile,
   SmartProject,
   SystemInfo,
@@ -20,8 +21,10 @@ import {
 } from './types';
 import {
   checkGithubReleases,
+  checkHubAppUpdate,
   createSmartProject,
   discoverAllRecentFiles,
+  downloadAndInstallHubUpdate,
   getSystemInfo,
   getScannerSettings,
   installOrUpdateApp,
@@ -64,6 +67,7 @@ export function App() {
 
   // App pending update notification popup
   const [notifyingUpdateApp, setNotifyingUpdateApp] = useState<AppReleaseInfo | null>(null);
+  const [hubUpdate, setHubUpdate] = useState<HubUpdateInfo | null>(null);
 
   // First-time onboarding popup (only on first install, NOT on updates)
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
@@ -98,39 +102,94 @@ export function App() {
     }
   }, []);
 
-  const checkForUpdatePrompts = useCallback((appList: AppReleaseInfo[]) => {
-    // Check if any installed app has an update available and hasn't been snoozed
-    const updateCandidate = appList.find((a) => {
-      if (a.status !== 'UpdateAvailable') return false;
-      try {
-        const snoozeKey = `${SNOOZE_PREFIX}${a.app_id}_${a.latest_version}`;
-        return sessionStorage.getItem(snoozeKey) !== 'true';
-      } catch {
-        return false;
+  const createHubReleaseInfo = (hubInfo: HubUpdateInfo): AppReleaseInfo => ({
+    app_id: 'openart-hub',
+    app_name: 'OpenArt Hub',
+    alternative_to: 'Creative Suite Desktop Hub',
+    description: 'Hovedapplikasjon og launcher for ArtCraft-økosystemet med nylige filer og prosjektbehandling.',
+    category: 'Kreativ Hub & Studio',
+    color_accent: '#6366f1',
+    icon_name: 'Sliders',
+    file_types: [],
+    latest_version: hubInfo.latestVersion,
+    release_name: hubInfo.releaseName || `OpenArt Hub ${hubInfo.latestVersion}`,
+    release_notes: hubInfo.releaseNotes || 'Optimaliseringer, forbedret filskanning og stabilitet.',
+    published_at: hubInfo.publishedAt,
+    native_download_url: hubInfo.downloadUrl || undefined,
+    native_asset_name: hubInfo.assetName || undefined,
+    status: 'UpdateAvailable',
+    installed_version: hubInfo.currentVersion,
+    installed_type: 'native',
+    has_web_app: false,
+  });
+
+  const checkForUpdatePrompts = useCallback(
+    (appList: AppReleaseInfo[], hubInfo?: HubUpdateInfo | null, isManual = false): AppReleaseInfo | null => {
+      // 1. Prioritize Hub's own update if available
+      if (hubInfo?.updateAvailable) {
+        const snoozeKey = `${SNOOZE_PREFIX}openart_hub_${hubInfo.latestVersion}`;
+        const isSnoozed = !isManual && sessionStorage.getItem(snoozeKey) === 'true';
+        if (!isSnoozed) {
+          const hubRel = createHubReleaseInfo(hubInfo);
+          setNotifyingUpdateApp(hubRel);
+          return hubRel;
+        }
       }
-    });
 
-    if (updateCandidate) {
-      setNotifyingUpdateApp(updateCandidate);
-    }
-  }, []);
+      // 2. Check installed apps
+      const updateCandidate = appList.find((a) => {
+        if (a.status !== 'UpdateAvailable') return false;
+        if (isManual) return true;
+        try {
+          const snoozeKey = `${SNOOZE_PREFIX}${a.app_id}_${a.latest_version}`;
+          return sessionStorage.getItem(snoozeKey) !== 'true';
+        } catch {
+          return false;
+        }
+      });
 
-  const loadData = async () => {
+      if (updateCandidate) {
+        setNotifyingUpdateApp(updateCandidate);
+        return updateCandidate;
+      }
+
+      return null;
+    },
+    []
+  );
+
+  const loadData = async (manualTrigger = false) => {
     setIsRefreshing(true);
+    if (manualTrigger) {
+      showToast('Søker etter oppdateringer...', 'info');
+    }
     try {
-      const [sys, rels, projs, pals, recents] = await Promise.all([
+      const [sys, rels, projs, pals, recents, hubUp] = await Promise.all([
         getSystemInfo(),
         checkGithubReleases(),
         scanProjectsAndFiles(),
         loadPalettes(),
         discoverAllRecentFiles().catch(() => [] as RecentProjectFile[]),
+        checkHubAppUpdate().catch(() => null),
       ]);
       setSystemInfo(sys);
       setApps(rels);
       setProjects(projs);
       setPalettes(pals);
       setRecentFiles(recents);
-      checkForUpdatePrompts(rels);
+      if (hubUp) {
+        setHubUpdate(hubUp);
+      }
+
+      const candidate = checkForUpdatePrompts(rels, hubUp, manualTrigger);
+
+      if (manualTrigger) {
+        if (candidate || (hubUp && hubUp.updateAvailable)) {
+          showToast('Ny oppdatering tilgjengelig!', 'success');
+        } else {
+          showToast('Alt er oppdatert! Ingen nye oppdateringer tilgjengelig.', 'info');
+        }
+      }
 
       // Check onboarding state: ONLY show for genuine first-time installation!
       try {
@@ -174,12 +233,17 @@ export function App() {
 
       if (payload.status === 'completed') {
         showToast('Installasjonen er fullført', 'success');
-        // Refresh app list after installation finishes
-        checkGithubReleases().then((updated) => {
-          setApps(updated);
-          // If modal was for this app, close it
-          setNotifyingUpdateApp((curr) => (curr?.app_id === payload.app_id ? null : curr));
-        });
+        if (payload.app_id === 'openart-hub') {
+          setHubUpdate((prev) => (prev ? { ...prev, updateAvailable: false } : null));
+          setNotifyingUpdateApp(null);
+        } else {
+          // Refresh app list after installation finishes
+          checkGithubReleases().then((updated) => {
+            setApps(updated);
+            // If modal was for this app, close it
+            setNotifyingUpdateApp((curr) => (curr?.app_id === payload.app_id ? null : curr));
+          });
+        }
       }
     });
 
@@ -207,6 +271,15 @@ export function App() {
 
   const handleInstall = async (app: AppReleaseInfo, targetType: 'native' | 'web') => {
     try {
+      if (app.app_id === 'openart-hub' || app.app_id === 'artcraft-hub') {
+        const downloadUrl = app.native_download_url || 'https://github.com/FunnyEivske/artcraft-hub/releases/latest';
+        const osExt = systemInfo?.os === 'macos' ? 'OpenArtHub.dmg' : systemInfo?.os === 'linux' ? 'OpenArtHub.AppImage' : 'OpenArtHub-Setup.exe';
+        const fileName = app.native_asset_name || osExt;
+        showToast('Laster ned nyeste OpenArt Hub...', 'info');
+        await downloadAndInstallHubUpdate(downloadUrl, fileName);
+        return;
+      }
+
       const downloadUrl =
         targetType === 'web'
           ? app.web_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`
@@ -281,10 +354,42 @@ export function App() {
       // Non-critical
     }
     setNotifyingUpdateApp(null);
-    showToast(`Oppdatering for ${app.app_name} utsatt. Du kan oppdatere når du vil under Oppdateringer.`, 'info');
+    showToast(`Oppdatering for ${app.app_name} utsatt. Klikk oppdateringsikonet i topphjørnet når du er klar.`, 'info');
   };
 
-  const updatesCount = apps.filter((a) => a.status === 'UpdateAvailable').length;
+  const hubHasUpdate = Boolean(hubUpdate?.updateAvailable);
+  const appsUpdateCount = apps.filter((a) => a.status === 'UpdateAvailable').length;
+  const totalUpdatesCount = appsUpdateCount + (hubHasUpdate ? 1 : 0);
+  const hasUpdatesAvailable = totalUpdatesCount > 0;
+
+  const handleOpenPendingUpdatePrompt = () => {
+    if (hubUpdate?.updateAvailable) {
+      setNotifyingUpdateApp(createHubReleaseInfo(hubUpdate));
+      return;
+    }
+    const appCandidate = apps.find((a) => a.status === 'UpdateAvailable');
+    if (appCandidate) {
+      setNotifyingUpdateApp(appCandidate);
+      return;
+    }
+    setActiveTab('updates');
+  };
+
+  const handleSimulateUpdate = () => {
+    const simulatedHub: HubUpdateInfo = {
+      currentVersion: '1.0.0',
+      latestVersion: '1.0.1',
+      updateAvailable: true,
+      releaseName: 'OpenArt Hub v1.0.1 Nyhetsoppdatering',
+      releaseNotes: '• Raskere oppstart og prosjektinnlasting\n• Ny oppdateringsknapp i topphjørnet som varsler automatisk\n• Forbedret prosjekt- og filutforsking for Blender og Krita',
+      publishedAt: new Date().toISOString(),
+      downloadUrl: 'https://github.com/FunnyEivske/artcraft-hub/releases/latest',
+      assetName: 'OpenArtHub-Setup.exe',
+    };
+    setHubUpdate(simulatedHub);
+    setNotifyingUpdateApp(createHubReleaseInfo(simulatedHub));
+    showToast('Oppdatering tilgjengelig! Nytt ikon aktivert i topphjørnet.', 'success');
+  };
 
   const handleSearchChange = (q: string) => {
     setSearchQuery(q);
@@ -296,8 +401,11 @@ export function App() {
       <Header
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        onRefreshReleases={loadData}
+        onRefreshReleases={() => loadData(true)}
         isRefreshing={isRefreshing}
+        hasUpdatesAvailable={hasUpdatesAvailable}
+        updatesCount={totalUpdatesCount}
+        onOpenUpdatePrompt={handleOpenPendingUpdatePrompt}
       />
 
       <div className="flex-1 flex min-h-0">
@@ -307,7 +415,7 @@ export function App() {
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
           appCount={apps.length}
-          updatesCount={updatesCount}
+          updatesCount={totalUpdatesCount}
           systemInfo={systemInfo}
         />
 
@@ -368,11 +476,14 @@ export function App() {
           {activeTab === 'updates' && (
             <UpdateCenterView
               apps={apps}
-              onCheckUpdates={loadData}
+              hubUpdate={hubUpdate}
+              onCheckUpdates={() => loadData(true)}
               onUpdateAll={handleUpdateAll}
               onInstall={handleInstall}
+              onInstallHub={() => hubUpdate && handleInstall(createHubReleaseInfo(hubUpdate), 'native')}
               isChecking={isRefreshing}
               progressMap={progressMap}
+              onSimulateUpdate={handleSimulateUpdate}
             />
           )}
 

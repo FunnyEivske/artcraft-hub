@@ -125,4 +125,15 @@ export interface ScannerSettings {
   workspaceFolders: CreativeFolderConfig[];
 }
 
+export interface HubUpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseName: string;
+  releaseNotes: string;
+  publishedAt: string;
+  downloadUrl?: string | null;
+  assetName?: string | null;
+}
+
 

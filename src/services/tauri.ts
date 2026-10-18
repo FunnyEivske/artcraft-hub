@@ -4,6 +4,7 @@ import {
   AppReleaseInfo,
   ColorPalette,
   DownloadProgressPayload,
+  HubUpdateInfo,
   RecentProjectFile,
   ScannerSettings,
   SmartProject,
@@ -524,6 +525,35 @@ export const onProjectsUpdated = (callback: () => void): (() => void) => {
     };
   }
   return () => {};
+};
+
+export const checkHubAppUpdate = async (): Promise<HubUpdateInfo> => {
+  if (isTauri()) {
+    return await invoke<HubUpdateInfo>('check_hub_app_update');
+  }
+  return {
+    currentVersion: '1.0.0',
+    latestVersion: '1.0.0',
+    updateAvailable: false,
+    releaseName: 'OpenArt Hub v1.0.0',
+    releaseNotes: 'Du kjører den nyeste versjonen av OpenArt Hub.',
+    publishedAt: new Date().toISOString(),
+    downloadUrl: null,
+    assetName: null,
+  };
+};
+
+export const downloadAndInstallHubUpdate = async (
+  downloadUrl: string,
+  fileName: string
+): Promise<string> => {
+  if (isTauri()) {
+    return await invoke<string>('download_and_install_hub_update', {
+      downloadUrl,
+      fileName,
+    });
+  }
+  return 'Oppdateringsinstallatør startet';
 };
 
 export const onDownloadProgress = (

@@ -1,13 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter};
 
 use crate::models::{
     get_app_catalog, get_hub_home, get_default_workspace_dir, AppReleaseInfo, ColorPalette, ColorSwatch,
-    CreativeFolderConfig, DownloadProgressPayload, InstalledAppInfo, ProjectFileInfo, RecentProjectFile,
+    DownloadProgressPayload, InstalledAppInfo, ProjectFileInfo, RecentProjectFile,
     ScannerSettings, SmartProject, SystemInfo,
 };
 
@@ -1950,7 +1950,7 @@ pub fn discover_all_recent_files(custom_settings: Option<ScannerSettings>) -> Re
         // Auto-detect if no custom path was provided or found
         if lines_to_process.is_empty() {
             let home = dirs::home_dir();
-            if let Some(ref h) = home {
+            if let Some(ref _h) = home {
                 let mut blender_dirs = Vec::new();
                 #[cfg(target_os = "windows")]
                 {
@@ -1960,11 +1960,11 @@ pub fn discover_all_recent_files(custom_settings: Option<ScannerSettings>) -> Re
                 }
                 #[cfg(target_os = "macos")]
                 {
-                    blender_dirs.push(h.join("Library/Application Support/Blender"));
+                    blender_dirs.push(_h.join("Library/Application Support/Blender"));
                 }
                 #[cfg(target_os = "linux")]
                 {
-                    blender_dirs.push(h.join(".config/blender"));
+                    blender_dirs.push(_h.join(".config/blender"));
                 }
 
                 for b_dir in blender_dirs {
@@ -2031,7 +2031,7 @@ pub fn discover_all_recent_files(custom_settings: Option<ScannerSettings>) -> Re
 
         // Auto-detect if no custom path was provided or found
         if kritarc_paths.is_empty() {
-            let home = dirs::home_dir();
+            let _home = dirs::home_dir();
             #[cfg(target_os = "windows")]
             {
                 if let Ok(local) = std::env::var("LOCALAPPDATA") {
@@ -2043,13 +2043,13 @@ pub fn discover_all_recent_files(custom_settings: Option<ScannerSettings>) -> Re
             }
             #[cfg(target_os = "macos")]
             {
-                if let Some(ref h) = home {
+                if let Some(ref h) = _home {
                     kritarc_paths.push(h.join("Library/Preferences/kritarc"));
                 }
             }
             #[cfg(target_os = "linux")]
             {
-                if let Some(ref h) = home {
+                if let Some(ref h) = _home {
                     kritarc_paths.push(h.join(".config/kritarc"));
                 }
             }

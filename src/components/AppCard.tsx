@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Ellipsis, ScrollText, ExternalLink } from 'lucide-react';
+import { Ellipsis, ScrollText, ExternalLink, Download } from 'lucide-react';
 import { AppReleaseInfo, DownloadProgressPayload } from '../types';
 import { AppTile } from './AppTile';
 
@@ -186,8 +186,9 @@ export const AppCard: React.FC<AppItemProps> = ({ app, onInstall, progress }) =>
         <ProgressLine progress={progress} />
       ) : (
         <div className="mt-4 flex items-center gap-2">
-          <button className="btn-primary w-full justify-center" onClick={() => onInstall(app, 'native')}>
-            Installer
+          <button className="btn-primary w-full justify-center flex items-center gap-1.5" onClick={() => onInstall(app, 'native')}>
+            <Download className="w-3.5 h-3.5" />
+            <span>Installer</span>
           </button>
         </div>
       )}

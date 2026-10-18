@@ -166,4 +166,12 @@ This project is licensed under a **Source-Available Non-Commercial License** —
 
 For commercial licensing inquiries or permission requests, please contact the author via [GitHub](https://github.com/FunnyEivske/artcraft-hub).
 
+### ⚖️ Trademark, Ownership & Non-Affiliation Disclaimer
+> [!NOTE]
+> **OpenArt Hub is an independent, open-source desktop management and launching tool.**
+> The author (`FunnyEivske`) and OpenArt Hub **do not own, have not modified, and are not affiliated with, sponsored by, or endorsed by** Blender, the Blender Foundation, Krita, the Krita Foundation, Adobe Inc., or any other third-party software, companies, or organizations mentioned.
+>
+> All registered trademarks, product names, logos, and brands belong exclusively to their respective owners. Any reference to or integration with third-party software is provided solely for convenience, workflow interoperability, and educational purposes.
+
 See the full [LICENSE](LICENSE) file for exact legal terms and conditions.
+

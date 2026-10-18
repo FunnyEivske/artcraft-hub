@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, FolderOpen, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
+import { Play, Download, FolderOpen, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
 import { AppReleaseInfo, RecentProjectFile, SmartProject } from '../types';
 import { AppTile } from './AppTile';
 import { RecentFilesGrid } from './RecentFilesGrid';
@@ -150,7 +150,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       : 'bg-ui-hover hover:bg-[#333] text-ui-text hover:text-white border border-ui-border'
                   }`}
                 >
-                  <Play className="w-3.5 h-3.5 fill-current" />
+                  {isInstalled ? (
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
                   <span>{isInstalled ? `Start ${app.app_name}` : `Installer ${app.app_name}`}</span>
                 </button>
               </div>

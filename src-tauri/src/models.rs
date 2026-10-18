@@ -304,6 +304,10 @@ pub fn get_default_workspace_dir() -> PathBuf {
         .join("OpenArt")
 }
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScannerSettings {
@@ -316,6 +320,8 @@ pub struct ScannerSettings {
     pub scan_downloads: bool,
     pub custom_folders: Vec<String>,
     pub filter_noise: bool,
+    #[serde(default = "default_true")]
+    pub ignore_screenshots: bool,
     #[serde(default)]
     pub custom_blender_path: Option<String>,
     #[serde(default)]
@@ -342,6 +348,7 @@ impl Default for ScannerSettings {
             scan_downloads: false,
             custom_folders: Vec::new(),
             filter_noise: true,
+            ignore_screenshots: true,
             custom_blender_path: None,
             custom_krita_path: None,
             custom_projects_path: None,

@@ -117,6 +117,7 @@ export interface ScannerSettings {
   scanDownloads: boolean;
   customFolders: string[];
   filterNoise: boolean;
+  ignoreScreenshots?: boolean;
   customBlenderPath?: string | null;
   customKritaPath?: string | null;
   customProjectsPath?: string | null;

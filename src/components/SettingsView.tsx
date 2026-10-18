@@ -21,6 +21,7 @@ import {
   Type,
   RotateCcw,
   Check,
+  Camera,
 } from 'lucide-react';
 import { ScannerSettings, CreativeFolderConfig } from '../types';
 import {
@@ -54,6 +55,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     scanDownloads: false,
     customFolders: [],
     filterNoise: true,
+    ignoreScreenshots: true,
     customBlenderPath: null,
     customKritaPath: null,
     customProjectsPath: null,
@@ -831,14 +833,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </section>
 
       {/* 6. Støyfiltrering & Sikkerhet */}
-      <section className="space-y-3 p-4 rounded-lg bg-ui-surface border border-ui-border">
+      <section className="space-y-4 p-4 rounded-lg bg-ui-surface border border-ui-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <div>
               <h3 className="text-[14px] font-semibold text-white">Smart støyreduksjon & System-svartelisting</h3>
               <p className="text-[12px] text-ui-muted">
-                Hindrer at tilfeldige skjermbilder, cache, ikoner og systemfiler forurenser oversikten.
+                Hindrer at cache, ikoner, utviklermapper og systemfiler forurenser oversikten.
               </p>
             </div>
           </div>
@@ -857,6 +859,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
+        {/* Dedicated Screenshots toggle */}
+        <div className="p-3 rounded-lg bg-ui-panel/60 border border-ui-border/70 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Camera className="w-4 h-4 text-pink-400 flex-shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[13px] font-medium text-white">Filtrer bort skjermbilder (Screenshots & Skjermklipp)</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pink-500/15 text-pink-400 border border-pink-500/30">
+                  Anbefalt
+                </span>
+              </div>
+              <p className="text-[11.5px] text-ui-muted mt-0.5">
+                Utelater automatisk Windows-skjermbilder (Win+Shift+S, PrtScn) og mapper som Screenshots/Skjermbilder, slik at hjemskjermen bare viser reelle kunstverk og prosjekter.
+              </p>
+            </div>
+          </div>
+
+          <div
+            onClick={() => handleUpdateSetting('ignoreScreenshots', !settings.ignoreScreenshots)}
+            className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors flex-shrink-0 ${
+              settings.ignoreScreenshots ? 'bg-ui-blue' : 'bg-[#333]'
+            }`}
+          >
+            <div
+              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                settings.ignoreScreenshots ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-ui-border/60 text-[11px] text-ui-muted">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
@@ -864,11 +897,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Ignorerer ørsmå ikoner (&lt; 15 KB)</span>
+            <span>Ignorerer Screenshots & Skjermklipp</span>
           </div>
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Ignorerer skjulte filer (.git, .cache)</span>
+            <span>Ignorerer ørsmå ikoner (&lt; 15 KB)</span>
           </div>
         </div>
       </section>

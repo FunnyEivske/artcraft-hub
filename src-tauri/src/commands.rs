@@ -2017,6 +2017,12 @@ fn is_blacklisted_dir(dir_name: &str) -> bool {
             | "site-packages"
             | "recovery"
             | "logs"
+            | "screenshots"
+            | "skjermbilder"
+            | "skjermopptak"
+            | "captures"
+            | "screen recordings"
+            | "opptak"
     )
 }
 
@@ -2047,6 +2053,12 @@ fn is_path_blacklisted(path: &Path, allow_downloads: bool) -> bool {
                 | "site-packages"
                 | "venv"
                 | "recovery"
+                | "screenshots"
+                | "skjermbilder"
+                | "skjermopptak"
+                | "captures"
+                | "screen recordings"
+                | "opptak"
         ) {
             return true;
         }
@@ -2055,6 +2067,20 @@ fn is_path_blacklisted(path: &Path, allow_downloads: bool) -> bool {
         }
     }
     false
+}
+
+fn is_screenshot_filename(file_name: &str) -> bool {
+    let lower = file_name.to_lowercase();
+    lower.contains("screenshot")
+        || lower.contains("skjermbilde")
+        || lower.contains("skjermopptak")
+        || lower.contains("screen shot")
+        || lower.contains("screenclip")
+        || lower.contains("screen clip")
+        || lower.contains("screen-shot")
+        || lower.contains("capture_")
+        || lower.starts_with("prtscr")
+        || lower.starts_with("win_")
 }
 
 fn is_creative_extension(ext: &str) -> bool {
@@ -2120,6 +2146,10 @@ fn scan_directory_for_creative_files(
                     .unwrap_or_default();
 
                 if is_creative_extension(&ext) {
+                    if (settings.filter_noise || settings.ignore_screenshots) && is_screenshot_filename(file_name) {
+                        continue;
+                    }
+
                     if let Ok(metadata) = fs::metadata(&path) {
                         let size = metadata.len();
                         // Filter out tiny images (< 15KB) which are almost exclusively favicons, tiny icons, bullets, or trackers

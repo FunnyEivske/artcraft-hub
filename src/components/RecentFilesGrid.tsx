@@ -190,8 +190,31 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
     return <FileText className="w-10 h-10 text-slate-400" />;
   };
 
+  const isScreenshot = (f: RecentProjectFile): boolean => {
+    const name = f.file_name.toLowerCase();
+    const folder = f.folder.toLowerCase();
+    const path = f.file_path.toLowerCase();
+    return (
+      folder.includes('screenshot') ||
+      folder.includes('skjermbilde') ||
+      folder.includes('captures') ||
+      path.includes('/screenshots/') ||
+      path.includes('\\screenshots\\') ||
+      path.includes('/skjermbilder/') ||
+      path.includes('\\skjermbilder\\') ||
+      name.includes('screenshot') ||
+      name.includes('skjermbilde') ||
+      name.includes('screen shot') ||
+      name.includes('screenclip') ||
+      name.includes('screen clip') ||
+      name.startsWith('prtscr')
+    );
+  };
+
+  const cleanFiles = files.filter((f) => !isScreenshot(f));
+
   // Filter files
-  const filtered = files.filter((f) => {
+  const filtered = cleanFiles.filter((f) => {
     if (filterType === 'Alle') return true;
     if (filterType === '3D / Blender') return ['.blend', '.fbx', '.obj', '.gltf', '.glb', '.stl'].includes(f.extension.toLowerCase());
     if (filterType === 'Krita / Maling') return ['.kra', '.ora'].includes(f.extension.toLowerCase());
@@ -203,7 +226,7 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
 
   const displayList = maxItems ? filtered.slice(0, maxItems) : filtered;
 
-  if (files.length === 0) {
+  if (cleanFiles.length === 0) {
     return null;
   }
 
@@ -216,7 +239,7 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
             <Sparkles className="w-4 h-4 text-ui-blue animate-pulse" />
             <h2 className="text-[14px] font-bold tracking-tight text-white">{title}</h2>
             <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-ui-blue/15 text-ui-blue border border-ui-blue/30">
-              {files.length} funnet
+              {cleanFiles.length} funnet
             </span>
             {onRefresh && (
               <button

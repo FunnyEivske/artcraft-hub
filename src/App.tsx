@@ -9,6 +9,7 @@ import { UpdateCenterView } from './components/UpdateCenterView';
 import { UpdateNotificationModal } from './components/UpdateNotificationModal';
 import { SettingsView } from './components/SettingsView';
 import { FirstTimeSetupModal } from './components/FirstTimeSetupModal';
+import { ChangelogModal } from './components/ChangelogModal';
 import {
   AppReleaseInfo,
   ColorPalette,
@@ -72,6 +73,10 @@ export function App() {
   // First-time onboarding popup (only on first install, NOT on updates)
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
+
+  // Changelog / What's New modal for updates
+  const CURRENT_HUB_VERSION = '1.0.1';
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -203,6 +208,13 @@ export function App() {
           setOnboardingSettings(scannerSet);
           setShowOnboardingModal(true);
         }
+
+        // Check if user updated from previous version to show changelog
+        const lastSeenVer = localStorage.getItem('artcraft_last_seen_version');
+        if (lastSeenVer && lastSeenVer !== CURRENT_HUB_VERSION) {
+          setShowChangelogModal(true);
+        }
+        localStorage.setItem('artcraft_last_seen_version', CURRENT_HUB_VERSION);
       } catch (err) {
         console.error('Kunne ikke sjekke onboarding-status:', err);
       }
@@ -238,6 +250,7 @@ export function App() {
         if (payload.app_id === 'openart-hub') {
           setHubUpdate((prev) => (prev ? { ...prev, updateAvailable: false } : null));
           setNotifyingUpdateApp(null);
+          setShowChangelogModal(true);
         } else {
           // Refresh app list after installation finishes
           checkGithubReleases().then((updated) => {
@@ -486,6 +499,7 @@ export function App() {
               isChecking={isRefreshing}
               progressMap={progressMap}
               onSimulateUpdate={handleSimulateUpdate}
+              onShowChangelog={() => setShowChangelogModal(true)}
             />
           )}
 
@@ -495,6 +509,7 @@ export function App() {
               onShowToast={showToast}
               isScanning={isRefreshingRecent}
               onRerunOnboarding={handleOpenOnboarding}
+              onShowChangelog={() => setShowChangelogModal(true)}
             />
           )}
         </main>
@@ -520,6 +535,15 @@ export function App() {
             showToast('Kreativt arbeidsområde opprettet i Dokumenter/OpenArt!', 'success');
             refreshRecent();
           }}
+        />
+      )}
+
+      {/* Changelog / What's New Update Log Modal */}
+      {showChangelogModal && (
+        <ChangelogModal
+          version={CURRENT_HUB_VERSION}
+          onClose={() => setShowChangelogModal(false)}
+          onOpenOnboarding={handleOpenOnboarding}
         />
       )}
 

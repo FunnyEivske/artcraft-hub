@@ -14,6 +14,7 @@ interface UpdateCenterViewProps {
   isChecking: boolean;
   progressMap: Record<string, DownloadProgressPayload>;
   onSimulateUpdate?: () => void;
+  onShowChangelog?: () => void;
 }
 
 const formatDate = (iso?: string) => {
@@ -33,6 +34,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
   isChecking,
   progressMap,
   onSimulateUpdate,
+  onShowChangelog,
 }) => {
   const updates = apps.filter((a) => a.status === 'UpdateAvailable');
   const upToDate = apps.filter((a) => a.status === 'Installed');
@@ -51,6 +53,12 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {onShowChangelog && (
+            <button className="btn-secondary flex items-center gap-1.5 text-purple-300 hover:text-white border-purple-500/30" onClick={onShowChangelog}>
+              <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+              <span>Hva er nytt</span>
+            </button>
+          )}
           <button className="btn-quiet" onClick={onCheckUpdates} disabled={isChecking}>
             <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? 'animate-spin' : ''}`} />
             {isChecking ? 'Ser etter...' : 'Se etter oppdateringer'}

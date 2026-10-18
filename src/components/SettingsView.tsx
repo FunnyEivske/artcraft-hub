@@ -39,6 +39,7 @@ interface SettingsViewProps {
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
   isScanning?: boolean;
   onRerunOnboarding?: () => void;
+  onShowChangelog?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -46,6 +47,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onShowToast,
   isScanning = false,
   onRerunOnboarding,
+  onShowChangelog,
 }) => {
   const [settings, setSettings] = useState<ScannerSettings>({
     scanBlender: true,
@@ -316,24 +318,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {onRerunOnboarding && (
-              <button
-                onClick={onRerunOnboarding}
-                className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-purple-300 hover:text-white border-purple-500/30 hover:border-purple-500/60 transition-colors"
-                title="Åpne førstegangs-veiviseren for å velge og opprette mapper på nytt"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                <span>Åpne veiviser</span>
-              </button>
-            )}
             <button
               onClick={handleResetOnboarding}
-              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-ui-muted hover:text-white transition-colors"
-              title="Tilbakestill og åpne veiviseren som ved en fersk nyinstallasjon"
+              className="btn-primary py-1.5 px-3.5 text-[12px] flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-purple-900/25 rounded-lg transition-all"
+              title="Kjør førstegangsoppsett og velkomst-skjerm på nytt"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Nullstill oppsett</span>
+              <span>Restart / Redo Onboarding</span>
             </button>
+            {onShowChangelog && (
+              <button
+                onClick={onShowChangelog}
+                className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-emerald-400 hover:text-white border-emerald-500/30 hover:border-emerald-500/60 transition-colors"
+                title="Se alt som er nytt siden v1.0.0"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Hva er nytt (Logg)</span>
+              </button>
+            )}
             <button
               onClick={handleOpenWorkspaceInExplorer}
               className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5"
@@ -982,6 +984,49 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
             <span className="font-semibold text-indigo-400 block">Sound & Publisering</span>
             <p className="text-ui-muted font-mono text-[11px]">.wav, .mp3, .flac, .pdf, .idml, .fig</p>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Om OpenArt Hub & Oppdateringslogg */}
+      <section className="p-4 rounded-xl bg-ui-surface border border-ui-border shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-900/30">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[15px] font-semibold text-white">Om OpenArt Hub & Oppdateringslogg</h2>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
+                  v1.0.1
+                </span>
+              </div>
+              <p className="text-[12px] text-ui-muted mt-0.5">
+                Se alle nye funksjoner og forbedringer siden v1.0.0, eller start velkomst-oppsettet på nytt når som helst.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {onShowChangelog && (
+              <button
+                onClick={onShowChangelog}
+                className="btn-primary py-2 px-4 text-[12px] flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-purple-900/25 rounded-lg transition-all"
+                title="Åpne oppdateringsloggen med alle nye funksjoner"
+              >
+                <Sparkles className="w-4 h-4 text-purple-200" />
+                <span>Se oppdateringslogg (Changelog)</span>
+              </button>
+            )}
+            <button
+              onClick={handleResetOnboarding}
+              className="btn-secondary py-2 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors"
+              title="Kjør førstegangsoppsett og velkomst-skjerm på nytt"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restart / Redo Onboarding</span>
+            </button>
           </div>
         </div>
       </section>

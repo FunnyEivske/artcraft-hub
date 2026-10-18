@@ -746,10 +746,14 @@ pub async fn check_hub_app_update() -> Result<HubUpdateInfo, String> {
 
                         match os {
                             "windows" => {
-                                if name.ends_with(".exe") || name.ends_with(".msi") {
+                                // Prioritize modern NSIS setup executable over legacy .msi
+                                if name.ends_with(".exe") {
                                     download_url = d_url;
                                     asset_name = Some(name.to_string());
                                     break;
+                                } else if name.ends_with(".msi") && download_url.is_none() {
+                                    download_url = d_url;
+                                    asset_name = Some(name.to_string());
                                 }
                             }
                             "macos" => {

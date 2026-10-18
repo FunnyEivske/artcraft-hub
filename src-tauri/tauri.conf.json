@@ -51,13 +51,14 @@
       },
       "nsis": {
         "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
         "headerImage": "nsis/header.bmp",
         "sidebarImage": "nsis/sidebar.bmp",
         "installerHooks": "nsis/hooks.nsh",
         "installMode": "both",
         "languages": [
-          "English",
-          "Norwegian"
+          "Norwegian",
+          "English"
         ]
       }
     }

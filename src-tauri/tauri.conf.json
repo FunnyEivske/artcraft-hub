@@ -50,12 +50,13 @@
         "dialogImagePath": "wix/dialog.bmp"
       },
       "nsis": {
+        "template": "nsis/installer.nsi",
         "installerIcon": "icons/icon.ico",
         "uninstallerIcon": "icons/icon.ico",
         "headerImage": "nsis/header.bmp",
         "sidebarImage": "nsis/sidebar.bmp",
         "installerHooks": "nsis/hooks.nsh",
-        "installMode": "both",
+        "installMode": "currentUser",
         "languages": [
           "Norwegian",
           "English"

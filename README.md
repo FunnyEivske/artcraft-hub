@@ -168,10 +168,10 @@ For commercial licensing inquiries or permission requests, please contact the au
 
 ### ⚖️ Trademark, Ownership & Non-Affiliation Disclaimer
 > [!NOTE]
-> **OpenArt Hub is an independent, open-source desktop management and launching tool.**
-> The author (`FunnyEivske`) and OpenArt Hub **do not own, have not modified, and are not affiliated with, sponsored by, or endorsed by** Blender, the Blender Foundation, Krita, the Krita Foundation, Adobe Inc., or any other third-party software, companies, or organizations mentioned.
+> **OpenArt Hub is an independent, open-source desktop launcher and workspace management tool.**
+> The author (`FunnyEivske`) and OpenArt Hub **do not own, have not modified or altered, and are not affiliated with, sponsored by, or endorsed by** the ArtCraft team, the `storytold` organization, the developers of the ArtCraft creative studios (PhotoCraft, VectorCraft, FilmCraft, LightCraft, PdfCraft, EffectCraft, DesignCraft, FigCraft, SoundCraft), Blender, the Blender Foundation, Krita, the Krita Foundation, Adobe Inc., or any other third-party software creators, companies, or organizations mentioned.
 >
-> All registered trademarks, product names, logos, and brands belong exclusively to their respective owners. Any reference to or integration with third-party software is provided solely for convenience, workflow interoperability, and educational purposes.
+> The author claims no ownership, copyright, or intellectual property rights over any of the third-party creative studio applications. All registered trademarks, logos, brand names, and source code belong exclusively to their respective owners and original creators. Any reference to, integration with, or downloading/launching of third-party software is provided solely for convenience, workflow interoperability, and personal/educational purposes.
 
 See the full [LICENSE](LICENSE) file for exact legal terms and conditions.
 

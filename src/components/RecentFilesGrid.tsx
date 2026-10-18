@@ -14,6 +14,7 @@ import {
   X,
   Sparkles,
   RefreshCw,
+  Settings,
 } from 'lucide-react';
 import { RecentProjectFile, SmartProject, AppReleaseInfo } from '../types';
 import { getFileThumbnail, importFileToProject } from '../services/tauri';
@@ -25,6 +26,7 @@ interface RecentFilesGridProps {
   projects: SmartProject[];
   onOpenFileInApp: (appId: string, filePath: string) => void;
   onRefresh?: () => void;
+  onOpenSettings?: () => void;
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
   maxItems?: number;
   title?: string;
@@ -37,6 +39,7 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
   projects,
   onOpenFileInApp,
   onRefresh,
+  onOpenSettings,
   onShowToast,
   maxItems,
   title = 'Sist jobbet med (Live fra alle apper)',
@@ -104,8 +107,18 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
         return { label: 'Krita', bg: 'bg-sky-500/20 text-sky-400 border-sky-500/30' };
       case 'projects':
         return { label: 'Smart-Prosjekt', bg: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' };
+      case 'pictures':
+        return { label: 'Bilder', bg: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+      case 'documents':
+        return { label: 'Dokumenter', bg: 'bg-blue-500/20 text-blue-400 border-blue-500/30' };
+      case 'desktop':
+        return { label: 'Skrivebord', bg: 'bg-teal-500/20 text-teal-400 border-teal-500/30' };
+      case 'downloads':
+        return { label: 'Nedlastinger', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
+      case 'custom':
+        return { label: 'Overvåket mappe', bg: 'bg-pink-500/20 text-pink-400 border-pink-500/30' };
       default:
-        return { label: 'Nylig fil', bg: 'bg-slate-700/40 text-slate-300 border-slate-600/30' };
+        return { label: 'Kreativ fil', bg: 'bg-slate-700/40 text-slate-300 border-slate-600/30' };
     }
   };
 
@@ -209,14 +222,23 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
               <button
                 onClick={onRefresh}
                 className="p-1 text-ui-faint hover:text-white rounded transition-colors"
-                title="SÃ¸k etter nye filer pÃ¥ nytt"
+                title="Søk etter kreative filer på nytt"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             )}
+            {onOpenSettings && (
+              <button
+                onClick={onOpenSettings}
+                className="p-1 text-ui-faint hover:text-white rounded transition-colors"
+                title="Mappe- og søkeinnstillinger"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           <p className="text-[12px] text-ui-muted mt-0.5">
-            Sist brukte filer fra Blender, Krita, ArtCraft-prosjekter og systemet â€“ med miniatyrbilde.
+            Sist brukte kreative filer fra Blender, Krita, ArtCraft-prosjekter og overvåkede mapper – med forhåndsvisning.
           </p>
         </div>
 

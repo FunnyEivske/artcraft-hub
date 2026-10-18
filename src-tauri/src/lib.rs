@@ -60,6 +60,12 @@ pub fn run() {
             commands::discover_all_recent_files,
             commands::get_file_thumbnail,
             commands::import_file_to_project,
+            commands::get_scanner_settings,
+            commands::save_scanner_settings,
+            commands::pick_custom_folder,
+            commands::pick_custom_file,
+            commands::open_path_in_explorer,
+            commands::init_or_update_workspace_folders,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenArt Hub");

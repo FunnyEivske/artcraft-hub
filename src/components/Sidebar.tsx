@@ -5,10 +5,11 @@ import {
   ArrowDownCircle,
   FolderOpen,
   Palette,
+  Settings,
 } from 'lucide-react';
 import { SystemInfo } from '../types';
 
-export type HubTab = 'home' | 'apps' | 'projects' | 'palettes' | 'updates';
+export type HubTab = 'home' | 'apps' | 'projects' | 'palettes' | 'updates' | 'settings';
 
 interface SidebarProps {
   activeTab: HubTab;
@@ -98,6 +99,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onSelectTab('palettes')}
           icon={Palette}
           label="Fargepaletter"
+        />
+
+        <SectionLabel>Konfigurasjon</SectionLabel>
+        <Item
+          active={activeTab === 'settings'}
+          onClick={() => onSelectTab('settings')}
+          icon={Settings}
+          label="Innstillinger"
         />
       </nav>
 

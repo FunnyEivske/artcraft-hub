@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Play, FolderOpen, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
 import { AppReleaseInfo, RecentProjectFile, SmartProject } from '../types';
 import { AppTile } from './AppTile';
@@ -15,6 +15,7 @@ interface HomeViewProps {
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
   isRefreshingRecent?: boolean;
   onNavigateToApps: () => void;
+  onNavigateToSettings?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
@@ -28,6 +29,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onShowToast,
   isRefreshingRecent,
   onNavigateToApps,
+  onNavigateToSettings,
 }) => {
   // Determine Quick Launch apps:
   // 1. First prioritize apps the user has launched recently through the Hub
@@ -165,6 +167,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           projects={projects}
           onOpenFileInApp={onOpenFileInApp}
           onRefresh={onRefreshRecent}
+          onOpenSettings={onNavigateToSettings}
           onShowToast={onShowToast}
           isRefreshing={isRefreshingRecent}
           title="Sist jobbet med (Live fra alle apper)"
@@ -173,11 +176,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
         <div className="rounded-xl border border-dashed border-ui-border bg-ui-panel/40 p-8 text-center">
           <FolderOpen className="w-10 h-10 text-ui-muted mx-auto mb-2 opacity-60" />
           <h3 className="text-[14px] font-semibold text-white mb-1">
-            Ingen nylige filer registrert enn{'\u00E5'}
+            Ingen nylige filer funnet ennå
           </h3>
-          <p className="text-[12px] text-ui-muted max-w-md mx-auto">
-            {'N\u00E5r'} du jobber i Blender, Krita eller ArtCraft-programmene dine, vil prosjektene og filene dine automatisk dukke opp her med {'forh\u00E5ndsvisning'}.
+          <p className="text-[12px] text-ui-muted max-w-md mx-auto mb-4">
+            Når du jobber i Blender, Krita eller ArtCraft-programmene dine, vil prosjektene og filene dine automatisk dukke opp her med forhåndsvisning.
           </p>
+          {onNavigateToSettings && (
+            <button
+              onClick={onNavigateToSettings}
+              className="btn-secondary py-1.5 px-3 text-[12px] inline-flex items-center gap-1.5"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-ui-blue" />
+              <span>Tilpass overvåkede mapper & innstillinger</span>
+            </button>
+          )}
         </div>
       )}
     </div>

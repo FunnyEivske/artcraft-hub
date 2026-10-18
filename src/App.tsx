@@ -7,6 +7,8 @@ import { ProjectsView } from './components/ProjectsView';
 import { PalettesView } from './components/PalettesView';
 import { UpdateCenterView } from './components/UpdateCenterView';
 import { UpdateNotificationModal } from './components/UpdateNotificationModal';
+import { SettingsView } from './components/SettingsView';
+import { FirstTimeSetupModal } from './components/FirstTimeSetupModal';
 import {
   AppReleaseInfo,
   ColorPalette,
@@ -14,12 +16,14 @@ import {
   RecentProjectFile,
   SmartProject,
   SystemInfo,
+  ScannerSettings,
 } from './types';
 import {
   checkGithubReleases,
   createSmartProject,
   discoverAllRecentFiles,
   getSystemInfo,
+  getScannerSettings,
   installOrUpdateApp,
   launchApp,
   loadPalettes,
@@ -60,6 +64,10 @@ export function App() {
 
   // App pending update notification popup
   const [notifyingUpdateApp, setNotifyingUpdateApp] = useState<AppReleaseInfo | null>(null);
+
+  // First-time onboarding popup (only on first install, NOT on updates)
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -123,6 +131,30 @@ export function App() {
       setPalettes(pals);
       setRecentFiles(recents);
       checkForUpdatePrompts(rels);
+
+      // Check onboarding state: ONLY show for genuine first-time installation!
+      try {
+        const scannerSet = await getScannerSettings();
+        const localCompleted = localStorage.getItem('artcraft_onboarding_completed') === 'true';
+        const hasRecentLaunchedApps = recentLaunchedAppIds && recentLaunchedAppIds.length > 0;
+        const hasInstalledApps = rels.some((a) => a.status === 'Installed' || Boolean(a.installed_version));
+        const hasExistingProjects = projs.length > 0;
+        const isExistingUser = hasRecentLaunchedApps || hasInstalledApps || hasExistingProjects;
+
+        if (scannerSet.onboardingCompleted || localCompleted || isExistingUser) {
+          // If this is an existing installation updating, ensure the flag is marked so we never pop up
+          if (!localCompleted) {
+            localStorage.setItem('artcraft_onboarding_completed', 'true');
+          }
+          setShowOnboardingModal(false);
+        } else {
+          // Brand new installation!
+          setOnboardingSettings(scannerSet);
+          setShowOnboardingModal(true);
+        }
+      } catch (err) {
+        console.error('Kunne ikke sjekke onboarding-status:', err);
+      }
     } catch {
       showToast('Kunne ikke hente versjoner — viser lokal oversikt', 'info');
     } finally {
@@ -187,13 +219,21 @@ export function App() {
     }
   };
 
-  const handleCreateProject = async (name: string, type: string, description: string) => {
+  const handleCreateProject = async (
+    name: string,
+    type: string,
+    description: string,
+    launchAfterAppId?: string
+  ) => {
     setIsCreatingProject(true);
     try {
       const newProj = await createSmartProject(name, type, description);
-      setProjects((prev) => [...prev, newProj]);
+      setProjects((prev) => [newProj, ...prev]);
       showToast(`Prosjektet «${name}» er opprettet`, 'success');
       refreshRecent();
+      if (launchAfterAppId) {
+        handleOpenFileInApp(launchAfterAppId, newProj.folder_path);
+      }
     } catch (err) {
       showToast(`Feil ved opprettelse: ${err}`, 'error');
     } finally {
@@ -287,6 +327,7 @@ export function App() {
                 setSelectedCategory('Alle');
                 setActiveTab('apps');
               }}
+              onNavigateToSettings={() => setActiveTab('settings')}
             />
           )}
 
@@ -316,6 +357,7 @@ export function App() {
               onShowToast={showToast}
               isCreating={isCreatingProject}
               isRefreshingRecent={isRefreshingRecent}
+              onNavigateToSettings={() => setActiveTab('settings')}
             />
           )}
 
@@ -333,6 +375,14 @@ export function App() {
               progressMap={progressMap}
             />
           )}
+
+          {activeTab === 'settings' && (
+            <SettingsView
+              onSettingsChanged={refreshRecent}
+              onShowToast={showToast}
+              isScanning={isRefreshingRecent}
+            />
+          )}
         </main>
       </div>
 
@@ -343,6 +393,19 @@ export function App() {
           onUpdateNow={(app) => handleInstall(app, 'native')}
           onLater={handleLaterUpdate}
           progress={progressMap[notifyingUpdateApp.app_id]}
+        />
+      )}
+
+      {/* First-time Onboarding Modal (Only on fresh installation, never on updates) */}
+      {showOnboardingModal && onboardingSettings && (
+        <FirstTimeSetupModal
+          initialSettings={onboardingSettings}
+          onClose={() => setShowOnboardingModal(false)}
+          onComplete={(_updated) => {
+            setShowOnboardingModal(false);
+            showToast('Kreativt arbeidsområde opprettet i Dokumenter/OpenArt!', 'success');
+            refreshRecent();
+          }}
         />
       )}
 

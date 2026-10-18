@@ -1,4 +1,4 @@
-﻿export interface AppMetadata {
+export interface AppMetadata {
   id: string;
   name: string;
   alternative_to: string;
@@ -71,6 +71,7 @@ export interface SmartProject {
   folder_path: string;
   files: ProjectFileInfo[];
   recommended_apps: string[];
+  structure?: string[];
 }
 
 export interface ColorSwatch {
@@ -98,3 +99,30 @@ export interface RecentProjectFile {
   compatible_apps: string[];
   has_thumbnail: boolean;
 }
+
+export interface CreativeFolderConfig {
+  enabled: boolean;
+  name: string;
+  folderName: string;
+  description: string;
+}
+
+export interface ScannerSettings {
+  scanBlender: boolean;
+  scanKrita: boolean;
+  scanArtcraftProjects: boolean;
+  scanPictures: boolean;
+  scanDocuments: boolean;
+  scanDesktop: boolean;
+  scanDownloads: boolean;
+  customFolders: string[];
+  filterNoise: boolean;
+  customBlenderPath?: string | null;
+  customKritaPath?: string | null;
+  customProjectsPath?: string | null;
+  onboardingCompleted?: boolean;
+  openartWorkspacePath?: string | null;
+  workspaceFolders: CreativeFolderConfig[];
+}
+
+

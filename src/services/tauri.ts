@@ -5,6 +5,7 @@ import {
   ColorPalette,
   DownloadProgressPayload,
   RecentProjectFile,
+  ScannerSettings,
   SmartProject,
   SystemInfo,
 } from '../types';
@@ -354,12 +355,136 @@ export const savePalettes = async (palettes: ColorPalette[]): Promise<boolean> =
 };
 
 // Returns only real files found on the user system; no hardcoded example files!
-export const discoverAllRecentFiles = async (): Promise<RecentProjectFile[]> => {
+export const discoverAllRecentFiles = async (
+  customSettings?: ScannerSettings
+): Promise<RecentProjectFile[]> => {
   if (isTauri()) {
-    return await invoke<RecentProjectFile[]>('discover_all_recent_files');
+    return await invoke<RecentProjectFile[]>('discover_all_recent_files', {
+      customSettings: customSettings || null,
+    });
   }
   return [];
 };
+
+export const DEFAULT_WORKSPACE_FOLDERS = [
+  {
+    enabled: true,
+    name: 'Smart-Prosjekter',
+    folderName: 'Projects',
+    description: 'Dine aktive prosjektmapper og manifestfiler',
+  },
+  {
+    enabled: true,
+    name: 'Blender (Prosjekter & Assets)',
+    folderName: 'Blender',
+    description: 'Hovedmappe for Blender med mapper for prosjekter, 3D-assets, teksturer og renders',
+  },
+  {
+    enabled: true,
+    name: 'Teksturer & PBR',
+    folderName: 'Textures',
+    description: 'PBR-teksturer, HDRIs, overflater og normal-maps',
+  },
+  {
+    enabled: true,
+    name: 'Børster & Pensler',
+    folderName: 'Brushes',
+    description: 'Krita-børster (.bundle) og PhotoCraft-pensler (.abr)',
+  },
+  {
+    enabled: true,
+    name: 'Referanser & Moodboards',
+    folderName: 'References',
+    description: 'Bilde- og konseptreferanser, inspirasjon og skisser',
+  },
+  {
+    enabled: true,
+    name: 'Lyd & Musikk (SFX)',
+    folderName: 'Audio_and_SFX',
+    description: 'Lydeffekter, musikk og lydopptak',
+  },
+  {
+    enabled: true,
+    name: 'Vektor & Fonter',
+    folderName: 'Fonts_and_Vectors',
+    description: 'SVG-ikoner, logoer, mønstre og fonter',
+  },
+];
+
+export const getScannerSettings = async (): Promise<ScannerSettings> => {
+  if (isTauri()) {
+    return await invoke<ScannerSettings>('get_scanner_settings');
+  }
+  const fallback = localStorage.getItem('artcraft_scanner_settings');
+  if (fallback) {
+    try {
+      const parsed = JSON.parse(fallback);
+      if (!parsed.workspaceFolders) {
+        parsed.workspaceFolders = DEFAULT_WORKSPACE_FOLDERS;
+      }
+      return parsed;
+    } catch {
+      // ignore
+    }
+  }
+  return {
+    scanBlender: true,
+    scanKrita: true,
+    scanArtcraftProjects: true,
+    scanPictures: true,
+    scanDocuments: true,
+    scanDesktop: false,
+    scanDownloads: false,
+    customFolders: [],
+    filterNoise: true,
+    customBlenderPath: null,
+    customKritaPath: null,
+    customProjectsPath: null,
+    onboardingCompleted: false,
+    openartWorkspacePath: null,
+    workspaceFolders: DEFAULT_WORKSPACE_FOLDERS,
+  };
+};
+
+export const saveScannerSettings = async (settings: ScannerSettings): Promise<boolean> => {
+  localStorage.setItem('artcraft_scanner_settings', JSON.stringify(settings));
+  if (isTauri()) {
+    return await invoke<boolean>('save_scanner_settings', { settings });
+  }
+  return true;
+};
+
+export const initOrUpdateWorkspaceFolders = async (
+  settings: ScannerSettings
+): Promise<string> => {
+  if (isTauri()) {
+    return await invoke<string>('init_or_update_workspace_folders', { settings });
+  }
+  return 'Documents/OpenArt';
+};
+
+export const openPathInExplorer = async (path: string): Promise<boolean> => {
+  if (isTauri()) {
+    return await invoke<boolean>('open_path_in_explorer', { path });
+  }
+  return true;
+};
+
+export const pickCustomFolder = async (): Promise<string | null> => {
+  if (isTauri()) {
+    return await invoke<string | null>('pick_custom_folder');
+  }
+  return null;
+};
+
+export const pickCustomFile = async (): Promise<string | null> => {
+  if (isTauri()) {
+    return await invoke<string | null>('pick_custom_file');
+  }
+  return null;
+};
+
+
 
 export const getFileThumbnail = async (filePath: string): Promise<string> => {
   if (isTauri()) {

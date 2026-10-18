@@ -6,8 +6,9 @@ use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter};
 
 use crate::models::{
-    get_app_catalog, get_hub_home, AppReleaseInfo, ColorPalette, ColorSwatch,
-    DownloadProgressPayload, InstalledAppInfo, ProjectFileInfo, RecentProjectFile, SmartProject, SystemInfo,
+    get_app_catalog, get_hub_home, get_default_workspace_dir, AppReleaseInfo, ColorPalette, ColorSwatch,
+    CreativeFolderConfig, DownloadProgressPayload, InstalledAppInfo, ProjectFileInfo, RecentProjectFile,
+    ScannerSettings, SmartProject, SystemInfo,
 };
 
 fn get_installed_versions_map() -> HashMap<String, InstalledAppInfo> {
@@ -959,6 +960,7 @@ fn scan_single_project(project_dir: &Path) -> Result<SmartProject, String> {
     let mut created_at = chrono_now();
     let mut updated_at = chrono_now();
     let mut recommended_apps: Vec<String> = vec!["photocraft".to_string(), "vectorcraft".to_string()];
+    let mut structure: Option<Vec<String>> = None;
 
     if let Ok(content) = fs::read_to_string(&manifest_path) {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -986,6 +988,15 @@ fn scan_single_project(project_dir: &Path) -> Result<SmartProject, String> {
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
             }
+            if let Some(st) = json.get("structure").and_then(|v| v.as_array()) {
+                let s_list: Vec<String> = st
+                    .iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect();
+                if !s_list.is_empty() {
+                    structure = Some(s_list);
+                }
+            }
         }
     }
 
@@ -1002,6 +1013,7 @@ fn scan_single_project(project_dir: &Path) -> Result<SmartProject, String> {
         folder_path: project_dir.to_string_lossy().to_string(),
         files,
         recommended_apps,
+        structure,
     })
 }
 
@@ -1058,6 +1070,42 @@ fn traverse_project_files(root_dir: &Path, current_dir: &Path, list: &mut Vec<Pr
     }
 }
 
+fn get_scanner_settings_internal() -> ScannerSettings {
+    let settings_path = get_hub_home().join("Settings").join("scanner.json");
+    if let Ok(content) = fs::read_to_string(&settings_path) {
+        if let Ok(settings) = serde_json::from_str::<ScannerSettings>(&content) {
+            return settings;
+        }
+    }
+    ScannerSettings::default()
+}
+
+fn get_active_projects_dir(settings: &ScannerSettings) -> PathBuf {
+    if let Some(ref custom) = settings.custom_projects_path {
+        if !custom.trim().is_empty() {
+            return PathBuf::from(custom.trim());
+        }
+    }
+    let ws = if let Some(ref w) = settings.openart_workspace_path {
+        if !w.trim().is_empty() {
+            PathBuf::from(w.trim())
+        } else {
+            get_default_workspace_dir()
+        }
+    } else {
+        get_default_workspace_dir()
+    };
+    let ws_proj = ws.join("Projects");
+    if ws_proj.exists() {
+        return ws_proj;
+    }
+    let legacy = get_hub_home().join("Projects");
+    if legacy.exists() {
+        return legacy;
+    }
+    ws_proj
+}
+
 #[tauri::command]
 pub fn create_smart_project(
     project_name: String,
@@ -1071,8 +1119,33 @@ pub fn create_smart_project(
         return Err("Ugyldig prosjektnavn".to_string());
     }
 
-    let projects_dir = get_hub_home().join("Projects");
-    let project_dir = projects_dir.join(&sanitized_name);
+    let settings = get_scanner_settings_internal();
+    let is_blender = project_type.to_lowercase().contains("blender")
+        || project_type.to_lowercase().contains("3d");
+
+    let ws_path = if let Some(ref custom) = settings.openart_workspace_path {
+        if !custom.trim().is_empty() {
+            PathBuf::from(custom.trim())
+        } else {
+            get_default_workspace_dir()
+        }
+    } else {
+        get_default_workspace_dir()
+    };
+
+    let blender_projects_dir = ws_path.join("Blender").join("Projects");
+    let target_parent = if is_blender {
+        let _ = fs::create_dir_all(&blender_projects_dir);
+        if blender_projects_dir.exists() {
+            blender_projects_dir
+        } else {
+            get_active_projects_dir(&settings)
+        }
+    } else {
+        get_active_projects_dir(&settings)
+    };
+
+    let project_dir = target_parent.join(&sanitized_name);
 
     if project_dir.exists() {
         return Err(format!("Et prosjekt med navnet '{}' finnes allerede", sanitized_name));
@@ -1080,32 +1153,126 @@ pub fn create_smart_project(
 
     fs::create_dir_all(&project_dir).map_err(|e| e.to_string())?;
 
-    let subfolders = [
-        "01_References",
-        "02_Vectors_and_Patterns",
-        "03_Photos_and_Textures",
-        "04_Audio_and_Video",
-        "05_Exports",
-    ];
+    let (subfolders, recommended): (Vec<&str>, Vec<String>) = match project_type.as_str() {
+        "Blender 3D Modellering & Sculpt" | "3D Modellering" | "3D & Modellering" => (
+            vec![
+                "01_References",
+                "02_Textures_and_Materials",
+                "03_HighPoly_Sculpt",
+                "04_LowPoly_Retopo",
+                "05_Renders",
+                "06_Exports_FBX_OBJ",
+            ],
+            vec!["blender".to_string(), "photocraft".to_string(), "krita".to_string()],
+        ),
+        "Blender 3D Animasjon & Rigg" | "3D Animasjon" | "3D & Animasjon" => (
+            vec![
+                "01_Storyboards_and_References",
+                "02_Characters_and_Rigs",
+                "03_Animation_Caches",
+                "04_Frames_and_Renders",
+                "05_Audio_and_Voice",
+                "06_Final_Video",
+            ],
+            vec!["blender".to_string(), "filmcraft".to_string(), "soundcraft".to_string()],
+        ),
+        "Blender VFX & Simulering" | "VFX & Simulering" => (
+            vec![
+                "01_Footage_and_Plates",
+                "02_Simulation_Cache_Physics",
+                "03_Textures_and_Shaders",
+                "04_Compositing_Nodes",
+                "05_Renders",
+            ],
+            vec!["blender".to_string(), "effectcraft".to_string(), "filmcraft".to_string()],
+        ),
+        "Blender Game Assets & Props" | "Game Assets & Spillprops" => (
+            vec![
+                "01_Concept_Art",
+                "02_HighPoly",
+                "03_LowPoly",
+                "04_Baked_PBR_Maps",
+                "05_Engine_Exports_GLTF_FBX",
+            ],
+            vec!["blender".to_string(), "photocraft".to_string(), "vectorcraft".to_string()],
+        ),
+        "Brand Identity" | "Vektor & Logo" => (
+            vec![
+                "01_References",
+                "02_Vectors_and_Patterns",
+                "03_Photos_and_Textures",
+                "04_Audio_and_Video",
+                "05_Exports",
+            ],
+            vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
+        ),
+        "Foto & Retusj" | "Fotografi" => (
+            vec![
+                "01_References",
+                "02_RAW_and_Originals",
+                "03_Edits_and_Layers",
+                "04_Exports_Web",
+                "05_Print_Ready",
+            ],
+            vec!["lightcraft".to_string(), "photocraft".to_string(), "krita".to_string()],
+        ),
+        "Digital Maling" | "Illustrasjon" => (
+            vec![
+                "01_Skisser_og_Referanser",
+                "02_Kra_Prosjektfiler",
+                "03_Paletter_og_Brushes",
+                "04_Eksporter_og_Trykk",
+            ],
+            vec!["krita".to_string(), "photocraft".to_string()],
+        ),
+        "Film & Motion" | "Video & VFX" | "Videoproduksjon" => (
+            vec![
+                "01_Raw_Footage",
+                "02_Audio_and_Music",
+                "03_Graphics_and_Titles",
+                "04_Timeline_Edits",
+                "05_Rendered_Videos",
+            ],
+            vec!["filmcraft".to_string(), "effectcraft".to_string(), "soundcraft".to_string(), "blender".to_string()],
+        ),
+        _ => (
+            vec![
+                "01_References",
+                "02_Assets_and_Textures",
+                "03_Working_Files",
+                "04_Renders_and_Output",
+                "05_Exports",
+            ],
+            vec!["blender".to_string(), "photocraft".to_string(), "vectorcraft".to_string(), "krita".to_string()],
+        ),
+    };
 
     for sub in &subfolders {
         fs::create_dir_all(project_dir.join(sub)).map_err(|e| e.to_string())?;
     }
 
-    let ref_readme = project_dir.join("01_References").join("project_notes.txt");
-    let _ = fs::write(
-        ref_readme,
-        format!(
-            "ArtCraft Smart-Prosjekt: {}\nType: {}\nBeskrivelse: {}\nOpprettet: {}\n",
-            sanitized_name,
-            project_type,
-            description,
-            chrono_now()
-        ),
+    let first_sub = subfolders.first().copied().unwrap_or("01_References");
+    let ref_readme = project_dir.join(first_sub).join("project_notes.txt");
+    let mut notes = format!(
+        "ArtCraft Smart-Prosjekt: {}\nType: {}\nBeskrivelse: {}\nOpprettet: {}\nPlassering: {}\n",
+        sanitized_name,
+        project_type,
+        description,
+        chrono_now(),
+        project_dir.display()
     );
 
-    let starter_svg = project_dir.join("02_Vectors_and_Patterns").join("brand_mark.svg");
-    let svg_content = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+    if is_blender {
+        notes.push_str(&format!(
+            "\nTips for Blender:\n- Hovedfil kan hete: {}.blend\n- Legg teksturer og materiell i 02_Textures_and_Materials\n- Renders og animasjonsframes havner i Renders\n- Eksporter (FBX/OBJ/glTF) legges i Exports\n",
+            sanitized_name
+        ));
+    }
+    let _ = fs::write(ref_readme, notes);
+
+    if !is_blender {
+        let starter_svg = project_dir.join("02_Vectors_and_Patterns").join("brand_mark.svg");
+        let svg_content = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#6366f1"/>
@@ -1116,17 +1283,8 @@ pub fn create_smart_project(
   <circle cx="100" cy="100" r="50" fill="url(#g)"/>
   <polygon points="100,60 135,120 65,120" fill="#ffffff" opacity="0.9"/>
 </svg>"##;
-    let _ = fs::write(starter_svg, svg_content);
-
-    let recommended: Vec<String> = match project_type.as_str() {
-        "Brand Identity" | "Vektor & Logo" => vec!["vectorcraft".to_string(), "designcraft".to_string(), "figcraft".to_string()],
-        "Foto & Retusj" | "Fotografi" => vec!["lightcraft".to_string(), "photocraft".to_string(), "krita".to_string()],
-        "3D & Modellering" | "3D-Scene" => vec!["blender".to_string(), "effectcraft".to_string()],
-        "Digital Maling" | "Illustrasjon" => vec!["krita".to_string(), "photocraft".to_string()],
-        "Film & Motion" | "Video & VFX" => vec!["filmcraft".to_string(), "effectcraft".to_string(), "soundcraft".to_string(), "blender".to_string()],
-        "Publisering & PDF" => vec!["designcraft".to_string(), "pdfcraft".to_string()],
-        _ => vec!["photocraft".to_string(), "vectorcraft".to_string(), "blender".to_string(), "krita".to_string()],
-    };
+        let _ = fs::write(starter_svg, svg_content);
+    }
 
     let project_manifest = serde_json::json!({
         "id": format!("proj-{}", generate_id()),
@@ -1151,22 +1309,58 @@ pub fn create_smart_project(
 
 #[tauri::command]
 pub fn scan_projects_and_files() -> Result<Vec<SmartProject>, String> {
-    let projects_dir = get_hub_home().join("Projects");
-    fs::create_dir_all(&projects_dir).map_err(|e| e.to_string())?;
+    let settings = get_scanner_settings_internal();
+    let active_dir = get_active_projects_dir(&settings);
+    fs::create_dir_all(&active_dir).map_err(|e| e.to_string())?;
 
     let mut projects = Vec::new();
-    if let Ok(entries) = fs::read_dir(&projects_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                if let Ok(project) = scan_single_project(&path) {
-                    projects.push(project);
+    let mut scanned_paths = HashSet::new();
+
+    let mut dirs_to_scan = vec![active_dir.clone()];
+
+    let ws_path = if let Some(ref custom) = settings.openart_workspace_path {
+        if !custom.trim().is_empty() {
+            PathBuf::from(custom.trim())
+        } else {
+            get_default_workspace_dir()
+        }
+    } else {
+        get_default_workspace_dir()
+    };
+
+    let ws_projects = ws_path.join("Projects");
+    if ws_projects.exists() && !dirs_to_scan.contains(&ws_projects) {
+        dirs_to_scan.push(ws_projects);
+    }
+
+    let blender_projects = ws_path.join("Blender").join("Projects");
+    if blender_projects.exists() && !dirs_to_scan.contains(&blender_projects) {
+        dirs_to_scan.push(blender_projects);
+    }
+
+    let legacy = get_hub_home().join("Projects");
+    if legacy.exists() && !dirs_to_scan.contains(&legacy) {
+        dirs_to_scan.push(legacy);
+    }
+
+    for p_dir in dirs_to_scan {
+        if let Ok(entries) = fs::read_dir(&p_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let key = path.to_string_lossy().to_lowercase();
+                    if !scanned_paths.contains(&key) {
+                        scanned_paths.insert(key);
+                        if let Ok(project) = scan_single_project(&path) {
+                            projects.push(project);
+                        }
+                    }
                 }
             }
         }
     }
 
-    projects.sort_by(|a, b| a.name.cmp(&b.name));
+    projects.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     Ok(projects)
 }
 
@@ -1304,48 +1498,484 @@ fn create_recent_file_item(path: &Path, source_app: &str) -> Option<RecentProjec
 }
 
 #[tauri::command]
-pub fn discover_all_recent_files() -> Result<Vec<RecentProjectFile>, String> {
-    let mut files_map: HashMap<String, RecentProjectFile> = HashMap::new();
-    let supported_exts = [
-        ".blend", ".kra", ".ora", ".svg", ".png", ".jpg", ".jpeg", ".webp",
-        ".pdf", ".mp4", ".mov", ".wav", ".mp3", ".psd", ".ai", ".eps",
-        ".idml", ".fig", ".fbx", ".obj", ".stl", ".glb", ".gltf",
-    ];
+pub fn get_scanner_settings() -> Result<ScannerSettings, String> {
+    Ok(get_scanner_settings_internal())
+}
 
-    // 1. Blender recent files (recent-files.txt)
-    let home = dirs::home_dir();
-    if let Some(ref h) = home {
-        let mut blender_dirs = Vec::new();
-        #[cfg(target_os = "windows")]
-        {
-            if let Ok(appdata) = std::env::var("APPDATA") {
-                blender_dirs.push(PathBuf::from(appdata).join("Blender Foundation").join("Blender"));
+#[tauri::command]
+pub fn save_scanner_settings(settings: ScannerSettings) -> Result<bool, String> {
+    let settings_dir = get_hub_home().join("Settings");
+    fs::create_dir_all(&settings_dir).map_err(|e| e.to_string())?;
+    let settings_path = settings_dir.join("scanner.json");
+    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    fs::write(settings_path, json).map_err(|e| e.to_string())?;
+
+    // Also ensure workspace folders are created if enabled
+    let _ = init_or_update_workspace_folders(settings);
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn init_or_update_workspace_folders(settings: ScannerSettings) -> Result<String, String> {
+    let workspace_path = if let Some(ref custom) = settings.openart_workspace_path {
+        if !custom.trim().is_empty() {
+            PathBuf::from(custom.trim())
+        } else {
+            get_default_workspace_dir()
+        }
+    } else {
+        get_default_workspace_dir()
+    };
+
+    fs::create_dir_all(&workspace_path).map_err(|e| e.to_string())?;
+
+    for folder in &settings.workspace_folders {
+        if folder.enabled {
+            let f_dir = workspace_path.join(&folder.folder_name);
+            let _ = fs::create_dir_all(&f_dir);
+            let readme_file = f_dir.join("README.txt");
+            if !readme_file.exists() {
+                let text = format!(
+                    "OpenArt Kreativ Mappe: {}\n{}\n\nFiler lagt i denne mappen overvåkes og indekseres automatisk av OpenArt Hub.\n",
+                    folder.name, folder.description
+                );
+                let _ = fs::write(readme_file, text);
+            }
+
+            // For Blender: ensure Projects, Assets, Textures, and Renders subdirectories exist
+            if folder.folder_name == "Blender" || folder.folder_name == "Blender_Assets" {
+                let _ = fs::create_dir_all(f_dir.join("Projects"));
+                let _ = fs::create_dir_all(f_dir.join("Assets"));
+                let _ = fs::create_dir_all(f_dir.join("Textures"));
+                let _ = fs::create_dir_all(f_dir.join("Renders"));
+                let b_readme = f_dir.join("Projects").join("README.txt");
+                if !b_readme.exists() {
+                    let _ = fs::write(
+                        b_readme,
+                        "Her lagres dine Blender-prosjekter opprettet fra OpenArt Hub (Modellering, Animasjon, VFX, Game Assets).\n"
+                    );
+                }
             }
         }
-        #[cfg(target_os = "macos")]
-        {
-            blender_dirs.push(h.join("Library/Application Support/Blender"));
+    }
+
+    Ok(workspace_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn open_path_in_explorer(path: String) -> Result<bool, String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("Stien finnes ikke på disken".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = std::process::Command::new("explorer")
+            .arg(&p)
+            .spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open")
+            .arg(&p)
+            .spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = std::process::Command::new("xdg-open")
+            .arg(&p)
+            .spawn();
+    }
+
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn pick_custom_folder() -> Result<Option<String>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        tokio::task::spawn_blocking(|| {
+            let output = std::process::Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-Command",
+                    "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = 'Velg mappe for ArtCraft Hub'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.SelectedPath }",
+                ])
+                .output();
+
+            match output {
+                Ok(out) => {
+                    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path.is_empty() && Path::new(&path).is_dir() {
+                        Ok(Some(path))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(e) => Err(format!("Kunne ikke åpne mappevalg: {}", e)),
+            }
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        tokio::task::spawn_blocking(|| {
+            let output = std::process::Command::new("osascript")
+                .args([
+                    "-e",
+                    "POSIX path of (choose folder with prompt \"Velg mappe for ArtCraft Hub\")",
+                ])
+                .output();
+
+            match output {
+                Ok(out) => {
+                    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path.is_empty() && Path::new(&path).is_dir() {
+                        Ok(Some(path))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(_) => Ok(None),
+            }
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        tokio::task::spawn_blocking(|| {
+            let output = std::process::Command::new("zenity")
+                .args(["--file-selection", "--directory", "--title=Velg mappe for ArtCraft Hub"])
+                .output();
+
+            match output {
+                Ok(out) => {
+                    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path.is_empty() && Path::new(&path).is_dir() {
+                        Ok(Some(path))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(_) => Ok(None),
+            }
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+}
+
+#[tauri::command]
+pub async fn pick_custom_file() -> Result<Option<String>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        tokio::task::spawn_blocking(|| {
+            let output = std::process::Command::new("powershell")
+                .args([
+                    "-NoProfile",
+                    "-Command",
+                    "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $dialog = New-Object System.Windows.Forms.OpenFileDialog; $dialog.Title = 'Velg fil (f.eks. recent-files.txt eller kritarc)'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.FileName }",
+                ])
+                .output();
+
+            match output {
+                Ok(out) => {
+                    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path.is_empty() && Path::new(&path).is_file() {
+                        Ok(Some(path))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(e) => Err(format!("Kunne ikke åpne filvalg: {}", e)),
+            }
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        tokio::task::spawn_blocking(|| {
+            let output = std::process::Command::new("osascript")
+                .args([
+                    "-e",
+                    "POSIX path of (choose file with prompt \"Velg konfigurasjonsfil for ArtCraft Hub\")",
+                ])
+                .output();
+
+            match output {
+                Ok(out) => {
+                    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path.is_empty() && Path::new(&path).is_file() {
+                        Ok(Some(path))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(_) => Ok(None),
+            }
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        tokio::task::spawn_blocking(|| {
+            let output = std::process::Command::new("zenity")
+                .args(["--file-selection", "--title=Velg konfigurasjonsfil for ArtCraft Hub"])
+                .output();
+
+            match output {
+                Ok(out) => {
+                    let path = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !path.is_empty() && Path::new(&path).is_file() {
+                        Ok(Some(path))
+                    } else {
+                        Ok(None)
+                    }
+                }
+                Err(_) => Ok(None),
+            }
+        })
+        .await
+        .map_err(|e| e.to_string())?
+    }
+}
+
+fn is_blacklisted_dir(dir_name: &str) -> bool {
+    let lower = dir_name.to_lowercase();
+    if lower.starts_with('.') && lower.len() > 1 {
+        return true;
+    }
+    matches!(
+        lower.as_str(),
+        "node_modules"
+            | "appdata"
+            | "application support"
+            | "windows"
+            | "temp"
+            | "tmp"
+            | "cache"
+            | ".cache"
+            | "caches"
+            | "$recycle.bin"
+            | "system volume information"
+            | "program files"
+            | "program files (x86)"
+            | "programdata"
+            | "venv"
+            | ".env"
+            | "dist"
+            | "build"
+            | "target"
+            | "site-packages"
+            | "recovery"
+            | "logs"
+    )
+}
+
+fn is_path_blacklisted(path: &Path, allow_downloads: bool) -> bool {
+    let path_str = path.to_string_lossy().to_lowercase();
+    let parts: Vec<&str> = path_str.split(|c| c == '/' || c == '\\').collect();
+
+    for part in parts {
+        if part.starts_with('.') && part.len() > 1 {
+            return true;
         }
-        #[cfg(target_os = "linux")]
-        {
-            blender_dirs.push(h.join(".config/blender"));
+        if matches!(
+            part,
+            "appdata"
+                | "localappdata"
+                | "windows"
+                | "temp"
+                | "tmp"
+                | "cache"
+                | "caches"
+                | ".cache"
+                | "$recycle.bin"
+                | "system volume information"
+                | "program files"
+                | "program files (x86)"
+                | "programdata"
+                | "node_modules"
+                | "site-packages"
+                | "venv"
+                | "recovery"
+        ) {
+            return true;
+        }
+        if !allow_downloads && (part == "downloads" || part == "nedlastinger") {
+            return true;
+        }
+    }
+    false
+}
+
+fn is_creative_extension(ext: &str) -> bool {
+    matches!(
+        ext,
+        // Blender / 3D
+        ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" |
+        // Krita / Digital painting
+        ".kra" | ".ora" | ".clip" | ".psd" |
+        // Vector
+        ".svg" | ".eps" | ".ai" |
+        // Photo / textures / artwork
+        ".png" | ".jpg" | ".jpeg" | ".webp" | ".raw" | ".cr2" | ".nef" | ".dng" | ".arw" | ".tiff" | ".tif" | ".exr" | ".hdr" |
+        // Video
+        ".mp4" | ".mov" | ".mkv" | ".webm" |
+        // Audio
+        ".wav" | ".mp3" | ".flac" | ".ogg" |
+        // Publishing / Design
+        ".idml" | ".fig" | ".pdf"
+    )
+}
+
+fn scan_directory_for_creative_files(
+    dir: &Path,
+    current_depth: usize,
+    max_depth: usize,
+    source_tag: &str,
+    settings: &ScannerSettings,
+    map: &mut HashMap<String, RecentProjectFile>,
+) {
+    if current_depth > max_depth || !dir.is_dir() {
+        return;
+    }
+
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let file_name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default();
+
+            if file_name.starts_with('.') {
+                continue;
+            }
+
+            if path.is_dir() {
+                if !is_blacklisted_dir(file_name) {
+                    scan_directory_for_creative_files(
+                        &path,
+                        current_depth + 1,
+                        max_depth,
+                        source_tag,
+                        settings,
+                        map,
+                    );
+                }
+            } else if path.is_file() {
+                let ext = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| format!(".{}", e.to_lowercase()))
+                    .unwrap_or_default();
+
+                if is_creative_extension(&ext) {
+                    if let Ok(metadata) = fs::metadata(&path) {
+                        let size = metadata.len();
+                        // Filter out tiny images (< 15KB) which are almost exclusively favicons, tiny icons, bullets, or trackers
+                        if settings.filter_noise
+                            && matches!(ext.as_str(), ".png" | ".jpg" | ".jpeg" | ".webp")
+                            && size < 15_000
+                        {
+                            continue;
+                        }
+
+                        let key = path.to_string_lossy().to_lowercase();
+                        if !map.contains_key(&key) {
+                            if let Some(item) = create_recent_file_item(&path, source_tag) {
+                                map.insert(key, item);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub fn discover_all_recent_files(custom_settings: Option<ScannerSettings>) -> Result<Vec<RecentProjectFile>, String> {
+    let settings = custom_settings.unwrap_or_else(get_scanner_settings_internal);
+    let mut files_map: HashMap<String, RecentProjectFile> = HashMap::new();
+
+    // 1. Blender recent files
+    if settings.scan_blender {
+        let mut lines_to_process = Vec::new();
+
+        // Check custom path if configured
+        if let Some(ref custom) = settings.custom_blender_path {
+            if !custom.trim().is_empty() {
+                let p = PathBuf::from(custom.trim());
+                if p.is_file() {
+                    if let Ok(content) = fs::read_to_string(&p) {
+                        lines_to_process.extend(content.lines().map(|s| s.trim().to_string()));
+                    }
+                } else if p.is_dir() {
+                    let candidates = [
+                        p.join("recent-files.txt"),
+                        p.join("config").join("recent-files.txt"),
+                    ];
+                    for c in &candidates {
+                        if c.is_file() {
+                            if let Ok(content) = fs::read_to_string(c) {
+                                lines_to_process.extend(content.lines().map(|s| s.trim().to_string()));
+                            }
+                        }
+                    }
+                    if let Ok(entries) = fs::read_dir(&p) {
+                        for version_entry in entries.flatten() {
+                            let recent_file = version_entry.path().join("config").join("recent-files.txt");
+                            if recent_file.is_file() {
+                                if let Ok(content) = fs::read_to_string(&recent_file) {
+                                    lines_to_process.extend(content.lines().map(|s| s.trim().to_string()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        for b_dir in blender_dirs {
-            if let Ok(entries) = fs::read_dir(&b_dir) {
-                for version_entry in entries.flatten() {
-                    let recent_file = version_entry.path().join("config").join("recent-files.txt");
-                    if let Ok(content) = fs::read_to_string(&recent_file) {
-                        for line in content.lines() {
-                            let trimmed = line.trim();
-                            if !trimmed.is_empty() {
-                                let path = PathBuf::from(trimmed);
-                                if path.is_file() {
-                                    let key = path.to_string_lossy().to_lowercase();
-                                    if !files_map.contains_key(&key) {
-                                        if let Some(item) = create_recent_file_item(&path, "blender") {
-                                            files_map.insert(key, item);
-                                        }
+        // Auto-detect if no custom path was provided or found
+        if lines_to_process.is_empty() {
+            let home = dirs::home_dir();
+            if let Some(ref h) = home {
+                let mut blender_dirs = Vec::new();
+                #[cfg(target_os = "windows")]
+                {
+                    if let Ok(appdata) = std::env::var("APPDATA") {
+                        blender_dirs.push(PathBuf::from(appdata).join("Blender Foundation").join("Blender"));
+                    }
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    blender_dirs.push(h.join("Library/Application Support/Blender"));
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    blender_dirs.push(h.join(".config/blender"));
+                }
+
+                for b_dir in blender_dirs {
+                    if let Ok(entries) = fs::read_dir(&b_dir) {
+                        for version_entry in entries.flatten() {
+                            let recent_file = version_entry.path().join("config").join("recent-files.txt");
+                            if let Ok(content) = fs::read_to_string(&recent_file) {
+                                for line in content.lines() {
+                                    let trimmed = line.trim();
+                                    if !trimmed.is_empty() {
+                                        lines_to_process.push(trimmed.to_string());
                                     }
                                 }
                             }
@@ -1354,56 +1984,22 @@ pub fn discover_all_recent_files() -> Result<Vec<RecentProjectFile>, String> {
                 }
             }
         }
-    }
 
-    // 2. Krita recent files (kritarc)
-    let mut kritarc_paths = Vec::new();
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(local) = std::env::var("LOCALAPPDATA") {
-            kritarc_paths.push(PathBuf::from(local).join("kritarc"));
-        }
-        if let Ok(roam) = std::env::var("APPDATA") {
-            kritarc_paths.push(PathBuf::from(roam).join("kritarc"));
-        }
-    }
-    #[cfg(target_os = "macos")]
-    {
-        if let Some(ref h) = home {
-            kritarc_paths.push(h.join("Library/Preferences/kritarc"));
-        }
-    }
-    #[cfg(target_os = "linux")]
-    {
-        if let Some(ref h) = home {
-            kritarc_paths.push(h.join(".config/kritarc"));
-        }
-    }
+        for line in lines_to_process {
+            if !line.is_empty() {
+                let path = PathBuf::from(&line);
+                if path.is_file() {
+                    let ext = path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| format!(".{}", e.to_lowercase()))
+                        .unwrap_or_default();
 
-    for k_path in kritarc_paths {
-        if let Ok(content) = fs::read_to_string(&k_path) {
-            let mut in_recent_section = false;
-            for line in content.lines() {
-                let trimmed = line.trim();
-                if trimmed.starts_with('[') {
-                    in_recent_section = trimmed.eq_ignore_ascii_case("[Recent Files]");
-                    continue;
-                }
-                if in_recent_section || trimmed.starts_with("File") {
-                    if let Some(idx) = trimmed.find('=') {
-                        let mut val = trimmed[idx + 1..].trim();
-                        if val.starts_with("[$e]") {
-                            val = &val[4..];
-                        }
-                        let cleaned = val
-                            .replace("file:///", "")
-                            .replace("file://", "")
-                            .replace("%20", " ");
-                        let path = PathBuf::from(&cleaned);
-                        if path.is_file() {
+                    if is_creative_extension(&ext) {
+                        if !settings.filter_noise || !is_path_blacklisted(&path, settings.scan_downloads) {
                             let key = path.to_string_lossy().to_lowercase();
                             if !files_map.contains_key(&key) {
-                                if let Some(item) = create_recent_file_item(&path, "krita") {
+                                if let Some(item) = create_recent_file_item(&path, "blender") {
                                     files_map.insert(key, item);
                                 }
                             }
@@ -1414,96 +2010,83 @@ pub fn discover_all_recent_files() -> Result<Vec<RecentProjectFile>, String> {
         }
     }
 
-    // 3. Dedicated ArtCraft Hub Projects directory
-    let projects_dir = get_hub_home().join("Projects");
-    if projects_dir.is_dir() {
-        fn collect_project_files(dir: &Path, map: &mut HashMap<String, RecentProjectFile>) {
-            if let Ok(entries) = fs::read_dir(dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_file() {
-                        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                        if file_name != "project.artcraft.json" {
-                            let key = path.to_string_lossy().to_lowercase();
-                            if !map.contains_key(&key) {
-                                if let Some(item) = create_recent_file_item(&path, "projects") {
-                                    map.insert(key, item);
-                                }
-                            }
-                        }
-                    } else if path.is_dir() {
-                        collect_project_files(&path, map);
+    // 2. Krita recent files
+    if settings.scan_krita {
+        let mut kritarc_paths = Vec::new();
+
+        // Check custom path if configured
+        if let Some(ref custom) = settings.custom_krita_path {
+            if !custom.trim().is_empty() {
+                let p = PathBuf::from(custom.trim());
+                if p.is_file() {
+                    kritarc_paths.push(p);
+                } else if p.is_dir() {
+                    let k_file = p.join("kritarc");
+                    if k_file.is_file() {
+                        kritarc_paths.push(k_file);
                     }
                 }
             }
         }
-        collect_project_files(&projects_dir, &mut files_map);
-    }
 
-    // 4. Windows Recent directory (.lnk files scanning) & Linux XBEL
-    #[cfg(target_os = "windows")]
-    {
-        if let Ok(recent_dir_str) = std::env::var("APPDATA") {
-            let recent_dir = PathBuf::from(recent_dir_str).join(r"Microsoft\Windows\Recent");
-            if let Ok(entries) = fs::read_dir(recent_dir) {
-                for entry in entries.flatten().take(120) {
-                    let link_path = entry.path();
-                    if link_path.is_file() && link_path.extension().map_or(false, |e| e.eq_ignore_ascii_case("lnk")) {
-                        // Scan file bytes for continuous ASCII path matching creative extensions
-                        if let Ok(mut f) = File::open(&link_path) {
-                            let mut buf = Vec::new();
-                            if f.read_to_end(&mut buf).is_ok() {
-                                let mut current_str = String::new();
-                                for &byte in &buf {
-                                    if (byte >= 32 && byte <= 126) || byte == b'\\' || byte == b'/' {
-                                        current_str.push(byte as char);
-                                    } else {
-                                        if current_str.len() > 8 && current_str.contains(":\\") {
-                                            for &ext in &supported_exts {
-                                                if current_str.to_lowercase().ends_with(ext) {
-                                                    let p = PathBuf::from(&current_str);
-                                                    if p.is_file() {
-                                                        let key = p.to_string_lossy().to_lowercase();
-                                                        if !files_map.contains_key(&key) {
-                                                            if let Some(item) = create_recent_file_item(&p, "system") {
-                                                                files_map.insert(key, item);
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        current_str.clear();
-                                    }
-                                }
-                            }
-                        }
-                    }
+        // Auto-detect if no custom path was provided or found
+        if kritarc_paths.is_empty() {
+            let home = dirs::home_dir();
+            #[cfg(target_os = "windows")]
+            {
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    kritarc_paths.push(PathBuf::from(local).join("kritarc"));
+                }
+                if let Ok(roam) = std::env::var("APPDATA") {
+                    kritarc_paths.push(PathBuf::from(roam).join("kritarc"));
+                }
+            }
+            #[cfg(target_os = "macos")]
+            {
+                if let Some(ref h) = home {
+                    kritarc_paths.push(h.join("Library/Preferences/kritarc"));
+                }
+            }
+            #[cfg(target_os = "linux")]
+            {
+                if let Some(ref h) = home {
+                    kritarc_paths.push(h.join(".config/kritarc"));
                 }
             }
         }
-    }
 
-    #[cfg(target_os = "linux")]
-    {
-        if let Some(ref h) = home {
-            let xbel_paths = [
-                h.join(".local/share/recently-used.xbel"),
-                h.join(".config/inkscape/recently-used.xbel"),
-            ];
-            for x_path in &xbel_paths {
-                if let Ok(content) = fs::read_to_string(x_path) {
-                    for line in content.lines() {
-                        if line.contains("<bookmark href=\"file://") {
-                            if let Some(start) = line.find("file://") {
-                                if let Some(end) = line[start..].find('"') {
-                                    let raw_url = &line[start + 7..start + end];
-                                    let cleaned = raw_url.replace("%20", " ");
-                                    let p = PathBuf::from(&cleaned);
-                                    if p.is_file() {
-                                        let key = p.to_string_lossy().to_lowercase();
+        for k_path in kritarc_paths {
+            if let Ok(content) = fs::read_to_string(&k_path) {
+                let mut in_recent_section = false;
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with('[') {
+                        in_recent_section = trimmed.eq_ignore_ascii_case("[Recent Files]");
+                        continue;
+                    }
+                    if in_recent_section || trimmed.starts_with("File") {
+                        if let Some(idx) = trimmed.find('=') {
+                            let mut val = trimmed[idx + 1..].trim();
+                            if val.starts_with("[$e]") {
+                                val = &val[4..];
+                            }
+                            let cleaned = val
+                                .replace("file:///", "")
+                                .replace("file://", "")
+                                .replace("%20", " ");
+                            let path = PathBuf::from(&cleaned);
+                            if path.is_file() {
+                                let ext = path
+                                    .extension()
+                                    .and_then(|e| e.to_str())
+                                    .map(|e| format!(".{}", e.to_lowercase()))
+                                    .unwrap_or_default();
+
+                                if is_creative_extension(&ext) {
+                                    if !settings.filter_noise || !is_path_blacklisted(&path, settings.scan_downloads) {
+                                        let key = path.to_string_lossy().to_lowercase();
                                         if !files_map.contains_key(&key) {
-                                            if let Some(item) = create_recent_file_item(&p, "system") {
+                                            if let Some(item) = create_recent_file_item(&path, "krita") {
                                                 files_map.insert(key, item);
                                             }
                                         }
@@ -1517,11 +2100,89 @@ pub fn discover_all_recent_files() -> Result<Vec<RecentProjectFile>, String> {
         }
     }
 
+    // 3. OpenArt Creative Workspace in Documents (and its subfolders)
+    let ws_path = if let Some(ref custom_ws) = settings.openart_workspace_path {
+        if !custom_ws.trim().is_empty() {
+            PathBuf::from(custom_ws.trim())
+        } else {
+            get_default_workspace_dir()
+        }
+    } else {
+        get_default_workspace_dir()
+    };
+
+    if ws_path.is_dir() {
+        for folder_cfg in &settings.workspace_folders {
+            if folder_cfg.enabled {
+                let sub_dir = ws_path.join(&folder_cfg.folder_name);
+                if sub_dir.is_dir() {
+                    let tag = match folder_cfg.folder_name.as_str() {
+                        "Blender_Assets" => "blender",
+                        "Textures" => "pictures",
+                        "Brushes" => "krita",
+                        "References" => "pictures",
+                        "Projects" => "projects",
+                        _ => "workspace",
+                    };
+                    scan_directory_for_creative_files(&sub_dir, 0, 3, tag, &settings, &mut files_map);
+                }
+            }
+        }
+    }
+
+    // 4. Dedicated projects directories (active projects directory + legacy)
+    if settings.scan_artcraft_projects {
+        let active_proj_dir = get_active_projects_dir(&settings);
+        if active_proj_dir.is_dir() {
+            scan_directory_for_creative_files(&active_proj_dir, 0, 3, "projects", &settings, &mut files_map);
+        }
+        let legacy_proj_dir = get_hub_home().join("Projects");
+        if legacy_proj_dir != active_proj_dir && legacy_proj_dir.is_dir() {
+            scan_directory_for_creative_files(&legacy_proj_dir, 0, 3, "projects", &settings, &mut files_map);
+        }
+    }
+
+    // 5. Bilder / Pictures folder (Depth 3)
+    if settings.scan_pictures {
+        if let Some(pictures_dir) = dirs::picture_dir() {
+            scan_directory_for_creative_files(&pictures_dir, 0, 3, "pictures", &settings, &mut files_map);
+        }
+    }
+
+    // 6. Dokumenter / Documents folder (Depth 3)
+    if settings.scan_documents {
+        if let Some(docs_dir) = dirs::document_dir() {
+            scan_directory_for_creative_files(&docs_dir, 0, 3, "documents", &settings, &mut files_map);
+        }
+    }
+
+    // 7. Skrivebord / Desktop folder (Depth 2)
+    if settings.scan_desktop {
+        if let Some(desktop_dir) = dirs::desktop_dir() {
+            scan_directory_for_creative_files(&desktop_dir, 0, 2, "desktop", &settings, &mut files_map);
+        }
+    }
+
+    // 8. Nedlastinger / Downloads folder (Depth 2)
+    if settings.scan_downloads {
+        if let Some(dl_dir) = dirs::download_dir() {
+            scan_directory_for_creative_files(&dl_dir, 0, 2, "downloads", &settings, &mut files_map);
+        }
+    }
+
+    // 9. Custom user folders ("Watch Folders") (Depth 4)
+    for custom_path_str in &settings.custom_folders {
+        let custom_dir = PathBuf::from(custom_path_str);
+        if custom_dir.is_dir() {
+            scan_directory_for_creative_files(&custom_dir, 0, 4, "custom", &settings, &mut files_map);
+        }
+    }
+
     let mut result: Vec<RecentProjectFile> = files_map.into_values().collect();
     // Sort newest first
     result.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
-    // Limit to top 50 recent files
-    result.truncate(50);
+    // Limit to top 60 recent files
+    result.truncate(60);
 
     Ok(result)
 }
@@ -1668,8 +2329,9 @@ pub fn import_file_to_project(
         .and_then(|n| n.to_str())
         .ok_or_else(|| "Ugyldig filnavn".to_string())?;
 
-    let hub_home = get_hub_home();
-    let target_dir = hub_home.join("Projects").join(&project_name).join(&subfolder);
+    let settings = get_scanner_settings_internal();
+    let projects_dir = get_active_projects_dir(&settings);
+    let target_dir = projects_dir.join(&project_name).join(&subfolder);
     fs::create_dir_all(&target_dir).map_err(|e| e.to_string())?;
 
     let destination = target_dir.join(file_name);

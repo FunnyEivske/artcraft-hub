@@ -203,6 +203,8 @@ pub struct SmartProject {
     pub folder_path: String,
     pub files: Vec<ProjectFileInfo>,
     pub recommended_apps: Vec<String>,
+    #[serde(default)]
+    pub structure: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -239,3 +241,116 @@ pub fn get_hub_home() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
         .join("ArtCraftHub")
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreativeFolderConfig {
+    pub enabled: bool,
+    pub name: String,
+    pub folder_name: String,
+    pub description: String,
+}
+
+pub fn default_workspace_folders() -> Vec<CreativeFolderConfig> {
+    vec![
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Smart-Prosjekter".to_string(),
+            folder_name: "Projects".to_string(),
+            description: "Dine aktive prosjektmapper og manifestfiler".to_string(),
+        },
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Blender (Prosjekter & Assets)".to_string(),
+            folder_name: "Blender".to_string(),
+            description: "Hovedmappe for Blender med undermapper for prosjekter, 3D-assets, teksturer og renders".to_string(),
+        },
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Teksturer & PBR".to_string(),
+            folder_name: "Textures".to_string(),
+            description: "PBR-teksturer, HDRIs, overflater og normal-maps".to_string(),
+        },
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Børster & Pensler".to_string(),
+            folder_name: "Brushes".to_string(),
+            description: "Krita-børster (.bundle) og PhotoCraft-pensler (.abr)".to_string(),
+        },
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Referanser & Moodboards".to_string(),
+            folder_name: "References".to_string(),
+            description: "Bilde- og konseptreferanser, inspirasjon og skisser".to_string(),
+        },
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Lyd & Musikk (SFX)".to_string(),
+            folder_name: "Audio_and_SFX".to_string(),
+            description: "Lydeffekter, musikk og lydopptak".to_string(),
+        },
+        CreativeFolderConfig {
+            enabled: true,
+            name: "Vektor & Fonter".to_string(),
+            folder_name: "Fonts_and_Vectors".to_string(),
+            description: "SVG-ikoner, logoer, mønstre og fonter".to_string(),
+        },
+    ]
+}
+
+pub fn get_default_workspace_dir() -> PathBuf {
+    dirs::document_dir()
+        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+        .join("OpenArt")
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScannerSettings {
+    pub scan_blender: bool,
+    pub scan_krita: bool,
+    pub scan_artcraft_projects: bool,
+    pub scan_pictures: bool,
+    pub scan_documents: bool,
+    pub scan_desktop: bool,
+    pub scan_downloads: bool,
+    pub custom_folders: Vec<String>,
+    pub filter_noise: bool,
+    #[serde(default)]
+    pub custom_blender_path: Option<String>,
+    #[serde(default)]
+    pub custom_krita_path: Option<String>,
+    #[serde(default)]
+    pub custom_projects_path: Option<String>,
+    #[serde(default)]
+    pub onboarding_completed: bool,
+    #[serde(default)]
+    pub openart_workspace_path: Option<String>,
+    #[serde(default = "default_workspace_folders")]
+    pub workspace_folders: Vec<CreativeFolderConfig>,
+}
+
+impl Default for ScannerSettings {
+    fn default() -> Self {
+        Self {
+            scan_blender: true,
+            scan_krita: true,
+            scan_artcraft_projects: true,
+            scan_pictures: true,
+            scan_documents: true,
+            scan_desktop: false,
+            scan_downloads: false,
+            custom_folders: Vec::new(),
+            filter_noise: true,
+            custom_blender_path: None,
+            custom_krita_path: None,
+            custom_projects_path: None,
+            onboarding_completed: false,
+            openart_workspace_path: None,
+            workspace_folders: default_workspace_folders(),
+        }
+    }
+}
+
+
+

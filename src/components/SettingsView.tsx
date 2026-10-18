@@ -38,12 +38,14 @@ interface SettingsViewProps {
   onSettingsChanged?: () => void;
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
   isScanning?: boolean;
+  onRerunOnboarding?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   onSettingsChanged,
   onShowToast,
   isScanning = false,
+  onRerunOnboarding,
 }) => {
   const [settings, setSettings] = useState<ScannerSettings>({
     scanBlender: true,
@@ -213,6 +215,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (onShowToast) onShowToast('Fjernet overvåket mappe', 'info');
   };
 
+  const handleResetOnboarding = async () => {
+    try {
+      localStorage.removeItem('artcraft_onboarding_completed');
+      const updated: ScannerSettings = {
+        ...settings,
+        onboardingCompleted: false,
+      };
+      await saveScannerSettings(updated);
+      setSettings(updated);
+      if (onShowToast) {
+        onShowToast('Førstegangsoppsett er nullstilt! Åpner veiviseren...', 'info');
+      }
+      if (onRerunOnboarding) {
+        onRerunOnboarding();
+      }
+    } catch (err) {
+      console.error('Feil ved nullstilling av oppsett:', err);
+    }
+  };
+
   const getFolderIcon = (name: string) => {
     switch (name) {
       case 'Blender':
@@ -294,6 +316,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {onRerunOnboarding && (
+              <button
+                onClick={onRerunOnboarding}
+                className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-purple-300 hover:text-white border-purple-500/30 hover:border-purple-500/60 transition-colors"
+                title="Åpne førstegangs-veiviseren for å velge og opprette mapper på nytt"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Åpne veiviser</span>
+              </button>
+            )}
+            <button
+              onClick={handleResetOnboarding}
+              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-ui-muted hover:text-white transition-colors"
+              title="Tilbakestill og åpne veiviseren som ved en fersk nyinstallasjon"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Nullstill oppsett</span>
+            </button>
             <button
               onClick={handleOpenWorkspaceInExplorer}
               className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5"

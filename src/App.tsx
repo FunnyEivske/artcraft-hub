@@ -195,16 +195,8 @@ export function App() {
       try {
         const scannerSet = await getScannerSettings();
         const localCompleted = localStorage.getItem('artcraft_onboarding_completed') === 'true';
-        const hasRecentLaunchedApps = recentLaunchedAppIds && recentLaunchedAppIds.length > 0;
-        const hasInstalledApps = rels.some((a) => a.status === 'Installed' || Boolean(a.installed_version));
-        const hasExistingProjects = projs.length > 0;
-        const isExistingUser = hasRecentLaunchedApps || hasInstalledApps || hasExistingProjects;
 
-        if (scannerSet.onboardingCompleted || localCompleted || isExistingUser) {
-          // If this is an existing installation updating, ensure the flag is marked so we never pop up
-          if (!localCompleted) {
-            localStorage.setItem('artcraft_onboarding_completed', 'true');
-          }
+        if (scannerSet.onboardingCompleted || localCompleted) {
           setShowOnboardingModal(false);
         } else {
           // Brand new installation!
@@ -218,6 +210,16 @@ export function App() {
       showToast('Kunne ikke hente versjoner — viser lokal oversikt', 'info');
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleOpenOnboarding = async () => {
+    try {
+      const scannerSet = await getScannerSettings();
+      setOnboardingSettings(scannerSet);
+      setShowOnboardingModal(true);
+    } catch (err) {
+      console.error('Kunne ikke hente innstillinger for veiviser:', err);
     }
   };
 
@@ -492,6 +494,7 @@ export function App() {
               onSettingsChanged={refreshRecent}
               onShowToast={showToast}
               isScanning={isRefreshingRecent}
+              onRerunOnboarding={handleOpenOnboarding}
             />
           )}
         </main>

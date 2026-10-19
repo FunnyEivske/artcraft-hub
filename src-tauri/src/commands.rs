@@ -610,8 +610,6 @@ pub fn get_system_info() -> Result<SystemInfo, String> {
 pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
     let os = std::env::consts::OS;
     let installed_map = get_installed_versions_map();
-    let webapps_dir = get_hub_home().join("WebApps");
-    let apps_dir = get_hub_home().join("Apps");
     let client = reqwest::Client::new();
     let catalog = get_app_catalog();
 
@@ -671,8 +669,8 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
         if app.id == "krita" {
             let local_exe = detect_local_app_binary("krita");
             let is_installed = local_exe.is_some() || installed_map.contains_key("krita");
-            let detected_version = if is_installed {
-                Some("v5.2.6 (System)".into())
+            let detected_version: Option<String> = if is_installed {
+                Some("v5.2.6 (System)".to_string())
             } else {
                 None
             };
@@ -710,7 +708,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
                 web_download_url: None,
                 web_asset_name: None,
                 status: if is_installed { "Installed".into() } else { "NotInstalled".into() },
-                installed_version: if is_installed { Some("v5.2.6 (System)".into()) } else { None },
+                installed_version: detected_version,
                 installed_type: if is_installed { Some("native".into()) } else { None },
                 has_web_app: false,
             });
@@ -1536,7 +1534,6 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
                             cmd.args(["/x", &path_str]);
                             cmd.creation_flags(CREATE_NO_WINDOW);
                             let _ = cmd.status();
-                            uninstalled_invoked = true;
                             break;
                         }
                     }

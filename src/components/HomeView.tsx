@@ -26,6 +26,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   projects,
   recentLaunchedAppIds,
   onLaunchNative,
+  onInstall,
   onOpenFileInApp,
   onRefreshRecent,
   onShowToast,
@@ -157,6 +158,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           allApps={apps}
           projects={projects}
           onOpenFileInApp={onOpenFileInApp}
+          onInstall={onInstall}
           onRefresh={onRefreshRecent}
           onOpenSettings={onNavigateToSettings}
           onShowToast={onShowToast}

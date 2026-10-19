@@ -540,6 +540,7 @@ export function App() {
 
           {activeTab === 'settings' && (
             <SettingsView
+              allApps={apps}
               onSettingsChanged={refreshRecent}
               onShowToast={showToast}
               isScanning={isRefreshingRecent}

@@ -28,7 +28,10 @@
     "info": "Informasjon",
     "settings": "Innstillinger",
     "copied": "Kopiert til utklippstavle",
-    "learnMore": "Lær mer"
+    "learnMore": "Lær mer",
+    "openWith": "Åpne med",
+    "availableToInstall": "Tilgjengelig for filtypen",
+    "default": "Standard"
   },
   "nav": {
     "home": "Hjem",
@@ -144,6 +147,11 @@
     "foldersListTitle": "Aktive arbeidsområde-mapper",
     "appsSection": "Registrerte apper",
     "appsDesc": "Styr hvilke apper som vises i Hub-en, eller overstyr programmets filsti.",
+    "defaultAppsSection": "Standardapper for filtyper",
+    "defaultAppsDesc": "Velg hvilket program OpenArt Hub skal prioritere for hver type kreative filer.",
+    "autoDetect": "Auto (Prioriter installert app)",
+    "systemDefault": "Systemets standardprogram",
+    "defaultAppSaved": "Standardapp oppdatert for {{category}}",
     "overridePath": "Overstyr filsti til programmet",
     "overridePlaceholder": "Sti til kjørbar fil...",
     "browseFile": "Bla gjennom...",

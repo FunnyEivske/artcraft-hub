@@ -28,7 +28,10 @@
     "info": "Information",
     "settings": "Settings",
     "copied": "Copied to clipboard",
-    "learnMore": "Learn more"
+    "learnMore": "Learn more",
+    "openWith": "Open with",
+    "availableToInstall": "Available to install",
+    "default": "Default"
   },
   "nav": {
     "home": "Home",
@@ -144,6 +147,11 @@
     "foldersListTitle": "Active Workspace Folders",
     "appsSection": "Detected Creative Apps",
     "appsDesc": "Control which apps appear in the Hub, or specify a custom executable location.",
+    "defaultAppsSection": "Default Creative Apps",
+    "defaultAppsDesc": "Configure which creative tool OpenArt Hub should use as primary for each file type.",
+    "autoDetect": "Auto (Priority: installed app)",
+    "systemDefault": "System Default Application",
+    "defaultAppSaved": "Default app updated for {{category}}",
     "overridePath": "Override executable path",
     "overridePlaceholder": "Path to executable...",
     "browseFile": "Browse...",

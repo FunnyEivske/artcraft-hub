@@ -15,17 +15,21 @@ import {
   RefreshCw,
   Settings,
   FolderOpen,
+  Download,
+  Monitor,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { RecentProjectFile, SmartProject, AppReleaseInfo } from '../types';
 import { getFileThumbnail, importFileToProject, openPathInExplorer } from '../services/tauri';
 import { AppTile } from './AppTile';
+import { resolveAppForFile } from '../services/defaultApps';
 
 interface RecentFilesGridProps {
   files: RecentProjectFile[];
   allApps: AppReleaseInfo[];
   projects: SmartProject[];
   onOpenFileInApp: (appId: string, filePath: string) => void;
+  onInstall?: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   onRefresh?: () => void;
   onOpenSettings?: () => void;
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
@@ -65,6 +69,7 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
   allApps,
   projects,
   onOpenFileInApp,
+  onInstall,
   onRefresh,
   onOpenSettings,
   onShowToast,
@@ -85,6 +90,17 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
   const [targetSubfolder, setTargetSubfolder] = useState<string>('01_References');
   const [copyOnly, setCopyOnly] = useState<boolean>(false);
   const [isImporting, setIsImporting] = useState<boolean>(false);
+  const [, setDefaultAppsVersion] = useState(0);
+
+  useEffect(() => {
+    const handleDefaultsChanged = () => {
+      setDefaultAppsVersion((v) => v + 1);
+    };
+    window.addEventListener('artcraft_default_apps_changed', handleDefaultsChanged);
+    return () => {
+      window.removeEventListener('artcraft_default_apps_changed', handleDefaultsChanged);
+    };
+  }, []);
 
   useEffect(() => {
     if (projects.length > 0 && !targetProjectName) {
@@ -195,23 +211,13 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
 
   // Handle opening file: click anywhere on card
   const handleCardClick = (file: RecentProjectFile) => {
-    // If recommended app is installed, open with it; otherwise check other installed compatible apps, or fallback to default
-    const recApp = allApps.find((a) => a.app_id === file.recommended_app);
-    if (recApp && recApp.status !== 'NotInstalled') {
-      onOpenFileInApp(recApp.app_id, file.file_path);
-      return;
-    }
-
-    const installedCompat = file.compatible_apps.find((id) => {
-      const a = allApps.find((item) => item.app_id === id);
-      return a && a.status !== 'NotInstalled';
-    });
-
-    if (installedCompat) {
-      onOpenFileInApp(installedCompat, file.file_path);
+    const resolved = resolveAppForFile(file, allApps);
+    if (resolved.isInstalled && resolved.primaryApp) {
+      onOpenFileInApp(resolved.primaryApp.app_id, file.file_path);
+    } else if (resolved.primaryApp && onInstall) {
+      onInstall(resolved.primaryApp, 'native');
     } else {
-      // Open with default system app
-      onOpenFileInApp(file.recommended_app || 'default', file.file_path);
+      onOpenFileInApp('default', file.file_path);
     }
   };
 
@@ -321,9 +327,7 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
           const thumb = thumbnails[file.file_path];
           const media = getMediaTypeInfo(file.extension);
           const mediaLabel = t(`mediaTypes.${media.key}`) || media.label;
-
-          const recApp = allApps.find((a) => a.app_id === file.recommended_app);
-          const isRecAppInstalled = recApp && recApp.status !== 'NotInstalled';
+          const resolved = resolveAppForFile(file, allApps);
 
           const isMenuOpen = activeMenuFile === file.file_path;
 
@@ -395,17 +399,56 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
 
                 {/* Footer Action Bar */}
                 <div className="pt-2 border-t border-ui-border flex items-center justify-between gap-1.5">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {recApp && <AppTile app={recApp} size={16} />}
-                    <span className="text-[11px] text-ui-muted truncate font-medium">
-                      {isRecAppInstalled
-                        ? t('home.openIn', { app: recApp.app_name })
-                        : t('home.openDefault')}
-                    </span>
+                  {/* Primary Action Button (Clearly clickable) */}
+                  <div className="min-w-0 flex-1">
+                    {resolved.isInstalled && resolved.primaryApp ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenFileInApp(resolved.primaryApp!.app_id, file.file_path);
+                        }}
+                        className="h-7 px-2.5 rounded-md text-xs font-medium bg-ui-surface-2 hover:bg-ui-surface-2/90 hover:border-ui-accent hover:text-ui-accent border border-ui-border text-ui-text inline-flex items-center gap-1.5 transition-all max-w-full cursor-pointer shadow-xs"
+                        title={t('home.openIn', { app: resolved.primaryApp.app_name })}
+                      >
+                        <AppTile app={resolved.primaryApp} size={15} />
+                        <span className="truncate">{t('home.openIn', { app: resolved.primaryApp.app_name })}</span>
+                      </button>
+                    ) : resolved.primaryApp ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onInstall) {
+                            onInstall(resolved.primaryApp!, 'native');
+                          } else {
+                            onOpenFileInApp('default', file.file_path);
+                          }
+                        }}
+                        className="h-7 px-2.5 rounded-md text-xs font-medium bg-ui-accent/15 hover:bg-ui-accent/25 border border-ui-accent/40 text-ui-accent inline-flex items-center gap-1.5 transition-all max-w-full cursor-pointer shadow-xs"
+                        title={`${t('common.install')} ${resolved.primaryApp.app_name}`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="truncate">{t('common.install')} {resolved.primaryApp.app_name}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenFileInApp('default', file.file_path);
+                        }}
+                        className="h-7 px-2.5 rounded-md text-xs font-medium bg-ui-surface-2 hover:bg-ui-surface-2/90 border border-ui-border text-ui-muted hover:text-ui-text inline-flex items-center gap-1.5 transition-all max-w-full cursor-pointer"
+                        title={t('home.openDefault')}
+                      >
+                        <Monitor className="w-3.5 h-3.5" />
+                        <span className="truncate">{t('home.openDefault')}</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Context menu for extra actions */}
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -421,9 +464,76 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
                     {/* Popover Dropdown */}
                     {isMenuOpen && (
                       <div
-                        className="absolute right-0 bottom-full mb-1.5 w-48 rounded-xl bg-ui-surface border border-ui-border shadow-xl py-1 z-40 animate-in fade-in duration-100"
+                        className="absolute right-0 bottom-full mb-1.5 w-52 rounded-xl bg-ui-surface border border-ui-border shadow-xl py-1 z-40 animate-in fade-in duration-100"
                         onClick={(e) => e.stopPropagation()}
                       >
+                        <div className="px-3 py-1 text-[10px] font-semibold text-ui-muted uppercase tracking-wider">
+                          {t('common.openWith')}
+                        </div>
+
+                        {/* All installed apps that can open this file */}
+                        {resolved.installedApps.map((app) => (
+                          <button
+                            key={app.app_id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuFile(null);
+                              onOpenFileInApp(app.app_id, file.file_path);
+                            }}
+                            className="w-full h-7 px-3 flex items-center gap-2 text-xs text-ui-text hover:bg-ui-surface-2 transition-colors text-left cursor-pointer"
+                          >
+                            <AppTile app={app} size={15} />
+                            <span className="truncate flex-1">{app.app_name}</span>
+                            {app.app_id === resolved.primaryApp?.app_id && (
+                              <span className="text-[10px] text-ui-accent font-medium">
+                                {t('common.default')}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+
+                        {/* System default app option */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuFile(null);
+                            onOpenFileInApp('default', file.file_path);
+                          }}
+                          className="w-full h-7 px-3 flex items-center gap-2 text-xs text-ui-text hover:bg-ui-surface-2 transition-colors text-left cursor-pointer"
+                        >
+                          <Monitor className="w-3.5 h-3.5 text-ui-muted" />
+                          <span className="truncate">{t('home.openDefault')}</span>
+                        </button>
+
+                        {/* Available apps in suite not installed yet */}
+                        {resolved.availableApps.length > 0 && (
+                          <>
+                            <div className="border-t border-ui-border my-1" />
+                            <div className="px-3 py-1 text-[10px] font-semibold text-ui-muted uppercase tracking-wider">
+                              {t('common.availableToInstall')}
+                            </div>
+                            {resolved.availableApps.slice(0, 3).map((app) => (
+                              <button
+                                key={app.app_id}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuFile(null);
+                                  if (onInstall) onInstall(app, 'native');
+                                }}
+                                className="w-full h-7 px-3 flex items-center gap-2 text-xs text-ui-muted hover:text-ui-text hover:bg-ui-surface-2 transition-colors text-left cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5 text-ui-muted" />
+                                <span className="truncate">{t('common.install')} {app.app_name}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+
+                        <div className="border-t border-ui-border my-1" />
+
                         <button
                           type="button"
                           onClick={(e) => handleOpenFolder(e, file.folder)}
@@ -441,35 +551,6 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
                           <FolderInput className="w-3.5 h-3.5 text-ui-muted" />
                           <span>{t('home.addToProject')}</span>
                         </button>
-
-                        {file.compatible_apps.length > 1 && (
-                          <>
-                            <div className="border-t border-ui-border my-1" />
-                            <div className="px-3 py-1 text-[10px] font-medium text-ui-muted uppercase tracking-wider">
-                              Open in
-                            </div>
-                            {file.compatible_apps.map((appId) => {
-                              const otherApp = allApps.find((a) => a.app_id === appId);
-                              return (
-                                <button
-                                  key={appId}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveMenuFile(null);
-                                    onOpenFileInApp(appId, file.file_path);
-                                  }}
-                                  className="w-full h-7 px-3 flex items-center gap-2 text-xs text-ui-text hover:bg-ui-surface-2 transition-colors text-left cursor-pointer"
-                                >
-                                  {otherApp && <AppTile app={otherApp} size={14} />}
-                                  <span className="truncate">
-                                    {otherApp ? otherApp.app_name : appId}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </>
-                        )}
                       </div>
                     )}
                   </div>

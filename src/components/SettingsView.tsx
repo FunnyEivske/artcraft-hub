@@ -20,7 +20,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ScannerSettings, CreativeFolderConfig, DiagnosticLogEntry } from '../types';
+import { AppReleaseInfo, ScannerSettings, CreativeFolderConfig, DiagnosticLogEntry } from '../types';
 import {
   getScannerSettings,
   saveScannerSettings,
@@ -34,8 +34,14 @@ import {
   clearDiagnosticLogs,
 } from '../services/tauri';
 import { getStoredTheme, setTheme, ThemeMode } from '../services/theme';
+import {
+  getDefaultAppsPreferences,
+  setDefaultAppPreference,
+  DefaultAppsPreference,
+} from '../services/defaultApps';
 
 interface SettingsViewProps {
+  allApps?: AppReleaseInfo[];
   onSettingsChanged?: () => void;
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
   isScanning?: boolean;
@@ -67,6 +73,7 @@ const Switch: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
 );
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
+  allApps = [],
   onSettingsChanged,
   onShowToast,
   isScanning = false,
@@ -75,6 +82,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [defaultApps, setDefaultApps] = useState<DefaultAppsPreference>(() => getDefaultAppsPreferences());
 
   // Theme & Language
   const [currentLang, setCurrentLang] = useState<string>(() => i18n.language || 'en');
@@ -783,6 +791,86 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* TAB 3: APPS */}
       {activeTab === 'apps' && (
         <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Default Creative Apps */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">
+                {t('settings.defaultAppsSection')}
+              </h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                {t('settings.defaultAppsDesc')}
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {[
+                {
+                  key: 'image',
+                  label: 'Bilder & Foto (.png, .jpg, .webp, .psd)',
+                  candidates: ['photocraft', 'krita', 'lightcraft'],
+                },
+                {
+                  key: 'painting',
+                  label: 'Digital maling (.kra, .ora, .clip)',
+                  candidates: ['krita', 'photocraft'],
+                },
+                {
+                  key: 'threeD',
+                  label: '3D-modeller & Animasjon (.blend, .obj, .fbx, .stl)',
+                  candidates: ['blender', 'cadcraft'],
+                },
+                {
+                  key: 'vector',
+                  label: 'Vektor & Logo (.svg, .ai, .eps)',
+                  candidates: ['vectorcraft', 'figcraft'],
+                },
+                {
+                  key: 'video',
+                  label: 'Video & Film (.mp4, .mov, .mkv)',
+                  candidates: ['filmcraft', 'effectcraft'],
+                },
+              ].map((cat) => {
+                const currentVal = defaultApps[cat.key] || '';
+                return (
+                  <div
+                    key={cat.key}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-ui-bg border border-ui-border"
+                  >
+                    <div>
+                      <div className="text-xs font-medium text-ui-text">{cat.label}</div>
+                    </div>
+
+                    <select
+                      value={currentVal}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDefaultAppPreference(cat.key, val);
+                        setDefaultApps(getDefaultAppsPreferences());
+                        if (onShowToast) {
+                          onShowToast(t('settings.defaultAppSaved', { category: cat.label }), 'success');
+                        }
+                      }}
+                      className="h-8 px-2.5 rounded-lg text-xs bg-ui-surface border border-ui-border text-ui-text focus:border-ui-accent focus:outline-none cursor-pointer max-w-xs"
+                    >
+                      <option value="">{t('settings.autoDetect')}</option>
+                      {cat.candidates.map((appId) => {
+                        const app = allApps?.find((a) => a.app_id === appId);
+                        const isInstalled = app && app.status !== 'NotInstalled';
+                        const name = app?.app_name || appId;
+                        return (
+                          <option key={appId} value={appId}>
+                            {name} {isInstalled ? '✓ (Installert)' : ''}
+                          </option>
+                        );
+                      })}
+                      <option value="default">{t('settings.systemDefault')}</option>
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* App Executable Overrides */}
           <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-5 shadow-sm">
             <div>

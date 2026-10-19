@@ -223,6 +223,7 @@ pub struct WindowsInstalledApp {
     pub install_location: String,
 }
 
+#[allow(unused_variables)]
 pub fn find_windows_installed_app(app_name: &str, app_id: &str) -> Option<WindowsInstalledApp> {
     #[cfg(target_os = "windows")]
     {
@@ -1501,8 +1502,10 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
                     let parts: Vec<&str> = u_str.split_whitespace().collect();
                     let args: Vec<&str> = if parts.len() > 1 {
                         parts[1..].iter().copied().collect()
+                    } else if !parts.is_empty() {
+                        vec!["/x", parts[0]]
                     } else {
-                        vec!["/x", &parts[0]]
+                        vec!["/x"]
                     };
 
                     let mut cmd = std::process::Command::new("msiexec");
@@ -1528,8 +1531,9 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_file() && path.extension().map_or(false, |e| e.eq_ignore_ascii_case("msi")) {
+                            let path_str = path.to_string_lossy().to_string();
                             let mut cmd = std::process::Command::new("msiexec");
-                            cmd.args(["/x", &path.to_string_lossy()]);
+                            cmd.args(["/x", &path_str]);
                             cmd.creation_flags(CREATE_NO_WINDOW);
                             let _ = cmd.status();
                             uninstalled_invoked = true;

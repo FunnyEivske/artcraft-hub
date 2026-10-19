@@ -2429,6 +2429,11 @@ pub fn save_scanner_settings(settings: ScannerSettings) -> Result<bool, String> 
 }
 
 #[tauri::command]
+pub fn get_default_workspace_dir_path() -> Result<String, String> {
+    Ok(get_default_workspace_dir().to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn init_or_update_workspace_folders(settings: ScannerSettings) -> Result<String, String> {
     let workspace_path = if let Some(ref custom) = settings.openart_workspace_path {
         if !custom.trim().is_empty() {

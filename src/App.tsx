@@ -39,11 +39,13 @@ import {
   logClientDiagnostic,
 } from './services/tauri';
 import { CheckCircle2, AlertCircle, Copy, Check, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const RECENT_APPS_KEY = 'openart_recent_launched_apps';
 const SNOOZE_PREFIX = 'openart_snoozed_update_';
 
 export function App() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<HubTab>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('Alle');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -560,7 +562,7 @@ export function App() {
           onClose={() => setShowOnboardingModal(false)}
           onComplete={(_updated) => {
             setShowOnboardingModal(false);
-            showToast('Kreativt arbeidsområde opprettet i Dokumenter/OpenArt!', 'success');
+            showToast(t('onboarding.step4Subtitle'), 'success');
             refreshRecent();
           }}
         />

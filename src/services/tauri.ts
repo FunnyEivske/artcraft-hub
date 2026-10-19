@@ -546,6 +546,17 @@ export const initOrUpdateWorkspaceFolders = async (
   return 'Documents/OpenArt';
 };
 
+export const getDefaultWorkspaceDirPath = async (): Promise<string> => {
+  if (isTauri()) {
+    try {
+      return await invoke<string>('get_default_workspace_dir_path');
+    } catch {
+      // fallback
+    }
+  }
+  return '~/Documents/OpenArt';
+};
+
 export const openPathInExplorer = async (path: string): Promise<boolean> => {
   if (isTauri()) {
     return await invoke<boolean>('open_path_in_explorer', { path });

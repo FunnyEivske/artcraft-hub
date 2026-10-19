@@ -2,6 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+:root[data-theme="dark"] {
+  /* Dark Palette (Calm, restrained, dark-gray) */
+  --color-bg: #17171a;
+  --color-surface: #1e1e22;
+  --color-surface-hover: #26262b;
+  --color-surface-active: #2e2e34;
+  --color-surface-panel: #222226;
+  --color-border: #2a2a30;
+  --color-border-subtle: #222227;
+  --color-text: #ececf0;
+  --color-text-muted: #9a9aa5;
+  --color-text-faint: #6d6d78;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-accent-subtle: rgba(59, 130, 246, 0.12);
+  --color-scrollbar: #3a3a42;
+  --color-scrollbar-hover: #4e4e58;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-menu: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* Spacing: 8px grid */
+  --space-0-5: 4px;
+  --space-1: 8px;
+  --space-1-5: 12px;
+  --space-2: 16px;
+  --space-2-5: 20px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-8: 64px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Typography Scale (5 sizes) */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14.5px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+}
+
+:root[data-theme="light"] {
+  /* Light Palette (Warm, spacious, clean) */
+  --color-bg: #f6f5f3;
+  --color-surface: #ffffff;
+  --color-surface-hover: #eeece8;
+  --color-surface-active: #e4e1db;
+  --color-surface-panel: #fcfbf9;
+  --color-border: #e4e2de;
+  --color-border-subtle: #edebe7;
+  --color-text: #1c1b1a;
+  --color-text-muted: #6b6862;
+  --color-text-faint: #98948d;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-subtle: rgba(37, 99, 235, 0.08);
+  --color-scrollbar: #d4d1cb;
+  --color-scrollbar-hover: #b8b4ad;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.06);
+  --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
 @layer base {
   html,
   body,
@@ -10,71 +82,138 @@
   }
 
   body {
-    @apply bg-ui-bg text-ui-text antialiased;
-    font-size: 14px;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: var(--text-base);
+    line-height: 1.5;
+    font-family: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background: rgba(20, 115, 230, 0.35);
+    background: var(--color-accent-subtle);
+    color: var(--color-text);
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #3d3d3d;
-    border-radius: 10px;
-    border: 3px solid transparent;
+    background: var(--color-scrollbar);
+    border-radius: var(--radius-full);
+    border: 2px solid transparent;
     background-clip: padding-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #4d4d4d;
+    background: var(--color-scrollbar-hover);
     background-clip: padding-box;
   }
 
+  /* Accessible focus rings across both themes */
   button:focus-visible,
   input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
   a:focus-visible {
-    outline: 2px solid #2680eb;
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
+  }
+
+  input, select, textarea {
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--color-accent);
   }
 }
 
 @layer components {
-  /* Kept for the views that still use these names — now flat panels. */
-  .glass-panel {
-    background: #262626;
-    border: 1px solid #383838;
-  }
-
-  .glass-card {
-    background: #2b2b2b;
-    border: 1px solid #383838;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-  }
-
-  .glass-card:hover {
-    border-color: #4a4a4a;
-  }
-
-  /* Buttons, Spectrum-style: pill shaped, quiet, one accent colour. */
+  /* Restrained, professional buttons: one accent color, calm secondary states */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 h-8 px-4 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-default;
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3.5 rounded-md text-[13px] font-medium whitespace-nowrap transition-colors select-none disabled:opacity-40 disabled:cursor-not-allowed;
   }
+
   .btn-primary {
-    @apply btn bg-ui-blue text-white hover:bg-ui-blueHover;
+    @apply btn text-white shadow-sm;
+    background-color: var(--color-accent);
   }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-accent-hover);
+  }
+
   .btn-secondary {
-    @apply btn border-2 border-[#5a5a5a] text-ui-text hover:bg-ui-hover hover:border-[#6a6a6a];
+    @apply btn;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
   }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-surface-hover);
+    border-color: var(--color-border);
+  }
+
   .btn-quiet {
-    @apply btn px-3 text-ui-muted hover:text-ui-text hover:bg-ui-hover;
+    @apply btn px-2.5;
+    background-color: transparent;
+    color: var(--color-text-muted);
   }
+  .btn-quiet:hover:not(:disabled) {
+    color: var(--color-text);
+    background-color: var(--color-surface-hover);
+  }
+
   .icon-btn {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-md text-ui-muted hover:text-ui-text hover:bg-ui-hover transition-colors;
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-md transition-colors select-none;
+    color: var(--color-text-muted);
+  }
+  .icon-btn:hover:not(:disabled) {
+    color: var(--color-text);
+    background-color: var(--color-surface-hover);
+  }
+
+  /* Cards & Panels using design tokens */
+  .panel-surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .card-surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .card-surface:hover {
+    border-color: var(--color-border);
+    background-color: var(--color-surface-hover);
+  }
+
+  /* Single-accent toggle switch */
+  .theme-toggle-track {
+    @apply w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors flex-shrink-0;
+  }
+  .theme-toggle-track[data-checked="true"] {
+    background-color: var(--color-accent);
+  }
+  .theme-toggle-track[data-checked="false"] {
+    background-color: var(--color-border);
+  }
+
+  .theme-toggle-thumb {
+    @apply bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform;
+  }
+  .theme-toggle-track[data-checked="true"] .theme-toggle-thumb {
+    transform: translateX(16px);
   }
 }

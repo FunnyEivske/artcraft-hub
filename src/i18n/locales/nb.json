@@ -1,0 +1,210 @@
+{
+  "common": {
+    "appName": "OpenArt Hub",
+    "loading": "Laster...",
+    "cancel": "Avbryt",
+    "save": "Lagre",
+    "saving": "Lagrer...",
+    "close": "Lukk",
+    "open": "Åpne",
+    "install": "Installer",
+    "installing": "Installerer...",
+    "update": "Oppdater",
+    "updating": "Oppdaterer...",
+    "updateAll": "Oppdater alle",
+    "upToDate": "Oppdatert",
+    "search": "Søk...",
+    "all": "Alle",
+    "filter": "Filtrer",
+    "remove": "Fjern",
+    "edit": "Rediger",
+    "create": "Opprett",
+    "back": "Tilbake",
+    "next": "Fortsett",
+    "finish": "Fullfør",
+    "skip": "Hopp over for nå",
+    "error": "Feil",
+    "success": "Vellykket",
+    "info": "Informasjon",
+    "settings": "Innstillinger",
+    "copied": "Kopiert til utklippstavle",
+    "learnMore": "Lær mer"
+  },
+  "nav": {
+    "home": "Hjem",
+    "apps": "Alle apper",
+    "projects": "Prosjekter",
+    "palettes": "Fargepaletter",
+    "updates": "Oppdateringer",
+    "settings": "Innstillinger"
+  },
+  "home": {
+    "title": "Hjem",
+    "subtitle": "Ditt kreative skrivebord. Rask tilgang til installerte apper og nylig arbeid.",
+    "readyStatus": "Klar",
+    "exploreApps": "Utforsk alle apper",
+    "recentFilesTitle": "Nylige filer",
+    "recentFilesSubtitle": "Hopp rett tilbake i arbeidet ditt på tvers av kreative apper.",
+    "noRecentFiles": "Ingen nylige filer funnet",
+    "noRecentFilesCta": "Åpne eller opprett filer i programmene dine for å se dem her.",
+    "openIn": "Åpne i {{app}}",
+    "openDefault": "Åpne med standardprogram",
+    "openFolder": "Vis i mappe",
+    "addToProject": "Legg til i prosjekt",
+    "installedAppsTitle": "Hurtigstart",
+    "noInstalledApps": "Ingen kreative apper installert ennå",
+    "installAppCta": "Gå til Alle apper for å installere verktøy for foto, 3D, vektor og video.",
+    "filterAll": "Alle filer",
+    "filterProjects": "Prosjekter"
+  },
+  "mediaTypes": {
+    "image": "Bilde",
+    "painting": "Digital maling",
+    "vector": "Vektor",
+    "threeD": "3D-modell",
+    "video": "Video",
+    "audio": "Lyd",
+    "layout": "Layout",
+    "document": "Dokument",
+    "unknown": "Fil"
+  },
+  "toolboxes": {
+    "photo": {
+      "title": "Foto & Retusj",
+      "description": "PhotoCraft, LightCraft — RAW-fremkalling og pikselredigering"
+    },
+    "painting": {
+      "title": "Digital maling",
+      "description": "Krita — Digital maling, konseptkunst, skisser og illustrasjon"
+    },
+    "vector": {
+      "title": "Vektor & Illustrasjon",
+      "description": "VectorCraft — Presisjonskurver, merkevare, SVG og logoer"
+    },
+    "threeD": {
+      "title": "3D & Animasjon",
+      "description": "Blender, CADCraft — 3D-modellering, sculpting, animasjon og CAD"
+    },
+    "video": {
+      "title": "Video & VFX",
+      "description": "FilmCraft, EffectCraft — Redigering, tidslinje, fargegradering og motion"
+    },
+    "audio": {
+      "title": "Lyd & Musikk",
+      "description": "SoundCraft — Lydopptak, podcast, miksing og mastring"
+    },
+    "layout": {
+      "title": "Layout & Design",
+      "description": "DesignCraft, FigCraft, PdfCraft — Trykksaker, UI/UX og PDF-filer"
+    }
+  },
+  "onboarding": {
+    "step1Title": "Språk & Tema",
+    "step1Subtitle": "Velg hvordan OpenArt Hub skal se ut og oppføre seg.",
+    "step2Title": "Hva skaper du?",
+    "step2Subtitle": "Velg verktøykassene du bruker så Hub-en viser relevante apper og mapper.",
+    "step3Title": "Hvor skal filene dine ligge?",
+    "step3Subtitle": "Velg en rotmappe for dine kreative filer og prosjektmapper.",
+    "step4Title": "Alt er klart!",
+    "step4Subtitle": "Arbeidsområdet ditt er klargjort. Du kan endre dette når som helst i Innstillinger.",
+    "languageLabel": "Visningsspråk",
+    "themeLabel": "Fargetema",
+    "themeSystem": "System",
+    "themeLight": "Lyst",
+    "themeDark": "Mørkt",
+    "folderLabel": "Kreativt arbeidsområde",
+    "changeFolder": "Bla gjennom...",
+    "subfoldersPreview": "Undermapper som opprettes:",
+    "customizeFolders": "Tilpass undermapper",
+    "openHub": "Åpne Hub",
+    "toolboxCount": "{{count}} av {{total}} verktøykasser valgt",
+    "selectAll": "Velg alle",
+    "deselectAll": "Tøm alle"
+  },
+  "settings": {
+    "title": "Innstillinger",
+    "subtitle": "Styr utseende, mapper, app-stier og avanserte valg.",
+    "tabGeneral": "Generelt",
+    "tabFolders": "Mapper",
+    "tabApps": "Apper",
+    "tabAdvanced": "Avansert",
+    "appearanceSection": "Utseende",
+    "theme": "Tema",
+    "themeDesc": "Bytt mellom Lyst, Mørkt, eller følg operativsystemets innstillinger.",
+    "language": "Språk",
+    "languageDesc": "Velg språket som brukes i hele OpenArt Hub.",
+    "workspaceSection": "Kreativt arbeidsområde",
+    "workspaceDesc": "Rotmappen der prosjektmapper, teksturer og ressurser lagres.",
+    "openInExplorer": "Åpne i Filutforsker",
+    "syncFolders": "Synkroniser mapper nå",
+    "foldersListTitle": "Aktive arbeidsområde-mapper",
+    "appsSection": "Registrerte apper",
+    "appsDesc": "Styr hvilke apper som vises i Hub-en, eller overstyr programmets filsti.",
+    "overridePath": "Overstyr filsti til programmet",
+    "overridePlaceholder": "Sti til kjørbar fil...",
+    "browseFile": "Bla gjennom...",
+    "clearOverride": "Tilbakestill til standard",
+    "filteringSection": "Søk & støyfiltrering",
+    "filterNoise": "Filtrer systemstøy",
+    "filterNoiseDesc": "Ignorer AppData, midlertidige filer, node_modules og hurtiglager.",
+    "ignoreScreenshots": "Filtrer bort skjermbilder",
+    "ignoreScreenshotsDesc": "Ekskluder skjermklipp fra Utklippsverktøy og PrtScn fra nylige filer.",
+    "onboardingSection": "Oppsett & Historikk",
+    "redoOnboarding": "Restart onboarding",
+    "redoOnboardingDesc": "Kjør førstegangsveiviseren på nytt for å endre verktøykasser, tema eller mapper.",
+    "viewChangelog": "Se oppdateringslogg",
+    "viewChangelogDesc": "Les versjonsnotater og hva som er nytt i denne versjonen.",
+    "diagnosticsTitle": "Diagnostikk",
+    "copyLogs": "Kopier diagnostikk",
+    "clearLogs": "Tøm logger"
+  },
+  "apps": {
+    "title": "Alle apper",
+    "subtitle": "{{count}} kreative verktøy tilgjengelig i suiten.",
+    "installedHeading": "Installert og klart",
+    "availableHeading": "Tilgjengelig for nedlasting",
+    "searchPlaceholder": "Søk etter apper etter navn, kategori eller filtype...",
+    "allCategories": "Alle kategorier",
+    "installNative": "Installer",
+    "launchNative": "Åpne",
+    "openWeb": "Åpne nettapp",
+    "version": "Versjon {{version}}",
+    "alternativeTo": "Alternativ til {{name}}"
+  },
+  "updates": {
+    "title": "Oppdateringer",
+    "subtitle_zero": "Alle verktøy og Hub-en er oppdatert.",
+    "subtitle_one": "{{count}} oppdatering tilgjengelig.",
+    "subtitle_other": "{{count}} oppdateringer tilgjengelig.",
+    "checkUpdates": "Se etter oppdateringer",
+    "checking": "Søker...",
+    "updateAll": "Oppdater alle",
+    "hubUpdateTitle": "OpenArt Hub {{version}} tilgjengelig",
+    "hubUpdateBadge": "Ny Hub-versjon",
+    "updateHubBtn": "Oppdater Hub nå",
+    "installedSection": "Oppdatert og klart",
+    "availableSection": "Tilgjengelige oppdateringer",
+    "whatsNew": "Hva er nytt",
+    "simulate": "Simuler oppdatering"
+  },
+  "palettes": {
+    "title": "Fargepaletter",
+    "subtitle": "Harmoniske paletter tilpasset illustrasjon, merkevare og konseptkunst.",
+    "newPalette": "Ny palett",
+    "exportTo": "Eksporter til {{app}}",
+    "copyHex": "Kopier {{hex}}"
+  },
+  "projects": {
+    "title": "Prosjekter",
+    "subtitle": "Strukturerte prosjektmapper og manifestfiler.",
+    "newProject": "Nytt prosjekt",
+    "noProjects": "Ingen prosjekter funnet",
+    "createFirstProject": "Opprett ditt første prosjekt"
+  },
+  "changelog": {
+    "title": "Hva er nytt i OpenArt Hub",
+    "version": "v{{version}}",
+    "subtitle": "Oppdateringer og forbedringer siden forrige versjon",
+    "primaryAction": "Kult, la oss skape!"
+  }
+}

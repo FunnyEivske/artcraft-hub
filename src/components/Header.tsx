@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, RefreshCw, X, ArrowDownCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { BrandLogo } from './BrandLogo';
 
 const GithubMark = () => (
@@ -27,30 +28,32 @@ export const Header: React.FC<HeaderProps> = ({
   updatesCount = 0,
   onOpenUpdatePrompt,
 }) => {
+  const { t } = useTranslation();
+
   return (
-    <header className="h-12 flex-shrink-0 flex items-center gap-4 px-4 bg-ui-rail border-b border-ui-line">
+    <header className="h-12 flex-shrink-0 flex items-center gap-4 px-4 bg-ui-surface border-b border-ui-border">
       {/* Brand */}
       <div className="flex items-center gap-2.5 w-[216px] flex-shrink-0">
         <BrandLogo className="w-7 h-7" size={28} />
-        <span className="text-[15px] font-bold tracking-tight text-white">OpenArt</span>
+        <span className="text-[15px] font-semibold tracking-tight text-ui-text">OpenArt</span>
       </div>
 
       {/* Search */}
       <div className="flex-1 flex justify-center">
         <div className="relative w-full max-w-[460px]">
-          <Search className="w-4 h-4 text-ui-faint absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-ui-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Søk i apper og filtyper..."
-            className="w-full h-8 bg-[#1b1b1b] border border-ui-border rounded-full pl-9 pr-8 text-[13px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue transition-colors"
+            placeholder={t('home.searchPlaceholder')}
+            className="w-full h-8 bg-ui-bg border border-ui-border rounded-full pl-9 pr-8 text-[13px] text-ui-text placeholder-ui-muted focus:outline-none focus:border-ui-accent transition-colors"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ui-faint hover:text-ui-text"
-              title="Tøm søk"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ui-muted hover:text-ui-text"
+              title={t('common.close')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -59,33 +62,33 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 w-[216px] justify-end flex-shrink-0">
+      <div className="flex items-center gap-1.5 w-[216px] justify-end flex-shrink-0">
         {hasUpdatesAvailable ? (
           <button
             onClick={onOpenUpdatePrompt}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 transition-all text-[12px] font-semibold shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:scale-105 cursor-pointer animate-pulse"
-            title={`Ny oppdatering tilgjengelig (${updatesCount}) — Klikk for å installere!`}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ui-surface-2 border border-ui-accent text-ui-accent hover:opacity-90 transition-all text-[12px] font-medium cursor-pointer"
+            title={`${t('updates.available')} (${updatesCount})`}
           >
-            <ArrowDownCircle className="w-4 h-4 text-emerald-400" />
-            <span className="text-[11.5px] font-medium tracking-tight">Oppdatering</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-ui-rail"></span>
+            <ArrowDownCircle className="w-3.5 h-3.5 text-ui-accent" />
+            <span className="text-[11.5px] font-medium tracking-tight">{t('nav.updates')}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-ui-accent"></span>
           </button>
         ) : (
           <button
             onClick={onRefreshReleases}
             disabled={isRefreshing}
-            className="icon-btn hover:text-white"
-            title="Se etter nye versjoner"
+            className="btn-quiet w-8 h-8 rounded-md flex items-center justify-center text-ui-muted hover:text-ui-text transition-colors"
+            title={t('updates.check')}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-ui-blue' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-ui-accent' : ''}`} />
           </button>
         )}
         <a
           href="https://github.com/storytold"
           target="_blank"
           rel="noreferrer"
-          className="icon-btn"
-          title="storytold på GitHub"
+          className="btn-quiet w-8 h-8 rounded-md flex items-center justify-center text-ui-muted hover:text-ui-text transition-colors"
+          title="GitHub"
         >
           <GithubMark />
         </a>

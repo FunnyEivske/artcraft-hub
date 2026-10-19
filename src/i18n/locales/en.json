@@ -1,0 +1,210 @@
+{
+  "common": {
+    "appName": "OpenArt Hub",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "close": "Close",
+    "open": "Open",
+    "install": "Install",
+    "installing": "Installing...",
+    "update": "Update",
+    "updating": "Updating...",
+    "updateAll": "Update All",
+    "upToDate": "Up to date",
+    "search": "Search...",
+    "all": "All",
+    "filter": "Filter",
+    "remove": "Remove",
+    "edit": "Edit",
+    "create": "Create",
+    "back": "Back",
+    "next": "Continue",
+    "finish": "Finish",
+    "skip": "Skip for now",
+    "error": "Error",
+    "success": "Success",
+    "info": "Information",
+    "settings": "Settings",
+    "copied": "Copied to clipboard",
+    "learnMore": "Learn more"
+  },
+  "nav": {
+    "home": "Home",
+    "apps": "All Apps",
+    "projects": "Projects",
+    "palettes": "Palettes",
+    "updates": "Updates",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "Home",
+    "subtitle": "Your creative desk. Quick access to installed apps and recent work.",
+    "readyStatus": "Ready",
+    "exploreApps": "Explore all apps",
+    "recentFilesTitle": "Recent Files",
+    "recentFilesSubtitle": "Quickly jump back into work across your creative apps.",
+    "noRecentFiles": "No recent files found",
+    "noRecentFilesCta": "Open or create files in your creative apps to see them here.",
+    "openIn": "Open in {{app}}",
+    "openDefault": "Open with Default App",
+    "openFolder": "Show in Folder",
+    "addToProject": "Add to Project",
+    "installedAppsTitle": "Quick Launch",
+    "noInstalledApps": "No creative apps installed yet",
+    "installAppCta": "Visit All Apps to install tools for photo, 3D, vector, and video.",
+    "filterAll": "All Files",
+    "filterProjects": "Projects"
+  },
+  "mediaTypes": {
+    "image": "Image",
+    "painting": "Painting",
+    "vector": "Vector",
+    "threeD": "3D Model",
+    "video": "Video",
+    "audio": "Audio",
+    "layout": "Layout",
+    "document": "Document",
+    "unknown": "File"
+  },
+  "toolboxes": {
+    "photo": {
+      "title": "Photo & Retouching",
+      "description": "PhotoCraft, LightCraft — RAW developing and pixel editing"
+    },
+    "painting": {
+      "title": "Digital Painting",
+      "description": "Krita — Digital painting, concept art, sketching and illustration"
+    },
+    "vector": {
+      "title": "Vector & Illustration",
+      "description": "VectorCraft — Precision curves, branding, SVG and logos"
+    },
+    "threeD": {
+      "title": "3D & Animation",
+      "description": "Blender, CADCraft — 3D modeling, sculpting, animation and CAD"
+    },
+    "video": {
+      "title": "Video & VFX",
+      "description": "FilmCraft, EffectCraft — Editing, timeline, color grading and motion"
+    },
+    "audio": {
+      "title": "Audio & Sound",
+      "description": "SoundCraft — Audio recording, podcasts, mixing and mastering"
+    },
+    "layout": {
+      "title": "Layout & Design",
+      "description": "DesignCraft, FigCraft, PdfCraft — Print layouts, UI/UX and PDFs"
+    }
+  },
+  "onboarding": {
+    "step1Title": "Language & Theme",
+    "step1Subtitle": "Choose how OpenArt Hub should look and read.",
+    "step2Title": "What do you create?",
+    "step2Subtitle": "Select your toolboxes so the Hub shows relevant apps and folders.",
+    "step3Title": "Where should your work live?",
+    "step3Subtitle": "Choose a root directory for your creative files and project folders.",
+    "step4Title": "You're all set!",
+    "step4Subtitle": "Your workspace has been prepared. You can change these anytime in Settings.",
+    "languageLabel": "Display Language",
+    "themeLabel": "Color Theme",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "folderLabel": "Creative Workspace Folder",
+    "changeFolder": "Browse...",
+    "subfoldersPreview": "Subfolders that will be created:",
+    "customizeFolders": "Customize subfolders",
+    "openHub": "Open Hub",
+    "toolboxCount": "{{count}} of {{total}} toolboxes selected",
+    "selectAll": "Select all",
+    "deselectAll": "Clear all"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage appearance, folder locations, app paths, and advanced options.",
+    "tabGeneral": "General",
+    "tabFolders": "Folders",
+    "tabApps": "Apps",
+    "tabAdvanced": "Advanced",
+    "appearanceSection": "Appearance",
+    "theme": "Theme",
+    "themeDesc": "Switch between Light, Dark, or follow your operating system settings.",
+    "language": "Language",
+    "languageDesc": "Select the language used throughout OpenArt Hub.",
+    "workspaceSection": "Creative Workspace",
+    "workspaceDesc": "Root directory where project folders, textures, and assets are stored.",
+    "openInExplorer": "Open in File Explorer",
+    "syncFolders": "Sync Folders Now",
+    "foldersListTitle": "Active Workspace Folders",
+    "appsSection": "Detected Creative Apps",
+    "appsDesc": "Control which apps appear in the Hub, or specify a custom executable location.",
+    "overridePath": "Override executable path",
+    "overridePlaceholder": "Path to executable...",
+    "browseFile": "Browse...",
+    "clearOverride": "Reset to default",
+    "filteringSection": "Search & Noise Filtering",
+    "filterNoise": "Filter system noise",
+    "filterNoiseDesc": "Ignore AppData, temp files, node_modules, and cache directories.",
+    "ignoreScreenshots": "Filter out screenshots",
+    "ignoreScreenshotsDesc": "Exclude Snipping Tool and print screen captures from recent files.",
+    "onboardingSection": "Onboarding & History",
+    "redoOnboarding": "Restart Onboarding",
+    "redoOnboardingDesc": "Rerun the initial setup wizard to reconfigure toolboxes, theme, or folders.",
+    "viewChangelog": "View Changelog",
+    "viewChangelogDesc": "Read release notes and what's new in this version.",
+    "diagnosticsTitle": "Diagnostics",
+    "copyLogs": "Copy Diagnostics",
+    "clearLogs": "Clear Logs"
+  },
+  "apps": {
+    "title": "All Apps",
+    "subtitle": "{{count}} creative tools available in the suite.",
+    "installedHeading": "Installed & Ready",
+    "availableHeading": "Available for Download",
+    "searchPlaceholder": "Search apps by name, category, or file type...",
+    "allCategories": "All Categories",
+    "installNative": "Install",
+    "launchNative": "Open",
+    "openWeb": "Open Web App",
+    "version": "Version {{version}}",
+    "alternativeTo": "Alternative to {{name}}"
+  },
+  "updates": {
+    "title": "Updates",
+    "subtitle_zero": "All tools and the Hub are up to date.",
+    "subtitle_one": "{{count}} update available.",
+    "subtitle_other": "{{count}} updates available.",
+    "checkUpdates": "Check for updates",
+    "checking": "Checking...",
+    "updateAll": "Update All",
+    "hubUpdateTitle": "OpenArt Hub {{version}} Available",
+    "hubUpdateBadge": "New Hub Version",
+    "updateHubBtn": "Update Hub Now",
+    "installedSection": "Up to Date",
+    "availableSection": "Available Updates",
+    "whatsNew": "What's New",
+    "simulate": "Simulate update"
+  },
+  "palettes": {
+    "title": "Color Palettes",
+    "subtitle": "Harmonious palettes tailored for illustration, branding, and concept art.",
+    "newPalette": "New Palette",
+    "exportTo": "Export to {{app}}",
+    "copyHex": "Copy {{hex}}"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Structured project folders and manifests.",
+    "newProject": "New Project",
+    "noProjects": "No projects found",
+    "createFirstProject": "Create your first project"
+  },
+  "changelog": {
+    "title": "What's New in OpenArt Hub",
+    "version": "v{{version}}",
+    "subtitle": "Updates and improvements since previous release",
+    "primaryAction": "Got it, let's create!"
+  }
+}

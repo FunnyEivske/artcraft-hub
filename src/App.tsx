@@ -514,7 +514,12 @@ export function App() {
           )}
 
           {activeTab === 'palettes' && (
-            <PalettesView palettes={palettes} onSavePalettes={handleSavePalettes} />
+            <PalettesView
+              palettes={palettes}
+              allApps={apps}
+              onSavePalettes={handleSavePalettes}
+              onShowToast={showToast}
+            />
           )}
 
           {activeTab === 'updates' && (

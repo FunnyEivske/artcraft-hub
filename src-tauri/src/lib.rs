@@ -69,6 +69,9 @@ pub fn run() {
             commands::check_hub_app_update,
             commands::download_and_install_hub_update,
             commands::uninstall_app,
+            commands::get_diagnostic_logs,
+            commands::clear_diagnostic_logs,
+            commands::log_client_diagnostic,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenArt Hub");

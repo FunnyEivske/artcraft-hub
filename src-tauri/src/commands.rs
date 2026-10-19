@@ -7,8 +7,8 @@ use tauri::{AppHandle, Emitter};
 
 use crate::models::{
     get_app_catalog, get_hub_home, get_default_workspace_dir, AppReleaseInfo, ColorPalette, ColorSwatch,
-    DownloadProgressPayload, HubUpdateInfo, InstalledAppInfo, ProjectFileInfo, RecentProjectFile,
-    ScannerSettings, SmartProject, SystemInfo,
+    DiagnosticLogEntry, DownloadProgressPayload, HubUpdateInfo, InstalledAppInfo, ProjectFileInfo,
+    RecentProjectFile, ScannerSettings, SmartProject, SystemInfo,
 };
 
 #[cfg(target_os = "windows")]
@@ -16,6 +16,82 @@ use std::os::windows::process::CommandExt;
 
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+const MAX_DIAGNOSTIC_ENTRIES: usize = 100;
+
+fn format_unix_timestamp(secs: u64) -> String {
+    let days = secs / 86400;
+    let rem_secs = secs % 86400;
+    let hours = rem_secs / 3600;
+    let minutes = (rem_secs % 3600) / 60;
+    let seconds = rem_secs % 60;
+
+    let z = days as i64 + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = (z - era * 146097) as u64;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = (yoe as i64) + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y_final = if m <= 2 { y + 1 } else { y };
+
+    format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02} UTC", y_final, m, d, hours, minutes, seconds)
+}
+
+#[cfg(target_os = "windows")]
+fn extract_msi_guid(s: &str) -> Option<String> {
+    if let Some(start) = s.find('{') {
+        if let Some(end) = s[start..].find('}') {
+            let guid = &s[start..=start + end];
+            if guid.len() >= 36 {
+                return Some(guid.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub fn append_diagnostic_log(level: &str, source: &str, message: &str, details: Option<&str>) {
+    let hub_home = get_hub_home();
+    let logs_dir = hub_home.join("Logs");
+    let _ = fs::create_dir_all(&logs_dir);
+    let log_file = logs_dir.join("diagnostics.json");
+    let mut entries: Vec<DiagnosticLogEntry> = if log_file.exists() {
+        fs::read_to_string(&log_file)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    let now = std::time::SystemTime::now();
+    let duration = now.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+    let timestamp_ms = duration.as_millis() as u64;
+    let timestamp_str = format_unix_timestamp(duration.as_secs());
+    let id = format!("{}-{}", timestamp_ms, (timestamp_ms % 9999) + 1);
+
+    entries.push(DiagnosticLogEntry {
+        id,
+        timestamp_ms,
+        timestamp_str,
+        level: level.to_string(),
+        source: source.to_string(),
+        message: message.to_string(),
+        details: details.map(|s| s.to_string()),
+    });
+
+    if entries.len() > MAX_DIAGNOSTIC_ENTRIES {
+        let remove_count = entries.len() - MAX_DIAGNOSTIC_ENTRIES;
+        entries.drain(0..remove_count);
+    }
+
+    if let Ok(json) = serde_json::to_string_pretty(&entries) {
+        let _ = fs::write(log_file, json);
+    }
+}
 
 
 fn get_installed_versions_map() -> HashMap<String, InstalledAppInfo> {
@@ -1488,6 +1564,13 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
     let app_meta = catalog.iter().find(|a| a.id == app_id);
     let app_name = app_meta.map_or(app_id.as_str(), |a| a.name.as_str());
 
+    append_diagnostic_log(
+        "INFO",
+        "uninstall",
+        &format!("Starter avinstallasjon av «{}»", app_name),
+        Some(&format!("app_id: {}", app_id)),
+    );
+
     let mut uninstalled_invoked = false;
 
     #[cfg(target_os = "windows")]
@@ -1496,27 +1579,105 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
         if let Some(reg_app) = find_windows_installed_app(app_name, &app_id) {
             let u_str = reg_app.uninstall_string.trim();
             if !u_str.is_empty() {
-                if u_str.to_lowercase().contains("msiexec") {
+                append_diagnostic_log(
+                    "INFO",
+                    "uninstall",
+                    &format!("Fant UninstallString i registeret for {}", app_name),
+                    Some(u_str),
+                );
+
+                let is_msi = u_str.to_lowercase().contains("msiexec");
+                let guid_opt = extract_msi_guid(u_str);
+
+                if let Some(guid) = guid_opt {
+                    // Viktig: Bruk alltid /x for avinstallasjon (registeret kan angi /I for repair/install).
+                    // Ikke skjul vinduet slik at UAC-dialog og eventuelle MSI-spørsmål fungerer.
+                    let mut cmd = std::process::Command::new("msiexec");
+                    cmd.args(["/x", &guid, "/passive"]);
+                    match cmd.status() {
+                        Ok(status) => {
+                            append_diagnostic_log(
+                                if status.success() { "INFO" } else { "WARN" },
+                                "uninstall",
+                                &format!("msiexec /x fullført for {}", app_name),
+                                Some(&format!("Exit status: {:?}, GUID: {}", status, guid)),
+                            );
+                            uninstalled_invoked = true;
+                        }
+                        Err(e) => {
+                            append_diagnostic_log(
+                                "ERROR",
+                                "uninstall",
+                                &format!("Kunne ikke starte msiexec /x for {}", app_name),
+                                Some(&e.to_string()),
+                            );
+                        }
+                    }
+                } else if is_msi {
                     let parts: Vec<&str> = u_str.split_whitespace().collect();
-                    let args: Vec<&str> = if parts.len() > 1 {
-                        parts[1..].iter().copied().collect()
-                    } else if !parts.is_empty() {
-                        vec!["/x", parts[0]]
-                    } else {
-                        vec!["/x"]
-                    };
+                    let mut args: Vec<String> = Vec::new();
+                    args.push("/x".to_string());
+                    for part in parts.iter().skip(1) {
+                        let lower = part.to_lowercase();
+                        if lower.starts_with("/i") || lower.starts_with("-i") {
+                            let clean = &part[2..];
+                            if !clean.is_empty() {
+                                args.push(clean.to_string());
+                            }
+                        } else if !lower.starts_with("/x") && !lower.starts_with("-x") {
+                            args.push(part.to_string());
+                        }
+                    }
+                    if !args.iter().any(|a| a.starts_with('{') || a.ends_with(".msi")) {
+                        if let Some(p) = parts.last() {
+                            args.push(p.to_string());
+                        }
+                    }
+                    args.push("/passive".to_string());
 
                     let mut cmd = std::process::Command::new("msiexec");
                     cmd.args(&args);
-                    cmd.creation_flags(CREATE_NO_WINDOW);
-                    let _ = cmd.status();
-                    uninstalled_invoked = true;
+                    match cmd.status() {
+                        Ok(status) => {
+                            append_diagnostic_log(
+                                if status.success() { "INFO" } else { "WARN" },
+                                "uninstall",
+                                &format!("msiexec fullført for {}", app_name),
+                                Some(&format!("Args: {:?}, Exit status: {:?}", args, status)),
+                            );
+                            uninstalled_invoked = true;
+                        }
+                        Err(e) => {
+                            append_diagnostic_log(
+                                "ERROR",
+                                "uninstall",
+                                &format!("Kunne ikke starte msiexec for {}", app_name),
+                                Some(&e.to_string()),
+                            );
+                        }
+                    }
                 } else {
                     let mut cmd = std::process::Command::new("cmd");
                     cmd.args(["/C", u_str]);
-                    cmd.creation_flags(CREATE_NO_WINDOW);
-                    let _ = cmd.status();
-                    uninstalled_invoked = true;
+                    match cmd.status() {
+                        Ok(status) => {
+                            append_diagnostic_log(
+                                if status.success() { "INFO" } else { "WARN" },
+                                "uninstall",
+                                &format!("Avinstallasjonsprogram kjørt for {}", app_name),
+                                Some(&format!("Command: {}, Status: {:?}", u_str, status)),
+                            );
+                            uninstalled_invoked = true;
+                        }
+                        Err(e) => {
+                            append_diagnostic_log(
+                                "ERROR",
+                                "uninstall",
+                                &format!("Kunne ikke starte uninstaller for {}", app_name),
+                                Some(&e.to_string()),
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -1530,10 +1691,16 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
                         let path = entry.path();
                         if path.is_file() && path.extension().map_or(false, |e| e.eq_ignore_ascii_case("msi")) {
                             let path_str = path.to_string_lossy().to_string();
+                            append_diagnostic_log(
+                                "INFO",
+                                "uninstall",
+                                &format!("Fant lokal MSI-fil for {}: {}", app_name, path_str),
+                                None,
+                            );
                             let mut cmd = std::process::Command::new("msiexec");
-                            cmd.args(["/x", &path_str]);
-                            cmd.creation_flags(CREATE_NO_WINDOW);
+                            cmd.args(["/x", &path_str, "/passive"]);
                             let _ = cmd.status();
+                            uninstalled_invoked = true;
                             break;
                         }
                     }
@@ -1541,6 +1708,7 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
             }
         }
     }
+    let _ = uninstalled_invoked;
 
     #[cfg(target_os = "macos")]
     {
@@ -1560,16 +1728,51 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
         }
     }
 
-    // Gi Windows litt tid og verifiser om programmet faktisk ble fjernet
-    tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+    // Vent litt og gi Windows-avinstallasjonsprogrammet tid til å slette filer (sjekk i opptil 3 sekunder)
+    let mut still_binary = detect_local_app_binary(&app_id);
+    for _ in 0..6 {
+        if still_binary.is_none() {
+            break;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        still_binary = detect_local_app_binary(&app_id);
+    }
 
-    let still_binary = detect_local_app_binary(&app_id);
+    // Hvis filen fortsatt finnes etter uninstaller har kjørt, forsøk direkte opprydding av app-katalogen
+    if let Some(ref bin_path) = still_binary {
+        append_diagnostic_log(
+            "WARN",
+            "uninstall",
+            &format!("Hovedbinærfil finnes fortsatt etter uninstaller: {}", bin_path),
+            Some("Forsøker direkte fjerning av installasjonskatalog"),
+        );
+        let p = PathBuf::from(bin_path);
+        if let Some(parent) = p.parent() {
+            let parent_name = parent.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if !parent_name.is_empty()
+                && !parent_name.eq_ignore_ascii_case("Program Files")
+                && !parent_name.eq_ignore_ascii_case("Program Files (x86)")
+                && !parent_name.eq_ignore_ascii_case("Programs")
+            {
+                let _ = fs::remove_dir_all(parent);
+            }
+        }
+        tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+        still_binary = detect_local_app_binary(&app_id);
+    }
 
-    if still_binary.is_some() {
-        return Err(format!(
-            "Avinstallasjonen ble ikke fullført eller ble avbrutt. «{}» finnes fortsatt på maskinen.",
-            app_name
-        ));
+    if let Some(ref remaining) = still_binary {
+        let err_msg = format!(
+            "Avinstallasjonen ble ikke fullført eller ble avbrutt. «{}» finnes fortsatt på maskinen (Funnet: {}).",
+            app_name, remaining
+        );
+        append_diagnostic_log(
+            "ERROR",
+            "uninstall",
+            &err_msg,
+            Some("Filen kan være låst av en kjørende prosess eller kreve administratorrettigheter."),
+        );
+        return Err(err_msg);
     }
 
     // Programmet er bekreftet fjernet fra maskinen: rens lokale hub-mapper og oppdater installed_versions.json
@@ -1586,7 +1789,50 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
     installed_map.remove(&app_id);
     save_installed_versions_map(&installed_map);
 
+    append_diagnostic_log(
+        "INFO",
+        "uninstall",
+        &format!("«{}» ble avinstallert vellykket.", app_name),
+        None,
+    );
+
     Ok(format!("«{}» ble avinstallert.", app_name))
+}
+
+#[tauri::command]
+pub async fn get_diagnostic_logs() -> Result<Vec<DiagnosticLogEntry>, String> {
+    let hub_home = get_hub_home();
+    let log_file = hub_home.join("Logs").join("diagnostics.json");
+    if !log_file.exists() {
+        return Ok(Vec::new());
+    }
+    let content = fs::read_to_string(&log_file).map_err(|e| e.to_string())?;
+    let entries: Vec<DiagnosticLogEntry> = serde_json::from_str(&content).unwrap_or_default();
+    let mut sorted = entries;
+    sorted.reverse(); // Nyeste først
+    Ok(sorted)
+}
+
+#[tauri::command]
+pub async fn clear_diagnostic_logs() -> Result<bool, String> {
+    let hub_home = get_hub_home();
+    let log_file = hub_home.join("Logs").join("diagnostics.json");
+    if log_file.exists() {
+        let _ = fs::remove_file(&log_file);
+    }
+    append_diagnostic_log("INFO", "system", "Diagnostikk- og feillogg ble tømt", None);
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn log_client_diagnostic(
+    level: String,
+    source: String,
+    message: String,
+    details: Option<String>,
+) -> Result<bool, String> {
+    append_diagnostic_log(&level, &source, &message, details.as_deref());
+    Ok(true)
 }
 
 pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {
@@ -1604,6 +1850,9 @@ pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {
         ".fig" => vec!["figcraft".to_string()],
         ".idml" => vec!["designcraft".to_string()],
         ".wav" | ".mp3" | ".flac" | ".ogg" | ".aac" => vec!["soundcraft".to_string(), "filmcraft".to_string()],
+        ".docx" | ".doc" | ".odt" | ".rtf" | ".txt" | ".md" => vec!["wordcraft".to_string(), "pdfcraft".to_string()],
+        ".pptx" | ".ppt" | ".odp" => vec!["deckcraft".to_string(), "pdfcraft".to_string()],
+        ".xlsx" | ".xls" | ".csv" | ".tsv" | ".ods" => vec!["gridcraft".to_string()],
         _ => vec!["photocraft".to_string(), "vectorcraft".to_string()],
     }
 }

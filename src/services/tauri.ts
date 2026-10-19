@@ -3,6 +3,7 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event';
 import {
   AppReleaseInfo,
   ColorPalette,
+  DiagnosticLogEntry,
   DownloadProgressPayload,
   HubUpdateInfo,
   RecentProjectFile,
@@ -173,6 +174,54 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     latest_version: 'v0.8.0',
     release_name: 'CADCraft v0.8.0 Stable',
     release_notes: 'Computer-aided design and drafting i ren Rust med native ytelse og DXF/DWG-støtte.',
+    published_at: '2026-10-18T00:00:00Z',
+    status: 'NotInstalled',
+    has_web_app: true,
+  },
+  {
+    app_id: 'wordcraft',
+    app_name: 'WordCraft',
+    alternative_to: 'Word & Docs',
+    description: 'Profesjonell tekstbehandling, rik tekst, Markdown-støtte, samarbeid og eksport til DOCX/PDF.',
+    category: 'Dokument & Tekst',
+    color_accent: '#2563eb',
+    icon_name: 'FileText',
+    file_types: ['.docx', '.doc', '.odt', '.rtf', '.txt', '.md'],
+    latest_version: 'v0.8.0',
+    release_name: 'WordCraft v0.8.0 Stable',
+    release_notes: 'Moderne tekstbehandling i Rust og WebAssembly med live Markdown og DOCX-eksport.',
+    published_at: '2026-10-18T00:00:00Z',
+    status: 'NotInstalled',
+    has_web_app: true,
+  },
+  {
+    app_id: 'deckcraft',
+    app_name: 'DeckCraft',
+    alternative_to: 'PowerPoint & Keynote',
+    description: 'Dynamiske presentasjoner, lysbildedesign, animerte overganger og eksport til PPTX/PDF.',
+    category: 'Presentasjon & Pitch',
+    color_accent: '#ea580c',
+    icon_name: 'Presentation',
+    file_types: ['.pptx', '.ppt', '.odp', '.pdf'],
+    latest_version: 'v0.8.0',
+    release_name: 'DeckCraft v0.8.0 Stable',
+    release_notes: 'Rask lysbildemotor med maler, animasjoner og direkte PDF/PPTX-eksport.',
+    published_at: '2026-10-18T00:00:00Z',
+    status: 'NotInstalled',
+    has_web_app: true,
+  },
+  {
+    app_id: 'gridcraft',
+    app_name: 'GridCraft',
+    alternative_to: 'Excel & Sheets',
+    description: 'Kraftig regneark med formelmotor, datavisualisering, diagrammer og XLSX/CSV-støtte.',
+    category: 'Regneark & Data',
+    color_accent: '#16a34a',
+    icon_name: 'Table',
+    file_types: ['.xlsx', '.xls', '.csv', '.ods', '.tsv'],
+    latest_version: 'v0.8.0',
+    release_name: 'GridCraft v0.8.0 Stable',
+    release_notes: 'Regneark-app med over 200 formler, tabeller, grafer og XLSX-kompatibilitet.',
     published_at: '2026-10-18T00:00:00Z',
     status: 'NotInstalled',
     has_web_app: true,
@@ -605,4 +654,47 @@ export const onDownloadProgress = (
     };
   }
   return () => {};
+};
+
+export const getDiagnosticLogs = async (): Promise<DiagnosticLogEntry[]> => {
+  if (isTauri()) {
+    try {
+      return await invoke<DiagnosticLogEntry[]>('get_diagnostic_logs');
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+export const clearDiagnosticLogs = async (): Promise<boolean> => {
+  if (isTauri()) {
+    try {
+      return await invoke<boolean>('clear_diagnostic_logs');
+    } catch {
+      return false;
+    }
+  }
+  return true;
+};
+
+export const logClientDiagnostic = async (
+  level: string,
+  source: string,
+  message: string,
+  details?: string | null
+): Promise<boolean> => {
+  if (isTauri()) {
+    try {
+      return await invoke<boolean>('log_client_diagnostic', {
+        level,
+        source,
+        message,
+        details: details || null,
+      });
+    } catch {
+      return false;
+    }
+  }
+  return true;
 };

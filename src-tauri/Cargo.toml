@@ -1,6 +1,6 @@
 [package]
 name = "openart-hub"
-version = "1.0.5"
+version = "1.0.6"
 description = "OpenArt Hub - Complete Creative Suite Desktop Hub"
 authors = ["OpenArt Creative Team"]
 edition = "2021"

@@ -14,6 +14,9 @@ const ABBREVIATIONS: Record<string, string> = {
   figcraft: 'Fg',
   soundcraft: 'Sc',
   cadcraft: 'Cd',
+  wordcraft: 'Wc',
+  deckcraft: 'Dk',
+  gridcraft: 'Gc',
 };
 
 // Saturated, distinct, vivid studio colors
@@ -28,6 +31,9 @@ const VIVID_COLORS: Record<string, string> = {
   figcraft: '#10b981', // Vivid Emerald Green (FigCraft)
   soundcraft: '#6366f1', // Vivid Indigo (SoundCraft)
   cadcraft: '#f97316', // Vivid CAD Orange (CADCraft)
+  wordcraft: '#2563eb', // Vivid Royal Blue (WordCraft)
+  deckcraft: '#ea580c', // Vivid Presentation Orange (DeckCraft)
+  gridcraft: '#16a34a', // Vivid Sheet Green (GridCraft)
   blender: '#ea580c', // Vivid Blender Orange
   krita: '#0284c7', // Vivid Krita Blue
 };

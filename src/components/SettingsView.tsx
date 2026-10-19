@@ -20,10 +20,14 @@ import {
   Music,
   Type,
   RotateCcw,
-  Check,
   Camera,
+  Check,
+  Copy,
+  Terminal,
+  AlertTriangle,
+  AlertCircle,
 } from 'lucide-react';
-import { ScannerSettings, CreativeFolderConfig } from '../types';
+import { ScannerSettings, CreativeFolderConfig, DiagnosticLogEntry } from '../types';
 import {
   getScannerSettings,
   saveScannerSettings,
@@ -32,6 +36,8 @@ import {
   openPathInExplorer,
   initOrUpdateWorkspaceFolders,
   DEFAULT_WORKSPACE_FOLDERS,
+  getDiagnosticLogs,
+  clearDiagnosticLogs,
 } from '../services/tauri';
 
 interface SettingsViewProps {
@@ -72,6 +78,68 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
   const [customInputPath, setCustomInputPath] = useState('');
+
+  // Diagnostic Logs state
+  const [diagnosticLogs, setDiagnosticLogs] = useState<DiagnosticLogEntry[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [logCopiedAll, setLogCopiedAll] = useState(false);
+  const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
+
+  const fetchDiagnosticLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+      const logs = await getDiagnosticLogs();
+      setDiagnosticLogs(logs);
+    } catch (e) {
+      console.error('Kunne ikke laste feillogger:', e);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDiagnosticLogs();
+  }, []);
+
+  const handleCopyAllLogs = () => {
+    if (diagnosticLogs.length === 0) {
+      if (onShowToast) onShowToast('Ingen feillogger å kopiere', 'info');
+      return;
+    }
+    const formatted = diagnosticLogs
+      .map(
+        (l) =>
+          `[${l.timestampStr}] [${l.level}] [${l.source}]: ${l.message}${
+            l.details ? `\nDetaljer: ${l.details}` : ''
+          }`
+      )
+      .join('\n---\n');
+
+    navigator.clipboard.writeText(formatted);
+    setLogCopiedAll(true);
+    setTimeout(() => setLogCopiedAll(false), 2000);
+    if (onShowToast) onShowToast('Hele feilloggen er kopiert til utklippstavlen', 'success');
+  };
+
+  const handleClearAllLogs = async () => {
+    try {
+      await clearDiagnosticLogs();
+      await fetchDiagnosticLogs();
+      if (onShowToast) onShowToast('Diagnostikk- og feilloggen ble tømt', 'success');
+    } catch (e) {
+      if (onShowToast) onShowToast('Kunne ikke tømme logg: ' + e, 'error');
+    }
+  };
+
+  const handleCopyEntry = (entry: DiagnosticLogEntry) => {
+    const text = `[${entry.timestampStr}] [${entry.level}] [${entry.source}]: ${entry.message}${
+      entry.details ? `\nDetaljer: ${entry.details}` : ''
+    }`;
+    navigator.clipboard.writeText(text);
+    setCopiedEntryId(entry.id);
+    setTimeout(() => setCopiedEntryId(null), 2000);
+    if (onShowToast) onShowToast('Feilmelding kopiert', 'success');
+  };
 
   // Load existing settings on mount
   useEffect(() => {
@@ -999,11 +1067,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="flex items-center gap-2">
                 <h2 className="text-[15px] font-semibold text-white">Om OpenArt Hub & Oppdateringslogg</h2>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
-                  v1.0.1
+                  v1.0.6
                 </span>
               </div>
               <p className="text-[12px] text-ui-muted mt-0.5">
-                Se alle nye funksjoner og forbedringer siden v1.0.0, eller start velkomst-oppsettet på nytt når som helst.
+                Se alle nye funksjoner og forbedringer, eller start velkomst-oppsettet på nytt når som helst.
               </p>
             </div>
           </div>
@@ -1012,7 +1080,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {onShowChangelog && (
               <button
                 onClick={onShowChangelog}
-                className="btn-primary py-2 px-4 text-[12px] flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-purple-900/25 rounded-lg transition-all"
+                className="btn-primary py-2 px-4 text-[12px] flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-purple-900/25 rounded-lg transition-all cursor-pointer"
                 title="Åpne oppdateringsloggen med alle nye funksjoner"
               >
                 <Sparkles className="w-4 h-4 text-purple-200" />
@@ -1021,13 +1089,171 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             )}
             <button
               onClick={handleResetOnboarding}
-              className="btn-secondary py-2 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors"
+              className="btn-secondary py-2 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors cursor-pointer"
               title="Kjør førstegangsoppsett og velkomst-skjerm på nytt"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Restart / Redo Onboarding</span>
             </button>
           </div>
+        </div>
+      </section>
+
+      {/* 9. Lokal Feillogg & Diagnostikk */}
+      <section className="p-4 rounded-xl bg-ui-surface border border-ui-border shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-ui-border/60 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+              <Terminal className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-[15px] font-semibold text-white">Lokal Feillogg & Diagnostikk</h2>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium border border-emerald-500/25">
+                  100% Privat (Kun lokalt)
+                </span>
+                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-ui-bg text-ui-muted border border-ui-border">
+                  Maks 100 linjer
+                </span>
+              </div>
+              <p className="text-[12px] text-ui-muted mt-0.5">
+                Alle feilmeldinger og hendelser lagres lokalt på din PC og sendes aldri over nettet. Gamle logger overskrives automatisk for å beskytte diskplass.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={fetchDiagnosticLogs}
+              disabled={isLoadingLogs}
+              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+              title="Last inn feilloggen på nytt"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+              <span>Oppdater</span>
+            </button>
+
+            <button
+              onClick={handleCopyAllLogs}
+              disabled={diagnosticLogs.length === 0}
+              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+              title="Kopier hele feilloggen til utklippstavlen"
+            >
+              {logCopiedAll ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400">Kopiert!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Kopier feillogg</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleClearAllLogs}
+              disabled={diagnosticLogs.length === 0}
+              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-rose-400 hover:text-rose-300 hover:border-rose-500/40 transition-colors cursor-pointer disabled:opacity-50"
+              title="Tøm alle lokale feillogger"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Tøm logg</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Diagnostic Logs List */}
+        <div className="space-y-2">
+          {diagnosticLogs.length === 0 ? (
+            <div className="p-6 rounded-lg bg-ui-bg/60 border border-ui-border text-center space-y-1">
+              <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
+              <p className="text-[13px] font-medium text-white">Ingen registrerte feil</p>
+              <p className="text-[11.5px] text-ui-muted">
+                Systemet og appene kjører som forventet. Dersom en feil oppstår under avinstallasjon, installasjon eller start, vil du finne den her.
+              </p>
+            </div>
+          ) : (
+            <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              {diagnosticLogs.map((entry) => {
+                const isError = entry.level.toUpperCase() === 'ERROR';
+                const isWarn = entry.level.toUpperCase() === 'WARN';
+                const isCopied = copiedEntryId === entry.id;
+
+                return (
+                  <div
+                    key={entry.id}
+                    className={`p-3 rounded-lg border transition-colors ${
+                      isError
+                        ? 'bg-rose-950/20 border-rose-900/40'
+                        : isWarn
+                        ? 'bg-amber-950/20 border-amber-900/40'
+                        : 'bg-ui-bg/70 border-ui-border'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        {isError ? (
+                          <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+                        ) : isWarn ? (
+                          <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <Info className="w-4 h-4 text-sky-400 mt-0.5 flex-shrink-0" />
+                        )}
+
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span
+                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                isError
+                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                  : isWarn
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                              }`}
+                            >
+                              {entry.level}
+                            </span>
+
+                            <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-ui-surface border border-ui-border text-ui-text">
+                              {entry.source}
+                            </span>
+
+                            <span className="text-[11px] text-ui-faint font-mono">
+                              {entry.timestampStr}
+                            </span>
+                          </div>
+
+                          <p className="text-[12.5px] font-medium text-white break-words">
+                            {entry.message}
+                          </p>
+
+                          {entry.details && (
+                            <pre className="mt-1 p-2 rounded bg-black/40 border border-white/5 font-mono text-[11px] text-ui-muted whitespace-pre-wrap break-all select-all">
+                              {entry.details}
+                            </pre>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleCopyEntry(entry)}
+                        className="btn-secondary p-1.5 rounded text-[11px] flex items-center gap-1 text-ui-muted hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                        title="Kopier denne hendelsen"
+                      >
+                        {isCopied ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
     </div>

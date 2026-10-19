@@ -137,4 +137,15 @@ export interface HubUpdateInfo {
   assetName?: string | null;
 }
 
+export interface DiagnosticLogEntry {
+  id: string;
+  timestampMs: number;
+  timestampStr: string;
+  level: 'ERROR' | 'WARN' | 'INFO' | string;
+  source: string;
+  message: string;
+  details?: string | null;
+}
+
+
 

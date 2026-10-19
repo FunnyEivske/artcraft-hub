@@ -18,7 +18,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.1',
+  version = '1.0.6',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -41,7 +41,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 </span>
               </div>
               <p className="text-[12px] text-ui-muted mt-0.5">
-                Oppdateringslogg med alle forbedringer siden v1.0.0
+                Full 14-appers kreativ suite, lokal feillogg og robust avinstallasjon
               </p>
             </div>
           </div>
@@ -61,10 +61,10 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
           <div className="p-4 rounded-xl bg-gradient-to-r from-purple-900/20 via-indigo-900/20 to-ui-blue/15 border border-purple-500/30 space-y-1.5">
             <span className="font-semibold text-white flex items-center gap-2 text-[14px]">
               <Sparkles className="w-4 h-4 text-purple-400" />
-              Kreativt arbeidsområde, ekte filhistorikk & moderne oppsett
+              WordCraft, DeckCraft, GridCraft & Lokal Feillogg
             </span>
             <p className="text-[12px] text-ui-muted leading-relaxed">
-              De siste dagene har vi oppgradert OpenArt Hub med full organisering for Blender- og Krita-ressurser, filtrering av skjermbilder, og en moderne 1-klikks installasjonsopplevelse!
+              OpenArt Hub støtter nå alle 14 applikasjoner (inkludert WordCraft, DeckCraft og GridCraft), har fått en 100% lokal feillogg med kopifunksjon, og fullført MSI-avinstallasjon med automatisk GUID-deteksjon!
             </p>
           </div>
 

@@ -116,6 +116,36 @@ pub fn get_app_catalog() -> Vec<AppMetadata> {
             icon_name: "Compass".into(),
         },
         AppMetadata {
+            id: "wordcraft".into(),
+            name: "WordCraft".into(),
+            alternative_to: "Word & Docs".into(),
+            category: "Dokument & Tekst".into(),
+            description: "Profesjonell tekstbehandling, rik tekst, Markdown-støtte, samarbeid og eksport til DOCX/PDF.".into(),
+            file_types: vec![".docx".into(), ".doc".into(), ".odt".into(), ".rtf".into(), ".txt".into(), ".md".into()],
+            color_accent: "#2563eb".into(),
+            icon_name: "FileText".into(),
+        },
+        AppMetadata {
+            id: "deckcraft".into(),
+            name: "DeckCraft".into(),
+            alternative_to: "PowerPoint & Keynote".into(),
+            category: "Presentasjon & Pitch".into(),
+            description: "Dynamiske presentasjoner, lysbildedesign, animerte overganger og eksport til PPTX/PDF.".into(),
+            file_types: vec![".pptx".into(), ".ppt".into(), ".odp".into(), ".pdf".into()],
+            color_accent: "#ea580c".into(),
+            icon_name: "Presentation".into(),
+        },
+        AppMetadata {
+            id: "gridcraft".into(),
+            name: "GridCraft".into(),
+            alternative_to: "Excel & Sheets".into(),
+            category: "Regneark & Data".into(),
+            description: "Kraftig regneark med formelmotor, datavisualisering, diagrammer og XLSX/CSV-støtte.".into(),
+            file_types: vec![".xlsx".into(), ".xls".into(), ".csv".into(), ".ods".into(), ".tsv".into()],
+            color_accent: "#16a34a".into(),
+            icon_name: "Table".into(),
+        },
+        AppMetadata {
             id: "blender".into(),
             name: "Blender".into(),
             alternative_to: "Maya, 3ds Max & Cinema 4D".into(),
@@ -380,7 +410,14 @@ pub struct HubUpdateInfo {
     pub published_at: String,
     pub download_url: Option<String>,
     pub asset_name: Option<String>,
+}#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagnosticLogEntry {
+    pub id: String,
+    pub timestamp_ms: u64,
+    pub timestamp_str: String,
+    pub level: String,
+    pub source: String,
+    pub message: String,
+    pub details: Option<String>,
 }
-
-
-

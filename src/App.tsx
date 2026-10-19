@@ -36,8 +36,9 @@ import {
   savePalettes,
   scanProjectsAndFiles,
   uninstallApp,
+  logClientDiagnostic,
 } from './services/tauri';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Copy, Check, X } from 'lucide-react';
 
 const RECENT_APPS_KEY = 'openart_recent_launched_apps';
 const SNOOZE_PREFIX = 'openart_snoozed_update_';
@@ -76,12 +77,19 @@ export function App() {
   const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
 
   // Changelog / What's New modal for updates
-  const CURRENT_HUB_VERSION = '1.0.1';
+  const CURRENT_HUB_VERSION = '1.0.6';
   const [showChangelogModal, setShowChangelogModal] = useState(false);
+  const [toastCopied, setToastCopied] = useState(false);
 
   const showToast = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
+    setToastCopied(false);
     setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 3500);
+    if (type === 'error') {
+      logClientDiagnostic('ERROR', 'ui_toast', text);
+      setTimeout(() => setToastMessage((curr) => (curr?.text === text ? null : curr)), 8000);
+    } else {
+      setTimeout(() => setToastMessage((curr) => (curr?.text === text ? null : curr)), 3500);
+    }
   };
 
   const markAppLaunched = useCallback((appId: string) => {
@@ -569,22 +577,54 @@ export function App() {
 
       {toastMessage && (
         <div
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 h-10 pl-3 pr-4 rounded-md shadow-menu text-[13px] text-white animate-in fade-in slide-in-from-bottom-2"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 min-h-10 py-1.5 pl-3 pr-2.5 rounded-lg shadow-2xl text-[13px] text-white animate-in fade-in slide-in-from-bottom-2 max-w-[90vw] border border-white/10"
           style={{
             background:
               toastMessage.type === 'error'
-                ? '#c9252d'
+                ? '#b91c1c'
                 : toastMessage.type === 'info'
-                ? '#378ef0'
-                : '#268e6c',
+                ? '#1d4ed8'
+                : '#047857',
           }}
         >
           {toastMessage.type === 'error' ? (
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
           ) : (
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
           )}
-          <span>{toastMessage.text}</span>
+          <span className="leading-snug break-words max-w-xl">{toastMessage.text}</span>
+
+          {toastMessage.type === 'error' && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(toastMessage.text);
+                setToastCopied(true);
+                setTimeout(() => setToastCopied(false), 2000);
+              }}
+              className="ml-2 flex items-center gap-1.5 px-2 py-1 rounded bg-black/30 hover:bg-black/50 text-[11px] font-medium transition-colors border border-white/15 flex-shrink-0 cursor-pointer"
+              title="Kopier feilmeldingen til utklippstavlen"
+            >
+              {toastCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-300" />
+                  <span>Kopiert!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-white/90" />
+                  <span>Kopier feil</span>
+                </>
+              )}
+            </button>
+          )}
+
+          <button
+            onClick={() => setToastMessage(null)}
+            className="p-1 rounded hover:bg-black/20 text-white/70 hover:text-white transition-colors ml-1 flex-shrink-0 cursor-pointer"
+            title="Lukk"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>

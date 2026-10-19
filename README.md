@@ -31,19 +31,19 @@ OpenArt Hub is designed from the ground up to respect creators and their digital
 
 ## 📥 Download OpenArt Hub
 
-Download the latest stable release (**v1.0.3**) for your operating system:
+Download the latest stable release (**v1.0.4**) for your operating system:
 
 <div align="center">
 
 | Operating System | Architecture | File Format | Direct Download Button |
 | :--- | :--- | :--- | :---: |
-| 🪟 **Windows** | 64-bit (`x64`) | `.exe` Installer | [![Download Windows](https://img.shields.io/badge/Download-Windows_EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub_1.0.3_x64-setup.exe) |
-| 🪟 **Windows (MSI)** | 64-bit (`x64`) | `.msi` Package | [![Download MSI](https://img.shields.io/badge/Download-Windows_MSI-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub_1.0.3_x64_en-US.msi) |
-| 🍏 **macOS** | Apple Silicon (`M1/M2/M3/M4`) | `.dmg` Disk Image | [![Download Apple Silicon](https://img.shields.io/badge/Download-macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub_1.0.3_aarch64.dmg) |
-| 🍏 **macOS** | Intel (`x86_64`) | `.dmg` Disk Image | [![Download Intel Mac](https://img.shields.io/badge/Download-macOS_Intel-555555?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub_1.0.3_x64.dmg) |
-| 🐧 **Linux** | Universal (`x86_64`) | `.AppImage` | [![Download AppImage](https://img.shields.io/badge/Download-Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub_1.0.3_amd64.AppImage) |
-| 🐧 **Linux (Debian/Ubuntu)** | 64-bit (`amd64`) | `.deb` Package | [![Download DEB](https://img.shields.io/badge/Download-Ubuntu%2FDebian_DEB-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub_1.0.3_amd64.deb) |
-| 🐧 **Linux (Fedora/RHEL)** | 64-bit (`x86_64`) | `.rpm` Package | [![Download RPM](https://img.shields.io/badge/Download-Fedora_RPM-51A2DA?style=for-the-badge&logo=fedora&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.3/OpenArt.Hub-1.0.3-1.x86_64.rpm) |
+| 🪟 **Windows** | 64-bit (`x64`) | `.exe` Installer | [![Download Windows](https://img.shields.io/badge/Download-Windows_EXE-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub_1.0.4_x64-setup.exe) |
+| 🪟 **Windows (MSI)** | 64-bit (`x64`) | `.msi` Package | [![Download MSI](https://img.shields.io/badge/Download-Windows_MSI-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub_1.0.4_x64_en-US.msi) |
+| 🍏 **macOS** | Apple Silicon (`M1/M2/M3/M4`) | `.dmg` Disk Image | [![Download Apple Silicon](https://img.shields.io/badge/Download-macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub_1.0.4_aarch64.dmg) |
+| 🍏 **macOS** | Intel (`x86_64`) | `.dmg` Disk Image | [![Download Intel Mac](https://img.shields.io/badge/Download-macOS_Intel-555555?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub_1.0.4_x64.dmg) |
+| 🐧 **Linux** | Universal (`x86_64`) | `.AppImage` | [![Download AppImage](https://img.shields.io/badge/Download-Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub_1.0.4_amd64.AppImage) |
+| 🐧 **Linux (Debian/Ubuntu)** | 64-bit (`amd64`) | `.deb` Package | [![Download DEB](https://img.shields.io/badge/Download-Ubuntu%2FDebian_DEB-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub_1.0.4_amd64.deb) |
+| 🐧 **Linux (Fedora/RHEL)** | 64-bit (`x86_64`) | `.rpm` Package | [![Download RPM](https://img.shields.io/badge/Download-Fedora_RPM-51A2DA?style=for-the-badge&logo=fedora&logoColor=white)](https://github.com/FunnyEivske/OpenArt-Hub/releases/download/v1.0.4/OpenArt.Hub-1.0.4-1.x86_64.rpm) |
 
 👉 **[View All Release Assets and Checksums on GitHub](https://github.com/FunnyEivske/OpenArt-Hub/releases/latest)**
 

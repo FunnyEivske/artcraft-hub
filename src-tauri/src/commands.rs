@@ -200,6 +200,136 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
         }
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        let catalog = get_app_catalog();
+        let app_name = catalog
+            .iter()
+            .find(|a| a.id == app_id)
+            .map(|a| a.name.as_str())
+            .unwrap_or(app_id);
+
+        if let Some(reg_info) = find_windows_installed_app(app_name, app_id) {
+            if !reg_info.install_location.is_empty() {
+                let loc = PathBuf::from(&reg_info.install_location);
+                let cand1 = loc.join(format!("{}.exe", app_id));
+                let cand2 = loc.join(format!("{}.exe", app_name));
+                if cand1.is_file() {
+                    return Some(cand1.to_string_lossy().to_string());
+                }
+                if cand2.is_file() {
+                    return Some(cand2.to_string_lossy().to_string());
+                }
+                if let Ok(entries) = fs::read_dir(&loc) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() && path.extension().map_or(false, |e| e.eq_ignore_ascii_case("exe")) {
+                            return Some(path.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+
+            let prog_files = [
+                std::env::var("ProgramFiles").unwrap_or_else(|_| r"C:\Program Files".into()),
+                std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| r"C:\Program Files (x86)".into()),
+                format!(r"{}\Programs", std::env::var("LOCALAPPDATA").unwrap_or_default()),
+            ];
+            for base in &prog_files {
+                let p = PathBuf::from(base).join(&reg_info.display_name).join(format!("{}.exe", app_id));
+                if p.is_file() {
+                    return Some(p.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    None
+}
+
+#[derive(Debug, Clone)]
+pub struct WindowsInstalledApp {
+    pub display_name: String,
+    pub display_version: String,
+    pub uninstall_string: String,
+    pub install_location: String,
+}
+
+pub fn find_windows_installed_app(app_name: &str, app_id: &str) -> Option<WindowsInstalledApp> {
+    #[cfg(target_os = "windows")]
+    {
+        let hives = [
+            r"HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+            r"HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+            r"HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+        ];
+
+        let name_lower = app_name.to_lowercase();
+        let id_lower = app_id.to_lowercase();
+
+        for hive in &hives {
+            let output = std::process::Command::new("reg")
+                .args(["query", hive, "/s", "/f", app_name])
+                .output()
+                .ok();
+
+            if let Some(out) = output {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                let mut key_candidates = Vec::new();
+
+                for line in stdout.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.starts_with("HKEY_") {
+                        key_candidates.push(trimmed.to_string());
+                    }
+                }
+
+                for key in key_candidates {
+                    let key_output = std::process::Command::new("reg")
+                        .args(["query", &key])
+                        .output()
+                        .ok();
+                    if let Some(k_out) = key_output {
+                        let text = String::from_utf8_lossy(&k_out.stdout);
+                        let mut name = String::new();
+                        let mut version = String::new();
+                        let mut uninstall = String::new();
+                        let mut location = String::new();
+
+                        for k_line in text.lines() {
+                            let trimmed = k_line.trim();
+                            let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                            if parts.len() >= 3 {
+                                let prop = parts[0];
+                                let val = parts[2..].join(" ");
+                                if prop.eq_ignore_ascii_case("DisplayName") {
+                                    name = val;
+                                } else if prop.eq_ignore_ascii_case("DisplayVersion") {
+                                    version = val;
+                                } else if prop.eq_ignore_ascii_case("UninstallString") {
+                                    uninstall = val;
+                                } else if prop.eq_ignore_ascii_case("InstallLocation") {
+                                    location = val;
+                                }
+                            }
+                        }
+
+                        let n_low = name.to_lowercase();
+                        if (n_low.contains(&name_lower) || n_low.contains(&id_lower))
+                            && (!uninstall.is_empty() || !location.is_empty())
+                        {
+                            return Some(WindowsInstalledApp {
+                                display_name: name,
+                                display_version: version,
+                                uninstall_string: uninstall,
+                                install_location: location,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
     None
 }
 
@@ -522,7 +652,23 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
         // Handle Blender & Krita with their official distribution models
         if app.id == "blender" {
             let local_exe = detect_local_app_binary("blender");
-            let is_installed = local_exe.is_some() || installed_map.contains_key("blender");
+            #[cfg(target_os = "windows")]
+            let reg_blender = find_windows_installed_app(&app.name, &app.id);
+            #[cfg(not(target_os = "windows"))]
+            let reg_blender: Option<WindowsInstalledApp> = None;
+
+            let is_installed = local_exe.is_some() || reg_blender.is_some() || installed_map.contains_key("blender");
+            let detected_version = if let Some(ref r) = reg_blender {
+                if !r.display_version.is_empty() {
+                    Some(format!("v{}", r.display_version.trim_start_matches('v')))
+                } else {
+                    Some("v5.x (System)".into())
+                }
+            } else if is_installed {
+                Some("v5.x (System)".into())
+            } else {
+                None
+            };
 
             let (native_url, native_asset_name) = match os {
                 "windows" => (
@@ -557,7 +703,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
                 web_download_url: None,
                 web_asset_name: None,
                 status: if is_installed { "Installed".into() } else { "NotInstalled".into() },
-                installed_version: if is_installed { Some("v4.x (System)".into()) } else { None },
+                installed_version: detected_version,
                 installed_type: if is_installed { Some("native".into()) } else { None },
                 has_web_app: false,
             });
@@ -566,7 +712,23 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
 
         if app.id == "krita" {
             let local_exe = detect_local_app_binary("krita");
-            let is_installed = local_exe.is_some() || installed_map.contains_key("krita");
+            #[cfg(target_os = "windows")]
+            let reg_krita = find_windows_installed_app(&app.name, &app.id);
+            #[cfg(not(target_os = "windows"))]
+            let reg_krita: Option<WindowsInstalledApp> = None;
+
+            let is_installed = local_exe.is_some() || reg_krita.is_some() || installed_map.contains_key("krita");
+            let detected_version = if let Some(ref r) = reg_krita {
+                if !r.display_version.is_empty() {
+                    Some(format!("v{}", r.display_version.trim_start_matches('v')))
+                } else {
+                    Some("v5.x (System)".into())
+                }
+            } else if is_installed {
+                Some("v5.x (System)".into())
+            } else {
+                None
+            };
 
             let (native_url, native_asset_name) = match os {
                 "windows" => (
@@ -724,28 +886,43 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             ));
         }
 
-        let (status, installed_version, installed_type) = if let Some(info) = installed_map.get(&app.id) {
-            if info.version == latest_ver {
-                ("Installed".to_string(), Some(info.version.clone()), Some(info.target_type.clone()))
+        // Robust detection: checks local binary path, Windows registry, and installed map
+        let local_exe = detect_local_app_binary(&app.id);
+        #[cfg(target_os = "windows")]
+        let reg_app = find_windows_installed_app(&app.name, &app.id);
+        #[cfg(not(target_os = "windows"))]
+        let reg_app: Option<WindowsInstalledApp> = None;
+
+        let is_installed = local_exe.is_some() || reg_app.is_some() || installed_map.contains_key(&app.id);
+
+        let (status, installed_version, installed_type) = if is_installed {
+            let ver = if let Some(ref r) = reg_app {
+                if !r.display_version.is_empty() {
+                    format!("v{}", r.display_version.trim_start_matches('v'))
+                } else {
+                    installed_map.get(&app.id).map(|i| i.version.clone()).unwrap_or_else(|| latest_ver.clone())
+                }
+            } else if let Some(info) = installed_map.get(&app.id) {
+                info.version.clone()
             } else {
-                ("UpdateAvailable".to_string(), Some(info.version.clone()), Some(info.target_type.clone()))
-            }
-        } else {
-            let app_native_folder = apps_dir.join(&app.id);
-            let has_local_binary = if let Ok(entries) = fs::read_dir(app_native_folder) {
-                entries.flatten().any(|e| {
-                    let path = e.path();
-                    path.is_file() && path.extension().map_or(false, |ext| ext == "exe" || ext == "AppImage" || ext == "dmg")
-                })
+                latest_ver.clone()
+            };
+
+            let is_update = if !latest_ver.is_empty() && latest_ver != "v0.0.0" {
+                let clean_latest = latest_ver.trim_start_matches('v').trim();
+                let clean_curr = ver.trim_start_matches('v').trim();
+                clean_latest != clean_curr && !clean_curr.is_empty()
             } else {
                 false
             };
 
-            if has_local_binary {
-                ("Installed".to_string(), Some("v1.0.0".to_string()), Some("native".to_string()))
+            if is_update {
+                ("UpdateAvailable".to_string(), Some(ver), Some("native".to_string()))
             } else {
-                ("NotInstalled".to_string(), None, None)
+                ("Installed".to_string(), Some(ver), Some("native".to_string()))
             }
+        } else {
+            ("NotInstalled".to_string(), None, None)
         };
 
         let has_web_app = false;
@@ -1353,24 +1530,53 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
 }
 
 #[tauri::command]
-pub fn uninstall_app(app_id: String) -> Result<String, String> {
+pub async fn uninstall_app(app_id: String) -> Result<String, String> {
     let hub_home = get_hub_home();
-    let app_dir = hub_home.join("Apps").join(&app_id);
-    let web_dir = hub_home.join("WebApps").join(&app_id);
+    let catalog = get_app_catalog();
+    let app_meta = catalog.iter().find(|a| a.id == app_id);
+    let app_name = app_meta.map_or(app_id.as_str(), |a| a.name.as_str());
+
+    let mut uninstalled_invoked = false;
 
     #[cfg(target_os = "windows")]
     {
-        // Hvis en MSI-pakke ligger i Apps/{app_id}, start msiexec for å kjøre Windows avinstallasjonsveiviser
-        if app_dir.exists() {
-            if let Ok(entries) = fs::read_dir(&app_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_file() {
-                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                        if ext == "msi" {
+        // 1. Finn programmets offisielle UninstallString i Windows-registeret
+        if let Some(reg_app) = find_windows_installed_app(app_name, &app_id) {
+            let u_str = reg_app.uninstall_string.trim();
+            if !u_str.is_empty() {
+                if u_str.to_lowercase().contains("msiexec") {
+                    let parts: Vec<&str> = u_str.split_whitespace().collect();
+                    let args: Vec<&str> = if parts.len() > 1 {
+                        parts[1..].iter().copied().collect()
+                    } else {
+                        vec!["/x", &parts[0]]
+                    };
+
+                    let _ = std::process::Command::new("msiexec")
+                        .args(&args)
+                        .status();
+                    uninstalled_invoked = true;
+                } else {
+                    let _ = std::process::Command::new("cmd")
+                        .args(["/C", u_str])
+                        .status();
+                    uninstalled_invoked = true;
+                }
+            }
+        }
+
+        // 2. Hvis ikke registrert i Windows, sjekk om en lokal MSI-pakke finnes i Apps/{app_id}
+        if !uninstalled_invoked {
+            let app_dir = hub_home.join("Apps").join(&app_id);
+            if app_dir.exists() {
+                if let Ok(entries) = fs::read_dir(&app_dir) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.is_file() && path.extension().map_or(false, |e| e.eq_ignore_ascii_case("msi")) {
                             let _ = std::process::Command::new("msiexec")
                                 .args(["/x", &path.to_string_lossy()])
-                                .spawn();
+                                .status();
+                            uninstalled_invoked = true;
                             break;
                         }
                     }
@@ -1379,7 +1585,43 @@ pub fn uninstall_app(app_id: String) -> Result<String, String> {
         }
     }
 
-    // Fjern lokale filer under ~/ArtCraftHub/Apps/{app_id} og WebApps/{app_id}
+    #[cfg(target_os = "macos")]
+    {
+        let mac_app = PathBuf::from(format!("/Applications/{}.app", app_name));
+        if mac_app.exists() {
+            let _ = fs::remove_dir_all(&mac_app);
+            uninstalled_invoked = true;
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let linux_bin = PathBuf::from(format!("/usr/bin/{}", app_id));
+        if linux_bin.exists() {
+            let _ = fs::remove_file(&linux_bin);
+            uninstalled_invoked = true;
+        }
+    }
+
+    // Gi Windows litt tid og verifiser om programmet faktisk ble fjernet
+    tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
+
+    let still_binary = detect_local_app_binary(&app_id);
+    #[cfg(target_os = "windows")]
+    let still_reg = find_windows_installed_app(app_name, &app_id);
+    #[cfg(not(target_os = "windows"))]
+    let still_reg: Option<WindowsInstalledApp> = None;
+
+    if still_binary.is_some() || still_reg.is_some() {
+        return Err(format!(
+            "Avinstallasjonen ble ikke fullført eller ble avbrutt. «{}» finnes fortsatt på maskinen.",
+            app_name
+        ));
+    }
+
+    // Programmet er bekreftet fjernet fra maskinen: rens lokale hub-mapper og oppdater installed_versions.json
+    let app_dir = hub_home.join("Apps").join(&app_id);
+    let web_dir = hub_home.join("WebApps").join(&app_id);
     if app_dir.exists() {
         let _ = fs::remove_dir_all(&app_dir);
     }
@@ -1387,12 +1629,11 @@ pub fn uninstall_app(app_id: String) -> Result<String, String> {
         let _ = fs::remove_dir_all(&web_dir);
     }
 
-    // Fjern oppføringen fra installed_versions.json
     let mut installed_map = get_installed_versions_map();
     installed_map.remove(&app_id);
     save_installed_versions_map(&installed_map);
 
-    Ok(format!("Applikasjonen «{}» ble fjernet/avinstallert.", app_id))
+    Ok(format!("«{}» ble avinstallert.", app_name))
 }
 
 pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {

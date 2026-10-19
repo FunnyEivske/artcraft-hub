@@ -1,5 +1,6 @@
 import React from 'react';
-import { Play, Download, FolderOpen, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, FolderOpen, LayoutGrid, Play } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AppReleaseInfo, RecentProjectFile, SmartProject } from '../types';
 import { AppTile } from './AppTile';
 import { RecentFilesGrid } from './RecentFilesGrid';
@@ -25,7 +26,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   projects,
   recentLaunchedAppIds,
   onLaunchNative,
-  onInstall,
   onOpenFileInApp,
   onRefreshRecent,
   onShowToast,
@@ -33,26 +33,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigateToApps,
   onNavigateToSettings,
 }) => {
-  // Determine Quick Launch apps:
-  // 1. First prioritize apps the user has launched recently through the Hub
-  // 2. Supplement with other installed apps (e.g. Blender, Krita, PhotoCraft)
-  // 3. Fallback to top featured apps
+  const { t } = useTranslation();
+
+  // Show only apps that are actually installed
   const installedApps = apps.filter((a) => a.status !== 'NotInstalled');
 
+  // Order installed apps: recently launched first, then other installed apps
   const quickLaunchApps: AppReleaseInfo[] = React.useMemo(() => {
     const list: AppReleaseInfo[] = [];
     const addedIds = new Set<string>();
 
-    // Add recently launched apps first
     for (const id of recentLaunchedAppIds) {
-      const found = apps.find((a) => a.app_id === id);
+      const found = installedApps.find((a) => a.app_id === id);
       if (found && !addedIds.has(found.app_id)) {
         list.push(found);
         addedIds.add(found.app_id);
       }
     }
 
-    // Add remaining installed apps
     for (const app of installedApps) {
       if (!addedIds.has(app.app_id)) {
         list.push(app);
@@ -60,115 +58,96 @@ export const HomeView: React.FC<HomeViewProps> = ({
       }
     }
 
-    // If fewer than 4, add key default studio apps
-    if (list.length < 4) {
-      for (const app of apps) {
-        if (!addedIds.has(app.app_id)) {
-          list.push(app);
-          addedIds.add(app.app_id);
-          if (list.length >= 6) break;
-        }
-      }
-    }
-
-    return list.slice(0, 6);
-  }, [apps, installedApps, recentLaunchedAppIds]);
+    return list;
+  }, [installedApps, recentLaunchedAppIds]);
 
   return (
-    <div className="max-w-[1080px] space-y-8">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ui-line/60">
+    <div className="max-w-[1120px] space-y-8 pb-12">
+      {/* Header Banner - Calm, restrained Adobe CC aesthetic */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ui-border">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-[24px] font-bold tracking-tight text-white">Hjem</h1>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Klar
+            <h1 className="text-xl font-semibold tracking-tight text-ui-text">
+              {t('home.title')}
+            </h1>
+            <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-ui-surface-2 text-ui-muted border border-ui-border">
+              {t('home.readyStatus')}
             </span>
           </div>
-          <p className="text-[13px] text-ui-muted">
-            Ditt kreative skrivebord. Rask tilgang til nylig brukte filer og hurtigstart av programmene dine.
+          <p className="text-xs text-ui-muted">
+            {t('home.subtitle')}
           </p>
         </div>
 
         <button
           onClick={onNavigateToApps}
-          className="btn-secondary self-start sm:self-auto flex items-center gap-1.5 text-xs text-ui-text hover:text-white"
+          className="btn-secondary self-start sm:self-auto flex items-center gap-1.5 text-xs text-ui-text hover:text-ui-accent transition-colors cursor-pointer"
         >
-          <span>Utforsk alle apper</span>
+          <span>{t('home.exploreApps')}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Quick Launch (Hurtigstart) Section */}
+      {/* Quick Launch (Installed Apps Only) */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <h2 className="text-[15px] font-bold tracking-tight text-white">
-              Hurtigstart (Sist brukte programmer)
+            <h2 className="text-sm font-semibold tracking-tight text-ui-text">
+              {t('home.installedAppsTitle')}
             </h2>
+            <span className="text-xs text-ui-muted">
+              ({installedApps.length})
+            </span>
           </div>
-          <span className="text-[12px] text-ui-faint">
-            {installedApps.length} installert
-          </span>
         </div>
 
-        <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
-          {quickLaunchApps.map((app) => {
-            const isInstalled = app.status !== 'NotInstalled';
-            return (
+        {quickLaunchApps.length > 0 ? (
+          <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+            {quickLaunchApps.map((app) => (
               <div
                 key={app.app_id}
-                className="group rounded-xl border border-ui-border bg-ui-panel hover:border-ui-blue/50 p-3.5 transition-all duration-200 shadow-sm flex flex-col justify-between"
+                className="group rounded-xl border border-ui-border bg-ui-surface hover:border-ui-border-strong p-3.5 transition-all duration-200 shadow-sm hover:-translate-y-0.5 flex flex-col justify-between"
               >
                 <div className="flex items-start gap-3 mb-3">
-                  <AppTile app={app} size={42} />
+                  <AppTile app={app} size={38} />
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-[14px] font-semibold text-white truncate group-hover:text-ui-blue transition-colors">
+                    <h3 className="text-sm font-medium text-ui-text truncate group-hover:text-ui-accent transition-colors">
                       {app.app_name}
                     </h3>
-                    <p className="text-[11px] text-ui-faint truncate">{app.category}</p>
-                    <div className="mt-1 flex items-center gap-1">
-                      {isInstalled ? (
-                        <span className="text-[10px] font-medium text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                          Installert
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-ui-faint">
-                          Tilgjengelig
-                        </span>
-                      )}
-                    </div>
+                    <p className="text-[11px] text-ui-muted truncate mt-0.5">{app.category}</p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => {
-                    if (isInstalled) {
-                      onLaunchNative(app.app_id);
-                    } else if (onInstall) {
-                      onInstall(app, 'native');
-                    }
-                  }}
-                  className={`w-full h-8 rounded-md font-medium text-[12px] flex items-center justify-center gap-1.5 transition-colors ${
-                    isInstalled
-                      ? 'bg-ui-blue hover:bg-blue-600 text-white shadow-sm'
-                      : 'bg-ui-hover hover:bg-[#333] text-ui-text hover:text-white border border-ui-border'
-                  }`}
+                  onClick={() => onLaunchNative(app.app_id)}
+                  className="w-full h-8 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 bg-ui-surface-2 hover:bg-ui-surface-2/80 text-ui-text border border-ui-border transition-colors cursor-pointer"
                 >
-                  {isInstalled ? (
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>{isInstalled ? `Start ${app.app_name}` : `Installer ${app.app_name}`}</span>
+                  <Play className="w-3 h-3 fill-current text-ui-muted" />
+                  <span>{t('common.open')}</span>
                 </button>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-ui-border bg-ui-surface/50 p-7 text-center">
+            <div className="w-10 h-10 rounded-xl bg-ui-surface-2 text-ui-muted flex items-center justify-center mx-auto mb-3">
+              <LayoutGrid className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-semibold text-ui-text mb-1">
+              {t('home.noInstalledApps')}
+            </h3>
+            <p className="text-xs text-ui-muted max-w-sm mx-auto mb-4">
+              {t('home.installAppCta')}
+            </p>
+            <button
+              onClick={onNavigateToApps}
+              className="btn-secondary py-1.5 px-3.5 text-xs inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>{t('home.exploreApps')}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Live Recent Files Section */}
@@ -182,24 +161,24 @@ export const HomeView: React.FC<HomeViewProps> = ({
           onOpenSettings={onNavigateToSettings}
           onShowToast={onShowToast}
           isRefreshing={isRefreshingRecent}
-          title="Sist jobbet med (Live fra alle apper)"
+          title={t('home.recentFilesTitle')}
         />
       ) : (
-        <div className="rounded-xl border border-dashed border-ui-border bg-ui-panel/40 p-8 text-center">
+        <div className="rounded-xl border border-dashed border-ui-border bg-ui-surface/50 p-8 text-center">
           <FolderOpen className="w-10 h-10 text-ui-muted mx-auto mb-2 opacity-60" />
-          <h3 className="text-[14px] font-semibold text-white mb-1">
-            Ingen nylige filer funnet ennå
+          <h3 className="text-sm font-semibold text-ui-text mb-1">
+            {t('home.noRecentFiles')}
           </h3>
-          <p className="text-[12px] text-ui-muted max-w-md mx-auto mb-4">
-            Når du jobber i Blender, Krita eller ArtCraft-programmene dine, vil prosjektene og filene dine automatisk dukke opp her med forhåndsvisning.
+          <p className="text-xs text-ui-muted max-w-md mx-auto mb-4">
+            {t('home.noRecentFilesCta')}
           </p>
           {onNavigateToSettings && (
             <button
               onClick={onNavigateToSettings}
-              className="btn-secondary py-1.5 px-3 text-[12px] inline-flex items-center gap-1.5"
+              className="btn-secondary py-1.5 px-3 text-xs inline-flex items-center gap-1.5 cursor-pointer"
             >
-              <FolderOpen className="w-3.5 h-3.5 text-ui-blue" />
-              <span>Tilpass overvåkede mapper & innstillinger</span>
+              <FolderOpen className="w-3.5 h-3.5 text-ui-muted" />
+              <span>{t('nav.settings')}</span>
             </button>
           )}
         </div>

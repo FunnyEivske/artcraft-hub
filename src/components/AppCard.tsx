@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Ellipsis, ScrollText, ExternalLink, Download } from 'lucide-react';
+import { Ellipsis, ScrollText, ExternalLink, Download, Trash2 } from 'lucide-react';
 import { AppReleaseInfo, DownloadProgressPayload } from '../types';
 import { AppTile } from './AppTile';
 
@@ -8,6 +8,7 @@ interface AppItemProps {
   onLaunchNative: (appId: string) => void;
   onLaunchWeb?: (app: AppReleaseInfo) => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
+  onUninstall?: (app: AppReleaseInfo) => void;
   progress?: DownloadProgressPayload;
 }
 
@@ -44,7 +45,8 @@ const AppMenu: React.FC<{
   app: AppReleaseInfo;
   onToggleNotes: () => void;
   notesOpen: boolean;
-}> = ({ app, onToggleNotes, notesOpen }) => {
+  onUninstall?: (app: AppReleaseInfo) => void;
+}> = ({ app, onToggleNotes, notesOpen, onUninstall }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -94,6 +96,22 @@ const AppMenu: React.FC<{
             <ExternalLink className="w-4 h-4 text-ui-muted" />
             Offisiell nettside / utgivelser
           </a>
+
+          {app.status !== 'NotInstalled' && onUninstall && (
+            <>
+              <div className="my-1 border-t border-ui-border" />
+              <button
+                className={`${item} text-red-400 hover:text-red-300 hover:bg-red-500/10`}
+                onClick={() => {
+                  setOpen(false);
+                  onUninstall(app);
+                }}
+              >
+                <Trash2 className="w-4 h-4 text-red-400" />
+                Avinstaller / Slett program
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -106,6 +124,7 @@ export const AppRow: React.FC<AppItemProps> = ({
   app,
   onLaunchNative,
   onInstall,
+  onUninstall,
   progress,
 }) => {
   const [notesOpen, setNotesOpen] = useState(false);
@@ -142,6 +161,7 @@ export const AppRow: React.FC<AppItemProps> = ({
             app={app}
             notesOpen={notesOpen}
             onToggleNotes={() => setNotesOpen((v) => !v)}
+            onUninstall={onUninstall}
           />
         </div>
       </div>
@@ -158,7 +178,7 @@ export const AppRow: React.FC<AppItemProps> = ({
 
 /* ---------- available (not installed) cards ---------- */
 
-export const AppCard: React.FC<AppItemProps> = ({ app, onInstall, progress }) => {
+export const AppCard: React.FC<AppItemProps> = ({ app, onInstall, onUninstall, progress }) => {
   const [notesOpen, setNotesOpen] = useState(false);
   const busy = isActive(progress);
 
@@ -174,6 +194,7 @@ export const AppCard: React.FC<AppItemProps> = ({ app, onInstall, progress }) =>
           app={app}
           notesOpen={notesOpen}
           onToggleNotes={() => setNotesOpen((v) => !v)}
+          onUninstall={onUninstall}
         />
       </div>
 

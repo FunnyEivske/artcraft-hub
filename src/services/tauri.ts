@@ -263,6 +263,23 @@ export const installOrUpdateApp = async (
   });
 };
 
+export const uninstallApp = async (appId: string): Promise<string> => {
+  if (isTauri()) {
+    return await invoke<string>('uninstall_app', { appId });
+  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const app = MOCK_RELEASES.find((a) => a.app_id === appId);
+      if (app) {
+        app.status = 'NotInstalled';
+        app.installed_version = undefined;
+        app.installed_type = undefined;
+      }
+      resolve(`${appId} ble avinstallert`);
+    }, 600);
+  });
+};
+
 export const launchApp = async (
   appId: string,
   filePathOptional?: string

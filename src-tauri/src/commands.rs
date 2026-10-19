@@ -476,11 +476,11 @@ pub fn get_system_info() -> Result<SystemInfo, String> {
 
     for app in get_app_catalog() {
         let _ = fs::create_dir_all(apps_dir.join(&app.id));
-        let web_app_dir = webapps_dir.join(&app.id);
-        let _ = fs::create_dir_all(&web_app_dir);
-        if !web_app_dir.join("index.html").exists() {
-            create_default_webapp_stub(&webapps_dir, &app.id, &app.name, &app.color_accent);
-        }
+    }
+
+    // Clean up any old dummy webapp stubs so no broken web versions exist
+    if webapps_dir.exists() {
+        let _ = fs::remove_dir_all(&webapps_dir);
     }
 
     let installed_file = hub_home.join("installed_versions.json");
@@ -748,7 +748,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             }
         };
 
-        let has_web_app = webapps_dir.join(&app.id).join("index.html").exists();
+        let has_web_app = false;
 
         results.push(AppReleaseInfo {
             app_id: app.id,
@@ -1017,7 +1017,14 @@ pub async fn download_and_install_hub_update(
         }
     }
 
-    Ok("Oppdateringsinstallatør startet".to_string())
+    // Lukker gjeldende OpenArt Hub-prosess slik at installasjonsprogrammet kan erstatte filene uten fillås
+    let app_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+        app_handle.exit(0);
+    });
+
+    Ok("Oppdateringsinstallatør startet. OpenArt Hub lukkes straks for å fullføre oppdateringen.".to_string())
 }
 
 #[tauri::command]
@@ -1321,21 +1328,6 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
         }
     }
 
-    // 4. Fallback to WebApp if available
-    let web_index = hub_home.join("WebApps").join(&app_id).join("index.html");
-    if web_index.exists() {
-        #[cfg(target_os = "windows")]
-        let _ = std::process::Command::new("cmd")
-            .args(["/C", "start", "", &web_index.to_string_lossy()])
-            .spawn();
-        #[cfg(target_os = "macos")]
-        let _ = std::process::Command::new("open").arg(&web_index).spawn();
-        #[cfg(target_os = "linux")]
-        let _ = std::process::Command::new("xdg-open").arg(&web_index).spawn();
-
-        return Ok(format!("Applikasjon {} åpnet som Web Studio", app_id));
-    }
-
     if let Some(ref path) = file_path_optional {
         #[cfg(target_os = "windows")]
         {
@@ -1351,9 +1343,56 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
         {
             let _ = std::process::Command::new("xdg-open").arg(path).spawn();
         }
+        return Ok(format!("Åpnet fil med systemets standardprogram"));
     }
 
-    Ok(format!("Applikasjon {} åpnet (system-visning)", app_id))
+    Err(format!(
+        "Applikasjonen «{}» er ikke installert ennå. Klikk på «Installer» for å laste ned programmet.",
+        app_id
+    ))
+}
+
+#[tauri::command]
+pub fn uninstall_app(app_id: String) -> Result<String, String> {
+    let hub_home = get_hub_home();
+    let app_dir = hub_home.join("Apps").join(&app_id);
+    let web_dir = hub_home.join("WebApps").join(&app_id);
+
+    #[cfg(target_os = "windows")]
+    {
+        // Hvis en MSI-pakke ligger i Apps/{app_id}, start msiexec for å kjøre Windows avinstallasjonsveiviser
+        if app_dir.exists() {
+            if let Ok(entries) = fs::read_dir(&app_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                        if ext == "msi" {
+                            let _ = std::process::Command::new("msiexec")
+                                .args(["/x", &path.to_string_lossy()])
+                                .spawn();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fjern lokale filer under ~/ArtCraftHub/Apps/{app_id} og WebApps/{app_id}
+    if app_dir.exists() {
+        let _ = fs::remove_dir_all(&app_dir);
+    }
+    if web_dir.exists() {
+        let _ = fs::remove_dir_all(&web_dir);
+    }
+
+    // Fjern oppføringen fra installed_versions.json
+    let mut installed_map = get_installed_versions_map();
+    installed_map.remove(&app_id);
+    save_installed_versions_map(&installed_map);
+
+    Ok(format!("Applikasjonen «{}» ble fjernet/avinstallert.", app_id))
 }
 
 pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {

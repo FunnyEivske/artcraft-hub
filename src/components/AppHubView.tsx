@@ -9,6 +9,7 @@ interface AppHubViewProps {
   onClearFilters: () => void;
   onLaunchNative: (appId: string) => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
+  onUninstall?: (app: AppReleaseInfo) => void;
   progressMap: Record<string, DownloadProgressPayload>;
 }
 
@@ -25,6 +26,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   onClearFilters,
   onLaunchNative,
   onInstall,
+  onUninstall,
   progressMap,
 }) => {
   const filteredApps = useMemo(() => {
@@ -45,7 +47,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   const available = filteredApps.filter((a) => a.status === 'NotInstalled');
 
   const title = selectedCategory === 'Alle' ? 'Alle apper' : selectedCategory;
-  const itemProps = { onLaunchNative, onInstall };
+  const itemProps = { onLaunchNative, onInstall, onUninstall };
 
   return (
     <div className="max-w-[1080px]">

@@ -10,6 +10,7 @@ interface HomeViewProps {
   projects: SmartProject[];
   recentLaunchedAppIds: string[];
   onLaunchNative: (appId: string) => void;
+  onInstall?: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   onOpenFileInApp: (appId: string, filePath: string) => void;
   onRefreshRecent?: () => void;
   onShowToast?: (msg: string, type: 'success' | 'info' | 'error') => void;
@@ -24,6 +25,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   projects,
   recentLaunchedAppIds,
   onLaunchNative,
+  onInstall,
   onOpenFileInApp,
   onRefreshRecent,
   onShowToast,
@@ -143,7 +145,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 </div>
 
                 <button
-                  onClick={() => onLaunchNative(app.app_id)}
+                  onClick={() => {
+                    if (isInstalled) {
+                      onLaunchNative(app.app_id);
+                    } else if (onInstall) {
+                      onInstall(app, 'native');
+                    }
+                  }}
                   className={`w-full h-8 rounded-md font-medium text-[12px] flex items-center justify-center gap-1.5 transition-colors ${
                     isInstalled
                       ? 'bg-ui-blue hover:bg-blue-600 text-white shadow-sm'

@@ -35,6 +35,7 @@ import {
   onProjectsUpdated,
   savePalettes,
   scanProjectsAndFiles,
+  uninstallApp,
 } from './services/tauri';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -307,6 +308,22 @@ export function App() {
     }
   };
 
+  const handleUninstall = async (app: AppReleaseInfo) => {
+    const confirmed = window.confirm(
+      `Er du sikker på at du vil avinstallere ${app.app_name}? Alle installasjonsfiler for programmet vil bli fjernet.`
+    );
+    if (!confirmed) return;
+
+    try {
+      showToast(`Avinstallerer ${app.app_name}...`, 'info');
+      await uninstallApp(app.app_id);
+      showToast(`${app.app_name} er nå avinstallert.`, 'success');
+      await loadData(true);
+    } catch (err) {
+      showToast(`Kunne ikke avinstallere ${app.app_name}: ${err}`, 'error');
+    }
+  };
+
   const handleCreateProject = async (
     name: string,
     type: string,
@@ -442,6 +459,7 @@ export function App() {
               projects={projects}
               recentLaunchedAppIds={recentLaunchedAppIds}
               onLaunchNative={handleLaunchNative}
+              onInstall={handleInstall}
               onOpenFileInApp={handleOpenFileInApp}
               onRefreshRecent={refreshRecent}
               onShowToast={showToast}
@@ -465,6 +483,7 @@ export function App() {
               }}
               onLaunchNative={handleLaunchNative}
               onInstall={handleInstall}
+              onUninstall={handleUninstall}
               progressMap={progressMap}
             />
           )}

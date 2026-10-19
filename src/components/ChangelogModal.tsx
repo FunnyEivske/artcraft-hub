@@ -19,7 +19,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.7',
+  version = '1.0.8',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -44,7 +44,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-ui-muted mt-0.5">
-                Full UI/UX-overhaling: Mørkt & Lyst tema, flerspråklig og app-agnostisk design.
+                Intelligent app-oppstart, standardapper i Innstillinger og forbedret grensesnitt.
               </p>
             </div>
           </div>
@@ -64,15 +64,26 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
           <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-border space-y-1.5">
             <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-ui-accent" />
-              Human-Crafted Creative Suite (Adobe CC Stil)
+              Nytt i v1.0.8: Smart filåpning & Standardapper
             </span>
             <p className="text-xs text-ui-muted leading-relaxed">
-              OpenArt Hub er nå fullstendig redesignet fra bunnen av med fokus på ro, balanse og romslighet. Borte er kunstige neon-effekter og tilfeldige rammer – her er en stilren plattform bygget for kreative skapere.
+              OpenArt Hub forstår nå automatisk hvilke kreative apper du har installert. Hvis du for eksempel har Krita installert, men ikke PhotoCraft, åpnes bilder direkte i Krita med riktig ikon og tydelig klikkbar knapp. Du kan også styre standardapper selv i Innstillinger.
             </p>
           </div>
 
           {/* Feature List */}
           <div className="space-y-3">
+            {/* Nytt i 1.0.8 */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-accent/30 space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Play className="w-4 h-4 text-ui-accent" />
+                <span>Klikkbare app-knapper & «Åpne med»-meny</span>
+              </div>
+              <p className="text-ui-muted leading-relaxed">
+                Hvert filkort har fått en tydelig «Åpne i [App]»-knapp tilpasset dine installerte programmer. Trykk på 3-prikkers menyen for å velge mellom alle installerte apper som støtter filen, eller åpne med systemets standardprogram.
+              </p>
+            </div>
+
             {/* 1. Mørkt & Lyst tema */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">

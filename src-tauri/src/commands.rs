@@ -964,6 +964,23 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
     Ok(results)
 }
 
+fn is_newer_semver(latest: &str, current: &str) -> bool {
+    let parse = |v: &str| -> Vec<u32> {
+        v.trim_start_matches('v')
+            .split('.')
+            .filter_map(|p| p.split('-').next().and_then(|num| num.parse::<u32>().ok()))
+            .collect()
+    };
+    let l = parse(latest);
+    let c = parse(current);
+    if !l.is_empty() && !c.is_empty() {
+        return l > c;
+    }
+    let clean_l = latest.trim_start_matches('v').trim();
+    let clean_c = current.trim_start_matches('v').trim();
+    !clean_l.is_empty() && clean_l != clean_c
+}
+
 #[tauri::command]
 pub async fn check_hub_app_update() -> Result<HubUpdateInfo, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
@@ -986,9 +1003,8 @@ pub async fn check_hub_app_update() -> Result<HubUpdateInfo, String> {
                     .unwrap_or("")
                     .to_string();
                 let clean_tag = tag_name.trim_start_matches('v').to_string();
-                let clean_current = current_version.trim_start_matches('v').to_string();
 
-                let update_available = !clean_tag.is_empty() && clean_tag != clean_current;
+                let update_available = is_newer_semver(&clean_tag, &current_version);
 
                 let release_name = json_data
                     .get("name")
@@ -1018,7 +1034,6 @@ pub async fn check_hub_app_update() -> Result<HubUpdateInfo, String> {
 
                         match os {
                             "windows" => {
-                                // Prioritize modern NSIS setup executable over legacy .msi
                                 if name.ends_with(".exe") {
                                     download_url = d_url;
                                     asset_name = Some(name.to_string());
@@ -1054,6 +1069,100 @@ pub async fn check_hub_app_update() -> Result<HubUpdateInfo, String> {
                     release_name,
                     release_notes,
                     published_at,
+                    download_url,
+                    asset_name,
+                });
+            }
+        }
+    }
+
+    // Fallback: If GitHub API is rate-limited (HTTP 403) or unauthenticated, check web redirect
+    let no_redirect_client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        .build()
+        .unwrap_or_default();
+
+    if let Ok(web_resp) = no_redirect_client
+        .get("https://github.com/FunnyEivske/artcraft-hub/releases/latest")
+        .send()
+        .await
+    {
+        if let Some(location) = web_resp.headers().get("location").and_then(|l| l.to_str().ok()) {
+            if let Some(tag) = location.split("/tag/").nth(1) {
+                let tag_name = tag.trim().to_string();
+                let clean_tag = tag_name.trim_start_matches('v').to_string();
+                let update_available = is_newer_semver(&clean_tag, &current_version);
+
+                // Fetch expanded assets to find direct installer link without rate limits
+                let assets_url = format!("https://github.com/FunnyEivske/artcraft-hub/releases/expanded_assets/{}", tag_name);
+                let mut download_url = None;
+                let mut asset_name = None;
+
+                if let Ok(assets_resp) = no_redirect_client.get(&assets_url).send().await {
+                    if let Ok(html) = assets_resp.text().await {
+                        for line in html.lines() {
+                            if line.contains("/FunnyEivske/artcraft-hub/releases/download/") {
+                                if let Some(start) = line.find("/FunnyEivske/artcraft-hub/releases/download/") {
+                                    let href_sub = &line[start..];
+                                    if let Some(end) = href_sub.find('"') {
+                                        let href = &href_sub[..end];
+                                        let name = href.split('/').last().unwrap_or("");
+                                        match os {
+                                            "windows" => {
+                                                if name.ends_with(".exe") {
+                                                    download_url = Some(format!("https://github.com{}", href));
+                                                    asset_name = Some(name.to_string());
+                                                    break;
+                                                } else if name.ends_with(".msi") && download_url.is_none() {
+                                                    download_url = Some(format!("https://github.com{}", href));
+                                                    asset_name = Some(name.to_string());
+                                                }
+                                            }
+                                            "macos" => {
+                                                if name.ends_with(".dmg") || name.ends_with(".pkg") {
+                                                    download_url = Some(format!("https://github.com{}", href));
+                                                    asset_name = Some(name.to_string());
+                                                    break;
+                                                }
+                                            }
+                                            "linux" => {
+                                                if name.ends_with(".AppImage") || name.ends_with(".deb") {
+                                                    download_url = Some(format!("https://github.com{}", href));
+                                                    asset_name = Some(name.to_string());
+                                                    break;
+                                                }
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if download_url.is_none() {
+                    let default_ext = match os {
+                        "windows" => format!("_{}_x64-setup.exe", clean_tag),
+                        "macos" => format!("_{}_x64.dmg", clean_tag),
+                        _ => format!("_{}_amd64.AppImage", clean_tag),
+                    };
+                    let def_name = format!("OpenArt.Hub{}", default_ext);
+                    download_url = Some(format!(
+                        "https://github.com/FunnyEivske/artcraft-hub/releases/download/{}/{}",
+                        tag_name, def_name
+                    ));
+                    asset_name = Some(def_name);
+                }
+
+                return Ok(HubUpdateInfo {
+                    current_version,
+                    latest_version: tag_name.clone(),
+                    update_available,
+                    release_name: format!("OpenArt Hub {}", tag_name),
+                    release_notes: "Ny offisiell versjon av OpenArt Hub med ytelsesforbedringer og feilrettinger.".to_string(),
+                    published_at: chrono_now(),
                     download_url,
                     asset_name,
                 });

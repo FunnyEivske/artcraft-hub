@@ -19,7 +19,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.8',
+  version = '1.0.9',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -64,23 +64,23 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
           <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-border space-y-1.5">
             <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-ui-accent" />
-              Nytt i v1.0.8: Smart filåpning & Standardapper
+              Nytt i v1.0.9: Kompakt layout & Forbedret oppdateringssjekk
             </span>
             <p className="text-xs text-ui-muted leading-relaxed">
-              OpenArt Hub forstår nå automatisk hvilke kreative apper du har installert. Hvis du for eksempel har Krita installert, men ikke PhotoCraft, åpnes bilder direkte i Krita med riktig ikon og tydelig klikkbar knapp. Du kan også styre standardapper selv i Innstillinger.
+              OpenArt Hub har fått en omfattende optimalisering av proporsjoner: Topplinjen har rikelig med rom, app-rader og hurtigstart-kort er nå slanke og kompakte i Adobe CC-stil, og oppdateringsknappen finner automatisk nye versjoner fra GitHub selv under API-begrensninger.
             </p>
           </div>
 
           {/* Feature List */}
           <div className="space-y-3">
-            {/* Nytt i 1.0.8 */}
+            {/* Nytt i 1.0.9 */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-accent/30 space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
                 <Play className="w-4 h-4 text-ui-accent" />
-                <span>Klikkbare app-knapper & «Åpne med»-meny</span>
+                <span>Kompakt Adobe CC-design & Hurtigstart</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                Hvert filkort har fått en tydelig «Åpne i [App]»-knapp tilpasset dine installerte programmer. Trykk på 3-prikkers menyen for å velge mellom alle installerte apper som støtter filen, eller åpne med systemets standardprogram.
+                App-listen viser nå mange flere verktøy samtidig uten unødvendig scrolling. Hurtigstart på hjemskjermen er gjort om til elegante horisontale fliser, slik at prosjektene og de nylige filene dine er synlige rett under.
               </p>
             </div>
 

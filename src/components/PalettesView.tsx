@@ -172,7 +172,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
           return (
             <div
               key={palette.id}
-              className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 flex flex-col justify-between shadow-sm hover:border-ui-border-strong transition-all duration-150"
+              className="rounded-xl border border-ui-border bg-ui-surface p-4 space-y-3 flex flex-col justify-between shadow-sm hover:border-ui-border-strong transition-all duration-150"
             >
               <div>
                 {/* Palette Card Header */}
@@ -277,7 +277,7 @@ export const PalettesView: React.FC<PalettesViewProps> = ({
                       <div
                         key={i}
                         onClick={() => copyToClipboard(c.hex, `Copied ${c.hex}`)}
-                        className="group flex items-center justify-between p-2 rounded-lg bg-ui-bg hover:bg-ui-surface-2 border border-ui-border cursor-pointer transition-colors"
+                        className="group flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-ui-bg hover:bg-ui-surface-2 border border-ui-border cursor-pointer transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
                           <div

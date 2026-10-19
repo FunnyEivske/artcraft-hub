@@ -161,13 +161,13 @@ export const AppRow: React.FC<AppItemProps> = ({
   const hasUpdate = app.status === 'UpdateAvailable';
 
   return (
-    <div className="px-4 py-3 hover:bg-ui-surface-2/40 transition-colors">
-      <div className="flex items-center gap-3.5">
-        <AppTile app={app} size={36} />
+    <div className="px-3.5 py-2 hover:bg-ui-surface-2/40 transition-colors">
+      <div className="flex items-center gap-3">
+        <AppTile app={app} size={30} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-ui-text truncate">
+            <span className="text-[13px] font-semibold text-ui-text truncate">
               {app.app_name}
             </span>
             {app.alternative_to && (
@@ -176,16 +176,16 @@ export const AppRow: React.FC<AppItemProps> = ({
               </span>
             )}
             {hasUpdate && (
-              <span className="text-[10px] font-medium text-ui-accent bg-ui-surface-2 px-1.5 py-0.2 rounded border border-ui-accent/40">
+              <span className="text-[10px] font-medium text-ui-accent bg-ui-surface-2 px-1.5 py-0.5 rounded border border-ui-accent/40">
                 v{app.latest_version}
               </span>
             )}
           </div>
-          <div className="text-xs text-ui-muted truncate mt-0.5">{app.description}</div>
+          <div className="text-[11.5px] text-ui-muted truncate mt-0.5">{app.description}</div>
         </div>
 
         {/* Version column */}
-        <div className="hidden lg:block w-28 text-right text-xs text-ui-muted tabular-nums">
+        <div className="hidden lg:block w-24 text-right text-xs text-ui-muted tabular-nums">
           {isInstalled ? (
             <span className="font-mono text-[11px] text-ui-muted">
               {app.installed_version || app.latest_version}
@@ -205,7 +205,7 @@ export const AppRow: React.FC<AppItemProps> = ({
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                className="btn-secondary text-xs h-7 px-3 rounded-lg flex items-center gap-1 cursor-pointer"
+                className="btn-secondary text-xs h-7 px-3 rounded-md flex items-center gap-1 cursor-pointer"
                 onClick={() => onLaunchNative(app.app_id)}
               >
                 <Play className="w-3 h-3 fill-current text-ui-muted" />
@@ -214,7 +214,7 @@ export const AppRow: React.FC<AppItemProps> = ({
               {hasUpdate && (
                 <button
                   type="button"
-                  className="btn-primary text-xs h-7 px-3 rounded-lg flex items-center gap-1 cursor-pointer"
+                  className="btn-primary text-xs h-7 px-3 rounded-md flex items-center gap-1 cursor-pointer"
                   onClick={() => onInstall(app, 'native')}
                 >
                   <RefreshCw className="w-3 h-3" />
@@ -225,7 +225,7 @@ export const AppRow: React.FC<AppItemProps> = ({
           ) : (
             <button
               type="button"
-              className="btn-primary text-xs h-7 px-3.5 rounded-lg flex items-center gap-1.5 cursor-pointer"
+              className="btn-primary text-xs h-7 px-3.5 rounded-md flex items-center gap-1.5 cursor-pointer"
               onClick={() => onInstall(app, 'native')}
             >
               <Download className="w-3 h-3" />

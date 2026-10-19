@@ -33,27 +33,27 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-12 flex-shrink-0 flex items-center gap-4 px-4 bg-ui-surface border-b border-ui-border">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 w-[216px] flex-shrink-0">
-        <BrandLogo className="w-7 h-7" size={28} />
-        <span className="text-[15px] font-semibold tracking-tight text-ui-text">OpenArt</span>
+      <div className="flex items-center gap-2.5 min-w-[140px] flex-shrink-0">
+        <BrandLogo className="w-6 h-6" size={24} />
+        <span className="text-sm font-semibold tracking-tight text-ui-text">OpenArt</span>
       </div>
 
       {/* Search */}
-      <div className="flex-1 flex justify-center">
-        <div className="relative w-full max-w-[460px] flex items-center">
-          <Search className="w-4 h-4 text-ui-muted absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <div className="flex-1 flex justify-center min-w-0 px-2">
+        <div className="relative w-full max-w-[440px] flex items-center">
+          <Search className="w-4 h-4 text-ui-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('home.searchPlaceholder')}
-            className="w-full h-8 bg-ui-bg border border-ui-border rounded-full pl-[34px] pr-[34px] text-[13px] text-ui-text placeholder-ui-muted focus:outline-none focus:border-ui-accent transition-colors"
+            className="w-full h-8 bg-ui-bg border border-ui-border rounded-full pl-9 pr-9 text-xs text-ui-text placeholder-ui-muted focus:outline-none focus:border-ui-accent transition-colors"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange('')}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-ui-muted hover:text-ui-text cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-ui-muted hover:text-ui-text cursor-pointer"
               title={t('common.close')}
             >
               <X className="w-3.5 h-3.5" />
@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 w-[216px] justify-end flex-shrink-0">
+      <div className="flex items-center gap-1.5 min-w-[140px] justify-end flex-shrink-0">
         {hasUpdatesAvailable ? (
           <button
             onClick={onOpenUpdatePrompt}

@@ -71,7 +71,7 @@ jobs:
           tagName: v__VERSION__
           releaseName: 'ArtCraft Hub v__VERSION__'
           releaseBody: 'Offisielt kryssplattform-bygg av ArtCraft Hub (OpenArt Hub) for Windows, macOS og Linux.'
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
 

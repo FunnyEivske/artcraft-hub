@@ -103,25 +103,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         {quickLaunchApps.length > 0 ? (
-          <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+          <div className="grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(210px,1fr))]">
             {quickLaunchApps.map((app) => (
               <div
                 key={app.app_id}
-                className="group rounded-xl border border-ui-border bg-ui-surface hover:border-ui-border-strong p-3.5 transition-all duration-200 shadow-sm hover:-translate-y-0.5 flex flex-col justify-between"
+                className="group rounded-lg border border-ui-border bg-ui-surface hover:border-ui-border-strong px-3 py-2 transition-all duration-150 flex items-center justify-between gap-2.5 shadow-sm"
               >
-                <div className="flex items-start gap-3 mb-3">
-                  <AppTile app={app} size={38} />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-medium text-ui-text truncate group-hover:text-ui-accent transition-colors">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <AppTile app={app} size={28} />
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-semibold text-ui-text truncate group-hover:text-ui-accent transition-colors">
                       {app.app_name}
                     </h3>
-                    <p className="text-[11px] text-ui-muted truncate mt-0.5">{app.category}</p>
+                    <p className="text-[10.5px] text-ui-muted truncate">{app.category}</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => onLaunchNative(app.app_id)}
-                  className="w-full h-8 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 bg-ui-surface-2 hover:bg-ui-surface-2/80 text-ui-text border border-ui-border transition-colors cursor-pointer"
+                  className="btn-secondary h-7 px-2.5 text-xs rounded-md flex-shrink-0 flex items-center gap-1 cursor-pointer"
                 >
                   <Play className="w-3 h-3 fill-current text-ui-muted" />
                   <span>{t('common.open')}</span>

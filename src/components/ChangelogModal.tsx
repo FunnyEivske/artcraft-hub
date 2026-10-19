@@ -2,14 +2,15 @@ import React from 'react';
 import {
   Sparkles,
   X,
-  Box,
   Palette,
-  Download,
   FolderPlus,
-  RefreshCw,
-  Camera,
+  Play,
+  Sun,
+  Globe,
+  Sliders,
   ArrowRight,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ChangelogModalProps {
   version?: string;
@@ -18,138 +19,140 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.6',
+  version = '1.0.7',
   onClose,
   onOpenOnboarding,
 }) => {
+  const { t } = useTranslation();
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#18181b] border border-ui-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-ui-text">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-ui-surface border border-ui-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden text-ui-text">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-ui-line bg-gradient-to-r from-ui-surface via-[#1e1e24] to-[#18181b] flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-ui-border bg-ui-surface flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-900/30">
-              <Sparkles className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-ui-surface-2 border border-ui-border text-ui-accent flex items-center justify-center shadow-xs">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  Hva er nytt i OpenArt Hub
+                <h2 className="text-base font-semibold text-ui-text tracking-tight">
+                  {t('changelog.title')}
                 </h2>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-ui-accent text-white font-medium">
                   v{version}
                 </span>
               </div>
-              <p className="text-[12px] text-ui-muted mt-0.5">
-                Full 14-appers kreativ suite, lokal feillogg og robust avinstallasjon
+              <p className="text-xs text-ui-muted mt-0.5">
+                Full UI/UX-overhaling: Mørkt & Lyst tema, flerspråklig og app-agnostisk design.
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg text-ui-muted hover:text-white hover:bg-ui-surface transition-colors flex items-center justify-center"
-            title="Lukk"
+            className="w-8 h-8 rounded-lg text-ui-muted hover:text-ui-text hover:bg-ui-surface-2 transition-colors flex items-center justify-center cursor-pointer"
+            title={t('common.close')}
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Changelog Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-[13px]">
+        <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
           {/* Highlight Banner */}
-          <div className="p-4 rounded-xl bg-gradient-to-r from-purple-900/20 via-indigo-900/20 to-ui-blue/15 border border-purple-500/30 space-y-1.5">
-            <span className="font-semibold text-white flex items-center gap-2 text-[14px]">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              WordCraft, DeckCraft, GridCraft & Lokal Feillogg
+          <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-border space-y-1.5">
+            <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
+              <Sparkles className="w-4 h-4 text-ui-accent" />
+              Human-Crafted Creative Suite (Adobe CC Stil)
             </span>
-            <p className="text-[12px] text-ui-muted leading-relaxed">
-              OpenArt Hub støtter nå alle 14 applikasjoner (inkludert WordCraft, DeckCraft og GridCraft), har fått en 100% lokal feillogg med kopifunksjon, og fullført MSI-avinstallasjon med automatisk GUID-deteksjon!
+            <p className="text-xs text-ui-muted leading-relaxed">
+              OpenArt Hub er nå fullstendig redesignet fra bunnen av med fokus på ro, balanse og romslighet. Borte er kunstige neon-effekter og tilfeldige rammer – her er en stilren plattform bygget for kreative skapere.
             </p>
           </div>
 
           {/* Feature List */}
-          <div className="space-y-4">
-            {/* 1. Kreativt Arbeidsområde */}
-            <div className="p-4 rounded-xl bg-ui-surface/60 border border-ui-border space-y-2">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <FolderPlus className="w-4 h-4 text-orange-400" />
-                <span>Kreativt Arbeidsområde (Dokumenter / OpenArt)</span>
+          <div className="space-y-3">
+            {/* 1. Mørkt & Lyst tema */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Sun className="w-4 h-4 text-ui-accent" />
+                <span>Mørkt & Lyst tema med lynrask veksling</span>
               </div>
-              <p className="text-[12px] text-ui-muted leading-relaxed">
-                Når du åpner appen, oppretter den automatisk standardmapper for Blender (Prosjekter & Assets), Teksturer, Børster, Referanser, Lydeffekter og Vektorer i din Dokumenter-mappe. Du kan tilpasse eller velge bort mapper etter eget ønske.
+              <p className="text-ui-muted leading-relaxed">
+                Nyt ekte papirlys bakgrunn (#f6f5f3) eller dyp matt mørk (#17171a) med automatisk synkronisering mot operativsystemet ditt og umiddelbar forhåndsvisning.
               </p>
             </div>
 
-            {/* 2. Ekte Blender & Krita Historikk */}
-            <div className="p-4 rounded-xl bg-ui-surface/60 border border-ui-border space-y-2">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <Box className="w-4 h-4 text-sky-400" />
-                <span>Ekte app-historikk (Blender & Krita)</span>
+            {/* 2. Flerspråklig */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Globe className="w-4 h-4 text-ui-accent" />
+                <span>Flerspråklig støtte (English & Norsk)</span>
               </div>
-              <p className="text-[12px] text-ui-muted leading-relaxed">
-                Hub-en leser nå direkte fra Blenders interne <code className="text-orange-300 bg-white/5 px-1 py-0.5 rounded text-[11px]">recent-files.txt</code> og Kritas <code className="text-sky-300 bg-white/5 px-1 py-0.5 rounded text-[11px]">kritarc</code> på tvers av Windows (%APPDATA%), macOS og Linux.
+              <p className="text-ui-muted leading-relaxed">
+                Appen støtter nå full oversettelse på både engelsk (standard) og norsk bokmål. Bytter automatisk eller etter dine ønsker i Innstillinger.
               </p>
             </div>
 
-            {/* 3. Skjermbilde-filtrering */}
-            <div className="p-4 rounded-xl bg-ui-surface/60 border border-ui-border space-y-2">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <Camera className="w-4 h-4 text-rose-400" />
-                <span>Intelligent skjermbilde-filtrering</span>
+            {/* 3. 4-stegs Onboarding Wizard */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <FolderPlus className="w-4 h-4 text-ui-accent" />
+                <span>4-stegs velkomstveiviser for verktøykasser & mapper</span>
               </div>
-              <p className="text-[12px] text-ui-muted leading-relaxed">
-                Skjermklipp fra Utklippsverktøy (Snipping Tool) og tastatursnarveier (Win+Shift+S / PrtScn) filtreres nå automatisk bort, slik at hjemmeskjermen din forblir ren og kun viser ekte kunstverk og prosjekter. Kan overstyres i Innstillinger.
+              <p className="text-ui-muted leading-relaxed">
+                Ny rolig velkomstskjerm lar deg velge hva du skaper (Foto, Maling, Vektor, 3D, Video, Lyd, Dokumenter) og setter opp tilpassede mapper automatisk i Dokumenter/OpenArt.
               </p>
             </div>
 
-            {/* 4. Moderne 1-klikk Windows-installer */}
-            <div className="p-4 rounded-xl bg-ui-surface/60 border border-ui-border space-y-2">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <Download className="w-4 h-4 text-emerald-400" />
-                <span>Moderne 1-klikk installasjon (Discord / Spotify-stil)</span>
+            {/* 4. App-agnostisk Hjem & Klikkbare Prosjektkort */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Play className="w-4 h-4 text-ui-accent" />
+                <span>Hurtigstart & Klikkbare Filer (16:9 forhåndsvisning)</span>
               </div>
-              <p className="text-[12px] text-ui-muted leading-relaxed">
-                Borte er 90-talls dialogbokser og skumle Windows UAC-advarsler. Installasjonsprogrammet kjører lynraskt, legger snarvei på skrivebordet og starter appen automatisk. Ved avinstallasjon kan du velge å rense lagrede innstillinger med ett klikk.
+              <p className="text-ui-muted leading-relaxed">
+                Hjem-skjermen viser nå kun apper som faktisk er installert. Filer har fått korrekte mediatype-merker (Bilde, Vektor, 3D, Video, Audio) i stedet for den gamle mappelappen, og hele kortet kan klikkes for å åpne filen direkte.
               </p>
             </div>
 
-            {/* 5. Oppdateringssenter & Live Varsling */}
-            <div className="p-4 rounded-xl bg-ui-surface/60 border border-ui-border space-y-2">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <RefreshCw className="w-4 h-4 text-indigo-400" />
-                <span>Sanntids oppdateringsvarsling</span>
+            {/* 5. 4-faners Innstillinger */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Sliders className="w-4 h-4 text-ui-accent" />
+                <span>Organisert 4-faners Innstillinger</span>
               </div>
-              <p className="text-[12px] text-ui-muted leading-relaxed">
-                Når nye oppdateringer er klare, forvandles oppdateringsikonet i toppmenyen til en grønn, pulserende nedlastingsknapp. Du får se endringsnotater og sanntids nedlastingsfremgang før installeren starter automatisk.
+              <p className="text-ui-muted leading-relaxed">
+                Rent oppdelt i Generelt, Mapper, Apper og Avansert. Styr overvåkede mapper, overstyr kjørbare filer for Blender/Krita og inspiser lokale diagnostikklogger.
               </p>
             </div>
 
-            {/* 6. Restart Onboarding */}
-            <div className="p-4 rounded-xl bg-ui-surface/60 border border-ui-border space-y-2">
-              <div className="flex items-center gap-2 text-white font-semibold">
-                <Palette className="w-4 h-4 text-amber-400" />
-                <span>Restart / Redo Onboarding i Innstillinger</span>
+            {/* 6. Palett-eksport */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Palette className="w-4 h-4 text-ui-accent" />
+                <span>Palett-eksport til installerte apper</span>
               </div>
-              <p className="text-[12px] text-ui-muted leading-relaxed">
-                Vil du endre oppsettet eller konfigurere mappene på nytt? Du finner nå en dedikert <strong>«Restart / Redo Onboarding»</strong>-knapp i Innstillinger som lar deg kjøre gjennom veiviseren når som helst.
+              <p className="text-ui-muted leading-relaxed">
+                Eksporter delte fargepaletter direkte i Krita (.gpl), PhotoCraft, CSS-variabler eller JSON-format med ett klikk.
               </p>
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-ui-line bg-ui-surface/60 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-ui-border bg-ui-surface flex items-center justify-between">
           {onOpenOnboarding ? (
             <button
               onClick={() => {
                 onClose();
                 onOpenOnboarding();
               }}
-              className="text-[12px] text-purple-300 hover:text-white flex items-center gap-1.5 transition-colors"
+              className="text-xs text-ui-muted hover:text-ui-text flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Åpne mappe-veiviser nå</span>
+              <Sparkles className="w-3.5 h-3.5 text-ui-accent" />
+              <span>{t('settings.redoOnboarding')}</span>
             </button>
           ) : (
             <div />
@@ -157,13 +160,15 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
 
           <button
             onClick={onClose}
-            className="btn-primary py-2 px-5 text-[13px] flex items-center gap-2 font-medium bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 shadow-md shadow-purple-900/30"
+            className="btn-primary py-1.5 px-4 text-xs flex items-center gap-1.5 font-medium cursor-pointer"
           >
-            <span>Kult, la oss skape!</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>{t('common.close')}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
     </div>
   );
 };
+
+export default ChangelogModal;

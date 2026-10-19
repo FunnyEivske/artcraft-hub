@@ -11,6 +11,13 @@ use crate::models::{
     ScannerSettings, SmartProject, SystemInfo,
 };
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+
 fn get_installed_versions_map() -> HashMap<String, InstalledAppInfo> {
     let hub_home = get_hub_home();
     let file_path = hub_home.join("installed_versions.json");
@@ -166,8 +173,13 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
                         p_base.join(app_name).join(format!("{}.exe", app_id)),
                         p_base.join(app_name).join(format!("{}.exe", app_name)),
                         p_base.join(app_id).join(format!("{}.exe", app_id)),
+                        p_base.join(app_id).join(format!("{}.exe", app_name)),
                         p_base.join("Storytold").join(app_name).join(format!("{}.exe", app_id)),
+                        p_base.join("Storytold").join(app_name).join(format!("{}.exe", app_name)),
                         p_base.join("ArtCraft").join(app_name).join(format!("{}.exe", app_id)),
+                        p_base.join("ArtCraft").join(app_name).join(format!("{}.exe", app_name)),
+                        p_base.join("OpenArt").join(app_name).join(format!("{}.exe", app_id)),
+                        p_base.join("OpenArt").join(app_name).join(format!("{}.exe", app_name)),
                     ];
                     for c in &candidates {
                         if c.is_file() {
@@ -200,50 +212,6 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
         }
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        let catalog = get_app_catalog();
-        let app_name = catalog
-            .iter()
-            .find(|a| a.id == app_id)
-            .map(|a| a.name.as_str())
-            .unwrap_or(app_id);
-
-        if let Some(reg_info) = find_windows_installed_app(app_name, app_id) {
-            if !reg_info.install_location.is_empty() {
-                let loc = PathBuf::from(&reg_info.install_location);
-                let cand1 = loc.join(format!("{}.exe", app_id));
-                let cand2 = loc.join(format!("{}.exe", app_name));
-                if cand1.is_file() {
-                    return Some(cand1.to_string_lossy().to_string());
-                }
-                if cand2.is_file() {
-                    return Some(cand2.to_string_lossy().to_string());
-                }
-                if let Ok(entries) = fs::read_dir(&loc) {
-                    for entry in entries.flatten() {
-                        let path = entry.path();
-                        if path.is_file() && path.extension().map_or(false, |e| e.eq_ignore_ascii_case("exe")) {
-                            return Some(path.to_string_lossy().to_string());
-                        }
-                    }
-                }
-            }
-
-            let prog_files = [
-                std::env::var("ProgramFiles").unwrap_or_else(|_| r"C:\Program Files".into()),
-                std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| r"C:\Program Files (x86)".into()),
-                format!(r"{}\Programs", std::env::var("LOCALAPPDATA").unwrap_or_default()),
-            ];
-            for base in &prog_files {
-                let p = PathBuf::from(base).join(&reg_info.display_name).join(format!("{}.exe", app_id));
-                if p.is_file() {
-                    return Some(p.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
     None
 }
 
@@ -268,10 +236,10 @@ pub fn find_windows_installed_app(app_name: &str, app_id: &str) -> Option<Window
         let id_lower = app_id.to_lowercase();
 
         for hive in &hives {
-            let output = std::process::Command::new("reg")
-                .args(["query", hive, "/s", "/f", app_name])
-                .output()
-                .ok();
+            let mut cmd = std::process::Command::new("reg");
+            cmd.args(["query", hive, "/s", "/f", app_name]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            let output = cmd.output().ok();
 
             if let Some(out) = output {
                 let stdout = String::from_utf8_lossy(&out.stdout);
@@ -285,10 +253,10 @@ pub fn find_windows_installed_app(app_name: &str, app_id: &str) -> Option<Window
                 }
 
                 for key in key_candidates {
-                    let key_output = std::process::Command::new("reg")
-                        .args(["query", &key])
-                        .output()
-                        .ok();
+                    let mut key_cmd = std::process::Command::new("reg");
+                    key_cmd.args(["query", &key]);
+                    key_cmd.creation_flags(CREATE_NO_WINDOW);
+                    let key_output = key_cmd.output().ok();
                     if let Some(k_out) = key_output {
                         let text = String::from_utf8_lossy(&k_out.stdout);
                         let mut name = String::new();
@@ -652,19 +620,8 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
         // Handle Blender & Krita with their official distribution models
         if app.id == "blender" {
             let local_exe = detect_local_app_binary("blender");
-            #[cfg(target_os = "windows")]
-            let reg_blender = find_windows_installed_app(&app.name, &app.id);
-            #[cfg(not(target_os = "windows"))]
-            let reg_blender: Option<WindowsInstalledApp> = None;
-
-            let is_installed = local_exe.is_some() || reg_blender.is_some() || installed_map.contains_key("blender");
-            let detected_version = if let Some(ref r) = reg_blender {
-                if !r.display_version.is_empty() {
-                    Some(format!("v{}", r.display_version.trim_start_matches('v')))
-                } else {
-                    Some("v5.x (System)".into())
-                }
-            } else if is_installed {
+            let is_installed = local_exe.is_some() || installed_map.contains_key("blender");
+            let detected_version = if is_installed {
                 Some("v5.x (System)".into())
             } else {
                 None
@@ -712,20 +669,9 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
 
         if app.id == "krita" {
             let local_exe = detect_local_app_binary("krita");
-            #[cfg(target_os = "windows")]
-            let reg_krita = find_windows_installed_app(&app.name, &app.id);
-            #[cfg(not(target_os = "windows"))]
-            let reg_krita: Option<WindowsInstalledApp> = None;
-
-            let is_installed = local_exe.is_some() || reg_krita.is_some() || installed_map.contains_key("krita");
-            let detected_version = if let Some(ref r) = reg_krita {
-                if !r.display_version.is_empty() {
-                    Some(format!("v{}", r.display_version.trim_start_matches('v')))
-                } else {
-                    Some("v5.x (System)".into())
-                }
-            } else if is_installed {
-                Some("v5.x (System)".into())
+            let is_installed = local_exe.is_some() || installed_map.contains_key("krita");
+            let detected_version = if is_installed {
+                Some("v5.2.6 (System)".into())
             } else {
                 None
             };
@@ -886,23 +832,12 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             ));
         }
 
-        // Robust detection: checks local binary path, Windows registry, and installed map
+        // Fast, silent local detection (filesystem paths + installed_versions.json, zero processes)
         let local_exe = detect_local_app_binary(&app.id);
-        #[cfg(target_os = "windows")]
-        let reg_app = find_windows_installed_app(&app.name, &app.id);
-        #[cfg(not(target_os = "windows"))]
-        let reg_app: Option<WindowsInstalledApp> = None;
-
-        let is_installed = local_exe.is_some() || reg_app.is_some() || installed_map.contains_key(&app.id);
+        let is_installed = local_exe.is_some() || installed_map.contains_key(&app.id);
 
         let (status, installed_version, installed_type) = if is_installed {
-            let ver = if let Some(ref r) = reg_app {
-                if !r.display_version.is_empty() {
-                    format!("v{}", r.display_version.trim_start_matches('v'))
-                } else {
-                    installed_map.get(&app.id).map(|i| i.version.clone()).unwrap_or_else(|| latest_ver.clone())
-                }
-            } else if let Some(info) = installed_map.get(&app.id) {
+            let ver = if let Some(info) = installed_map.get(&app.id) {
                 info.version.clone()
             } else {
                 latest_ver.clone()
@@ -1170,9 +1105,14 @@ pub async fn download_and_install_hub_update(
     #[cfg(target_os = "windows")]
     {
         if target_file.exists() {
-            let _ = std::process::Command::new("cmd")
-                .args(["/C", "start", "", &target_file.to_string_lossy()])
-                .spawn();
+            let path_str = target_file.to_string_lossy().to_string();
+            if path_str.to_lowercase().ends_with(".msi") {
+                let mut cmd = std::process::Command::new("msiexec");
+                cmd.args(["/i", &path_str]);
+                let _ = cmd.spawn();
+            } else {
+                let _ = std::process::Command::new(&target_file).spawn();
+            }
         }
     }
 
@@ -1386,9 +1326,14 @@ pub async fn install_or_update_app(
         #[cfg(target_os = "windows")]
         {
             if target_file.exists() {
-                let _ = std::process::Command::new("cmd")
-                    .args(["/C", "start", "", &target_file.to_string_lossy()])
-                    .spawn();
+                let path_str = target_file.to_string_lossy().to_string();
+                if path_str.to_lowercase().ends_with(".msi") {
+                    let mut cmd = std::process::Command::new("msiexec");
+                    cmd.args(["/i", &path_str]);
+                    let _ = cmd.spawn();
+                } else {
+                    let _ = std::process::Command::new(&target_file).spawn();
+                }
             }
         }
 
@@ -1488,9 +1433,16 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
                     || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.eq_ignore_ascii_case("deb")))
                 {
                     #[cfg(target_os = "windows")]
-                    let _ = std::process::Command::new("cmd")
-                        .args(["/C", "start", "", &path.to_string_lossy()])
-                        .spawn();
+                    {
+                        let path_str = path.to_string_lossy().to_string();
+                        if path_str.to_lowercase().ends_with(".msi") {
+                            let mut cmd = std::process::Command::new("msiexec");
+                            cmd.args(["/i", &path_str]);
+                            let _ = cmd.spawn();
+                        } else {
+                            let _ = std::process::Command::new(&path).spawn();
+                        }
+                    }
                     #[cfg(target_os = "macos")]
                     let _ = std::process::Command::new("open").arg(&path).spawn();
                     #[cfg(target_os = "linux")]
@@ -1508,9 +1460,10 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
     if let Some(ref path) = file_path_optional {
         #[cfg(target_os = "windows")]
         {
-            let _ = std::process::Command::new("cmd")
-                .args(["/c", "start", "", path])
-                .spawn();
+            let mut cmd = std::process::Command::new("cmd");
+            cmd.args(["/c", "start", "", path]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            let _ = cmd.spawn();
         }
         #[cfg(target_os = "macos")]
         {
@@ -1552,14 +1505,16 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
                         vec!["/x", &parts[0]]
                     };
 
-                    let _ = std::process::Command::new("msiexec")
-                        .args(&args)
-                        .status();
+                    let mut cmd = std::process::Command::new("msiexec");
+                    cmd.args(&args);
+                    cmd.creation_flags(CREATE_NO_WINDOW);
+                    let _ = cmd.status();
                     uninstalled_invoked = true;
                 } else {
-                    let _ = std::process::Command::new("cmd")
-                        .args(["/C", u_str])
-                        .status();
+                    let mut cmd = std::process::Command::new("cmd");
+                    cmd.args(["/C", u_str]);
+                    cmd.creation_flags(CREATE_NO_WINDOW);
+                    let _ = cmd.status();
                     uninstalled_invoked = true;
                 }
             }
@@ -1573,9 +1528,10 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_file() && path.extension().map_or(false, |e| e.eq_ignore_ascii_case("msi")) {
-                            let _ = std::process::Command::new("msiexec")
-                                .args(["/x", &path.to_string_lossy()])
-                                .status();
+                            let mut cmd = std::process::Command::new("msiexec");
+                            cmd.args(["/x", &path.to_string_lossy()]);
+                            cmd.creation_flags(CREATE_NO_WINDOW);
+                            let _ = cmd.status();
                             uninstalled_invoked = true;
                             break;
                         }
@@ -1607,12 +1563,8 @@ pub async fn uninstall_app(app_id: String) -> Result<String, String> {
     tokio::time::sleep(tokio::time::Duration::from_millis(600)).await;
 
     let still_binary = detect_local_app_binary(&app_id);
-    #[cfg(target_os = "windows")]
-    let still_reg = find_windows_installed_app(app_name, &app_id);
-    #[cfg(not(target_os = "windows"))]
-    let still_reg: Option<WindowsInstalledApp> = None;
 
-    if still_binary.is_some() || still_reg.is_some() {
+    if still_binary.is_some() {
         return Err(format!(
             "Avinstallasjonen ble ikke fullført eller ble avbrutt. «{}» finnes fortsatt på maskinen.",
             app_name
@@ -2307,13 +2259,14 @@ pub async fn pick_custom_folder() -> Result<Option<String>, String> {
     #[cfg(target_os = "windows")]
     {
         tokio::task::spawn_blocking(|| {
-            let output = std::process::Command::new("powershell")
-                .args([
-                    "-NoProfile",
-                    "-Command",
-                    "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = 'Velg mappe for ArtCraft Hub'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.SelectedPath }",
-                ])
-                .output();
+            let mut cmd = std::process::Command::new("powershell");
+            cmd.args([
+                "-NoProfile",
+                "-Command",
+                "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $dialog = New-Object System.Windows.Forms.FolderBrowserDialog; $dialog.Description = 'Velg mappe for ArtCraft Hub'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.SelectedPath }",
+            ]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            let output = cmd.output();
 
             match output {
                 Ok(out) => {
@@ -2386,13 +2339,14 @@ pub async fn pick_custom_file() -> Result<Option<String>, String> {
     #[cfg(target_os = "windows")]
     {
         tokio::task::spawn_blocking(|| {
-            let output = std::process::Command::new("powershell")
-                .args([
-                    "-NoProfile",
-                    "-Command",
-                    "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $dialog = New-Object System.Windows.Forms.OpenFileDialog; $dialog.Title = 'Velg fil (f.eks. recent-files.txt eller kritarc)'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.FileName }",
-                ])
-                .output();
+            let mut cmd = std::process::Command::new("powershell");
+            cmd.args([
+                "-NoProfile",
+                "-Command",
+                "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null; $dialog = New-Object System.Windows.Forms.OpenFileDialog; $dialog.Title = 'Velg fil (f.eks. recent-files.txt eller kritarc)'; if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.FileName }",
+            ]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            let output = cmd.output();
 
             match output {
                 Ok(out) => {

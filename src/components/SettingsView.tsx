@@ -1,32 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Settings,
   Folder,
-  FolderPlus,
   Trash2,
-  CheckCircle2,
-  ShieldCheck,
   Sparkles,
   RefreshCw,
-  Image,
-  FileText,
-  Monitor,
-  Download,
   Box,
   Palette,
   Layers,
-  Info,
   ExternalLink,
   Music,
   Type,
   RotateCcw,
-  Camera,
   Check,
   Copy,
-  Terminal,
-  AlertTriangle,
-  AlertCircle,
+  Sun,
+  Moon,
+  Monitor,
+  Globe,
+  Plus,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ScannerSettings, CreativeFolderConfig, DiagnosticLogEntry } from '../types';
 import {
   getScannerSettings,
@@ -35,10 +28,12 @@ import {
   pickCustomFile,
   openPathInExplorer,
   initOrUpdateWorkspaceFolders,
+  getDefaultWorkspaceDirPath,
   DEFAULT_WORKSPACE_FOLDERS,
   getDiagnosticLogs,
   clearDiagnosticLogs,
 } from '../services/tauri';
+import { getStoredTheme, setTheme, ThemeMode } from '../services/theme';
 
 interface SettingsViewProps {
   onSettingsChanged?: () => void;
@@ -48,6 +43,29 @@ interface SettingsViewProps {
   onShowChangelog?: () => void;
 }
 
+type SettingsTab = 'general' | 'folders' | 'apps' | 'advanced';
+
+const Switch: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = ({
+  checked,
+  onChange,
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    onClick={() => onChange(!checked)}
+    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer focus:outline-none flex-shrink-0 ${
+      checked ? 'bg-ui-accent' : 'bg-ui-surface-2 border border-ui-border'
+    }`}
+  >
+    <span
+      className={`block w-3.5 h-3.5 rounded-full bg-white transition-transform duration-150 ${
+        checked ? 'translate-x-4.5' : 'translate-x-0.5'
+      }`}
+    />
+  </button>
+);
+
 export const SettingsView: React.FC<SettingsViewProps> = ({
   onSettingsChanged,
   onShowToast,
@@ -55,6 +73,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRerunOnboarding,
   onShowChangelog,
 }) => {
+  const { t, i18n } = useTranslation();
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+
+  // Theme & Language
+  const [currentLang, setCurrentLang] = useState<string>(() => i18n.language || 'en');
+  const [currentTheme, setCurrentThemeState] = useState<ThemeMode>(() => getStoredTheme());
+
   const [settings, setSettings] = useState<ScannerSettings>({
     scanBlender: true,
     scanKrita: true,
@@ -74,77 +99,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     workspaceFolders: DEFAULT_WORKSPACE_FOLDERS,
   });
 
+  const [defaultResolvedPath, setDefaultResolvedPath] = useState<string>('~/Documents/OpenArt');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
-  const [customInputPath, setCustomInputPath] = useState('');
 
   // Diagnostic Logs state
   const [diagnosticLogs, setDiagnosticLogs] = useState<DiagnosticLogEntry[]>([]);
-  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [logFilter, setLogFilter] = useState<'all' | 'ERROR' | 'WARN' | 'INFO'>('all');
   const [logCopiedAll, setLogCopiedAll] = useState(false);
   const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
 
-  const fetchDiagnosticLogs = async () => {
-    setIsLoadingLogs(true);
-    try {
-      const logs = await getDiagnosticLogs();
-      setDiagnosticLogs(logs);
-    } catch (e) {
-      console.error('Kunne ikke laste feillogger:', e);
-    } finally {
-      setIsLoadingLogs(false);
-    }
-  };
-
+  // Fetch initial settings & workspace dir
   useEffect(() => {
-    fetchDiagnosticLogs();
-  }, []);
-
-  const handleCopyAllLogs = () => {
-    if (diagnosticLogs.length === 0) {
-      if (onShowToast) onShowToast('Ingen feillogger å kopiere', 'info');
-      return;
-    }
-    const formatted = diagnosticLogs
-      .map(
-        (l) =>
-          `[${l.timestampStr}] [${l.level}] [${l.source}]: ${l.message}${
-            l.details ? `\nDetaljer: ${l.details}` : ''
-          }`
-      )
-      .join('\n---\n');
-
-    navigator.clipboard.writeText(formatted);
-    setLogCopiedAll(true);
-    setTimeout(() => setLogCopiedAll(false), 2000);
-    if (onShowToast) onShowToast('Hele feilloggen er kopiert til utklippstavlen', 'success');
-  };
-
-  const handleClearAllLogs = async () => {
-    try {
-      await clearDiagnosticLogs();
-      await fetchDiagnosticLogs();
-      if (onShowToast) onShowToast('Diagnostikk- og feilloggen ble tømt', 'success');
-    } catch (e) {
-      if (onShowToast) onShowToast('Kunne ikke tømme logg: ' + e, 'error');
-    }
-  };
-
-  const handleCopyEntry = (entry: DiagnosticLogEntry) => {
-    const text = `[${entry.timestampStr}] [${entry.level}] [${entry.source}]: ${entry.message}${
-      entry.details ? `\nDetaljer: ${entry.details}` : ''
-    }`;
-    navigator.clipboard.writeText(text);
-    setCopiedEntryId(entry.id);
-    setTimeout(() => setCopiedEntryId(null), 2000);
-    if (onShowToast) onShowToast('Feilmelding kopiert', 'success');
-  };
-
-  // Load existing settings on mount
-  useEffect(() => {
-    getScannerSettings()
-      .then((loaded) => {
+    let isMounted = true;
+    Promise.all([getScannerSettings(), getDefaultWorkspaceDirPath()])
+      .then(([loaded, defaultPath]) => {
+        if (!isMounted) return;
+        setDefaultResolvedPath(defaultPath);
         setSettings({
           ...loaded,
           workspaceFolders:
@@ -154,12 +126,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         });
       })
       .catch((err) => {
-        console.error('Feil ved lasting av innstillinger:', err);
+        console.error('Failed to load settings:', err);
       })
       .finally(() => {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const fetchDiagnosticLogs = async () => {
+    try {
+      const logs = await getDiagnosticLogs();
+      setDiagnosticLogs(logs);
+    } catch (e) {
+      console.error('Failed to load diagnostic logs:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'advanced') {
+      fetchDiagnosticLogs();
+    }
+  }, [activeTab]);
+
+  const handleLanguageChange = (lang: string) => {
+    setCurrentLang(lang);
+    i18n.changeLanguage(lang);
+    localStorage.setItem('openart_language', lang);
+    if (onShowToast) onShowToast(t('common.save'), 'success');
+  };
+
+  const handleThemeChange = (mode: ThemeMode) => {
+    setCurrentThemeState(mode);
+    setTheme(mode);
+  };
 
   const handleUpdateSetting = async <K extends keyof ScannerSettings>(
     key: K,
@@ -174,7 +177,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         onSettingsChanged();
       }
     } catch (e) {
-      if (onShowToast) onShowToast('Kunne ikke lagre: ' + e, 'error');
+      if (onShowToast) onShowToast(`Error saving: ${e}`, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -192,21 +195,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     try {
       const createdPath = await initOrUpdateWorkspaceFolders(settings);
       if (onShowToast) {
-        onShowToast(`Kreative mapper ble synkronisert i ${createdPath}`, 'success');
+        onShowToast(`Workspace folders synchronized in ${createdPath}`, 'success');
       }
     } catch (e) {
-      if (onShowToast) onShowToast('Feil under opprettelse av mapper: ' + e, 'error');
+      if (onShowToast) onShowToast(`Error creating folders: ${e}`, 'error');
     } finally {
       setIsCreatingWorkspace(false);
     }
   };
 
   const handleOpenWorkspaceInExplorer = async () => {
-    const target = settings.openartWorkspacePath || 'Documents/OpenArt';
+    const target = settings.openartWorkspacePath || defaultResolvedPath;
     try {
       await openPathInExplorer(target);
     } catch (e) {
-      if (onShowToast) onShowToast('Kunne ikke åpne filutforsker: ' + e, 'error');
+      if (onShowToast) onShowToast(`Error opening explorer: ${e}`, 'error');
+    }
+  };
+
+  const handlePickWorkspaceRoot = async () => {
+    try {
+      const selected = await pickCustomFolder();
+      if (selected) {
+        await handleUpdateSetting('openartWorkspacePath', selected);
+        if (onShowToast) onShowToast(`Workspace folder set: ${selected}`, 'success');
+      }
+    } catch (err) {
+      if (onShowToast) onShowToast(`Error selecting folder: ${err}`, 'error');
     }
   };
 
@@ -215,16 +230,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const selected = await pickCustomFolder();
       if (selected) {
         if (settings.customFolders.includes(selected)) {
-          if (onShowToast) onShowToast('Mappen er allerede lagt til', 'info');
+          if (onShowToast) onShowToast('Folder already in list', 'info');
           return;
         }
         const updatedFolders = [...settings.customFolders, selected];
         await handleUpdateSetting('customFolders', updatedFolders);
-        if (onShowToast) onShowToast(`La til overvåket mappe: ${selected}`, 'success');
+        if (onShowToast) onShowToast(`Added folder: ${selected}`, 'success');
       }
     } catch (err) {
-      if (onShowToast) onShowToast('Kunne ikke velge mappe: ' + err, 'error');
+      if (onShowToast) onShowToast(`Error picking folder: ${err}`, 'error');
     }
+  };
+
+  const handleRemoveFolder = async (folderPath: string) => {
+    const updatedFolders = settings.customFolders.filter((f) => f !== folderPath);
+    await handleUpdateSetting('customFolders', updatedFolders);
+    if (onShowToast) onShowToast('Folder removed from monitoring', 'info');
   };
 
   const handlePickCustomBlender = async () => {
@@ -232,10 +253,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const selected = await pickCustomFile();
       if (selected) {
         await handleUpdateSetting('customBlenderPath', selected);
-        if (onShowToast) onShowToast(`Blender-sti satt: ${selected}`, 'success');
+        if (onShowToast) onShowToast(`Blender path set: ${selected}`, 'success');
       }
     } catch (e) {
-      if (onShowToast) onShowToast('Kunne ikke velge Blender-fil: ' + e, 'error');
+      if (onShowToast) onShowToast(`Error selecting file: ${e}`, 'error');
     }
   };
 
@@ -244,10 +265,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const selected = await pickCustomFile();
       if (selected) {
         await handleUpdateSetting('customKritaPath', selected);
-        if (onShowToast) onShowToast(`Krita-sti satt: ${selected}`, 'success');
+        if (onShowToast) onShowToast(`Krita path set: ${selected}`, 'success');
       }
     } catch (e) {
-      if (onShowToast) onShowToast('Kunne ikke velge Krita-fil: ' + e, 'error');
+      if (onShowToast) onShowToast(`Error selecting file: ${e}`, 'error');
     }
   };
 
@@ -256,33 +277,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const selected = await pickCustomFolder();
       if (selected) {
         await handleUpdateSetting('customProjectsPath', selected);
-        if (onShowToast) onShowToast(`Prosjektmappe satt: ${selected}`, 'success');
+        if (onShowToast) onShowToast(`Projects path set: ${selected}`, 'success');
       }
     } catch (e) {
-      if (onShowToast) onShowToast('Kunne ikke velge prosjektmappe: ' + e, 'error');
+      if (onShowToast) onShowToast(`Error selecting projects folder: ${e}`, 'error');
     }
-  };
-
-  const handleAddManualFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = customInputPath.trim();
-    if (!trimmed) return;
-
-    if (settings.customFolders.includes(trimmed)) {
-      if (onShowToast) onShowToast('Mappen er allerede i listen', 'info');
-      return;
-    }
-
-    const updatedFolders = [...settings.customFolders, trimmed];
-    await handleUpdateSetting('customFolders', updatedFolders);
-    setCustomInputPath('');
-    if (onShowToast) onShowToast(`La til mappe: ${trimmed}`, 'success');
-  };
-
-  const handleRemoveFolder = async (folderPath: string) => {
-    const updatedFolders = settings.customFolders.filter((f) => f !== folderPath);
-    await handleUpdateSetting('customFolders', updatedFolders);
-    if (onShowToast) onShowToast('Fjernet overvåket mappe', 'info');
   };
 
   const handleResetOnboarding = async () => {
@@ -295,967 +294,777 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       await saveScannerSettings(updated);
       setSettings(updated);
       if (onShowToast) {
-        onShowToast('Førstegangsoppsett er nullstilt! Åpner veiviseren...', 'info');
+        onShowToast('Opening setup wizard...', 'info');
       }
       if (onRerunOnboarding) {
         onRerunOnboarding();
       }
     } catch (err) {
-      console.error('Feil ved nullstilling av oppsett:', err);
+      console.error('Failed to reset onboarding:', err);
     }
+  };
+
+  const handleClearCache = () => {
+    try {
+      sessionStorage.clear();
+      if (onShowToast) {
+        onShowToast('Thumbnail and temporary cache cleared', 'success');
+      }
+      if (onSettingsChanged) onSettingsChanged();
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleResetAllSettings = async () => {
+    const confirmed = window.confirm('Reset all OpenArt Hub settings to default?');
+    if (!confirmed) return;
+
+    const defaults: ScannerSettings = {
+      scanBlender: true,
+      scanKrita: true,
+      scanArtcraftProjects: true,
+      scanPictures: true,
+      scanDocuments: true,
+      scanDesktop: false,
+      scanDownloads: false,
+      customFolders: [],
+      filterNoise: true,
+      ignoreScreenshots: true,
+      customBlenderPath: null,
+      customKritaPath: null,
+      customProjectsPath: null,
+      onboardingCompleted: true,
+      openartWorkspacePath: null,
+      workspaceFolders: DEFAULT_WORKSPACE_FOLDERS,
+    };
+
+    setSettings(defaults);
+    await saveScannerSettings(defaults);
+    if (onShowToast) onShowToast('Settings reset to defaults', 'info');
+    if (onSettingsChanged) onSettingsChanged();
+  };
+
+  const handleCopyAllLogs = () => {
+    if (diagnosticLogs.length === 0) {
+      if (onShowToast) onShowToast('No logs to copy', 'info');
+      return;
+    }
+    const formatted = diagnosticLogs
+      .map(
+        (l) =>
+          `[${l.timestampStr}] [${l.level}] [${l.source}]: ${l.message}${
+            l.details ? `\nDetails: ${l.details}` : ''
+          }`
+      )
+      .join('\n---\n');
+
+    navigator.clipboard.writeText(formatted);
+    setLogCopiedAll(true);
+    setTimeout(() => setLogCopiedAll(false), 2000);
+    if (onShowToast) onShowToast('Logs copied to clipboard', 'success');
+  };
+
+  const handleClearAllLogs = async () => {
+    try {
+      await clearDiagnosticLogs();
+      await fetchDiagnosticLogs();
+      if (onShowToast) onShowToast('Diagnostic logs cleared', 'success');
+    } catch (e) {
+      if (onShowToast) onShowToast(`Error clearing logs: ${e}`, 'error');
+    }
+  };
+
+  const handleCopyEntry = (entry: DiagnosticLogEntry) => {
+    const text = `[${entry.timestampStr}] [${entry.level}] [${entry.source}]: ${entry.message}${
+      entry.details ? `\nDetails: ${entry.details}` : ''
+    }`;
+    navigator.clipboard.writeText(text);
+    setCopiedEntryId(entry.id);
+    setTimeout(() => setCopiedEntryId(null), 2000);
+    if (onShowToast) onShowToast('Log entry copied', 'success');
   };
 
   const getFolderIcon = (name: string) => {
     switch (name) {
       case 'Blender':
       case 'Blender_Assets':
-        return <Box className="w-4 h-4 text-orange-400" />;
+        return <Box className="w-4 h-4 text-ui-muted" />;
       case 'Textures':
-        return <Image className="w-4 h-4 text-emerald-400" />;
+        return <Layers className="w-4 h-4 text-ui-muted" />;
       case 'Brushes':
-        return <Palette className="w-4 h-4 text-sky-400" />;
+        return <Palette className="w-4 h-4 text-ui-muted" />;
       case 'References':
-        return <Layers className="w-4 h-4 text-purple-400" />;
+        return <Folder className="w-4 h-4 text-ui-muted" />;
       case 'Projects':
-        return <Folder className="w-4 h-4 text-blue-400" />;
+        return <Folder className="w-4 h-4 text-ui-muted" />;
       case 'Audio_and_SFX':
-        return <Music className="w-4 h-4 text-pink-400" />;
+        return <Music className="w-4 h-4 text-ui-muted" />;
       case 'Fonts_and_Vectors':
-        return <Type className="w-4 h-4 text-amber-400" />;
+        return <Type className="w-4 h-4 text-ui-muted" />;
       default:
-        return <FolderPlus className="w-4 h-4 text-ui-blue" />;
+        return <Folder className="w-4 h-4 text-ui-muted" />;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <RefreshCw className="w-6 h-6 text-ui-blue animate-spin" />
+      <div className="flex-1 flex items-center justify-center p-12">
+        <RefreshCw className="w-6 h-6 text-ui-accent animate-spin" />
       </div>
     );
   }
 
+  const effectiveWorkspacePath = settings.openartWorkspacePath || defaultResolvedPath;
+
+  const filteredLogs = diagnosticLogs.filter((l) => {
+    if (logFilter === 'all') return true;
+    return l.level === logFilter;
+  });
+
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6 max-w-4xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ui-line">
+    <div className="max-w-[960px] pb-16 space-y-6">
+      {/* Settings Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-ui-border">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-ui-blue/15 text-ui-blue flex items-center justify-center border border-ui-blue/30">
-              <Settings className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Innstillinger & Filsøking</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight text-ui-text">
+              {t('settings.title')}
+            </h1>
+            {isSaving && (
+              <span className="text-xs text-ui-muted flex items-center gap-1 font-medium animate-pulse">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span>{t('common.saving')}</span>
+              </span>
+            )}
           </div>
-          <p className="text-[13px] text-ui-muted mt-1">
-            Styr mapper, Blender- og Krita-ressurser og automatisk støyfiltrering på tvers av Windows, macOS og Linux.
+          <p className="text-xs text-ui-muted mt-1">
+            {t('settings.subtitle')}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {isSaving && (
-            <span className="text-[12px] text-ui-faint flex items-center gap-1.5 animate-pulse">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              Lagrer...
-            </span>
-          )}
-          <button
-            onClick={() => onSettingsChanged && onSettingsChanged()}
-            disabled={isScanning}
-            className="btn-primary text-[12px] py-1.5 px-3 flex items-center gap-2"
-            title="Kjør ny skanning med gjeldende innstillinger"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-            <span>{isScanning ? 'Søker...' : 'Oppdater filsøk'}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => onSettingsChanged && onSettingsChanged()}
+          disabled={isScanning}
+          className="btn-secondary text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin text-ui-accent' : 'text-ui-muted'}`} />
+          <span>{isScanning ? t('common.loading') : 'Refresh Scanner'}</span>
+        </button>
       </div>
 
-      {/* 1. OpenArt Arbeidsområde & Kreative Asset-mapper (Blender, Teksturer, etc.) */}
-      <section className="space-y-4 p-4 rounded-xl bg-ui-surface border border-ui-border shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Box className="w-4 h-4 text-orange-400" />
-              <h2 className="text-[15px] font-semibold text-white">
-                Kreativt Arbeidsområde (Dokumenter / OpenArt)
+      {/* 4 Tabs Navigation (Adobe CC Calm Restraint) */}
+      <div className="flex items-center gap-1 border-b border-ui-border pb-px">
+        {[
+          { id: 'general' as const, label: t('settings.tabGeneral') },
+          { id: 'folders' as const, label: t('settings.tabFolders') },
+          { id: 'apps' as const, label: t('settings.tabApps') },
+          { id: 'advanced' as const, label: t('settings.tabAdvanced') },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
+              activeTab === tab.id
+                ? 'border-ui-accent text-ui-text font-medium'
+                : 'border-transparent text-ui-muted hover:text-ui-text'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB 1: GENERAL */}
+      {activeTab === 'general' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Appearance Section */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">
+                {t('settings.appearanceSection')}
               </h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                {t('settings.themeDesc')}
+              </p>
             </div>
-            <p className="text-[12px] text-ui-muted mt-0.5">
-              Når du bruker Blender, Krita eller ArtCraft Hub, oppretter programmet standardmapper for Blender-assets, teksturer, børster og referanser.
-            </p>
+
+            <div className="grid grid-cols-3 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => handleThemeChange('system')}
+                className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                  currentTheme === 'system'
+                    ? 'border-ui-accent bg-ui-surface-2 ring-1 ring-ui-accent'
+                    : 'border-ui-border bg-ui-bg hover:border-ui-muted'
+                }`}
+              >
+                <Monitor className="w-5 h-5 mx-auto text-ui-muted mb-1.5" />
+                <div className="text-xs font-medium text-ui-text">{t('onboarding.themeSystem')}</div>
+                <div className="text-[10px] text-ui-muted mt-0.5">Auto</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('light')}
+                className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                  currentTheme === 'light'
+                    ? 'border-ui-accent bg-ui-surface-2 ring-1 ring-ui-accent'
+                    : 'border-ui-border bg-ui-bg hover:border-ui-muted'
+                }`}
+              >
+                <Sun className="w-5 h-5 mx-auto text-ui-muted mb-1.5" />
+                <div className="text-xs font-medium text-ui-text">{t('onboarding.themeLight')}</div>
+                <div className="text-[10px] text-ui-muted mt-0.5">Paper (#f6f5f3)</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleThemeChange('dark')}
+                className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                  currentTheme === 'dark'
+                    ? 'border-ui-accent bg-ui-surface-2 ring-1 ring-ui-accent'
+                    : 'border-ui-border bg-ui-bg hover:border-ui-muted'
+                }`}
+              >
+                <Moon className="w-5 h-5 mx-auto text-ui-muted mb-1.5" />
+                <div className="text-xs font-medium text-ui-text">{t('onboarding.themeDark')}</div>
+                <div className="text-[10px] text-ui-muted mt-0.5">Matte (#17171a)</div>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleResetOnboarding}
-              className="btn-primary py-1.5 px-3.5 text-[12px] flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-purple-900/25 rounded-lg transition-all"
-              title="Kjør førstegangsoppsett og velkomst-skjerm på nytt"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Restart / Redo Onboarding</span>
-            </button>
-            {onShowChangelog && (
+          {/* Language Section */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">
+                {t('settings.language')}
+              </h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                {t('settings.languageDesc')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <button
-                onClick={onShowChangelog}
-                className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-emerald-400 hover:text-white border-emerald-500/30 hover:border-emerald-500/60 transition-colors"
-                title="Se alt som er nytt siden v1.0.0"
+                type="button"
+                onClick={() => handleLanguageChange('en')}
+                className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                  currentLang === 'en'
+                    ? 'border-ui-accent bg-ui-surface-2 ring-1 ring-ui-accent'
+                    : 'border-ui-border bg-ui-bg hover:border-ui-muted'
+                }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Hva er nytt (Logg)</span>
+                <Globe className="w-4 h-4 text-ui-muted flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-ui-text">English</div>
+                  <div className="text-[10px] text-ui-muted">Default</div>
+                </div>
+                {currentLang === 'en' && <Check className="w-4 h-4 text-ui-accent flex-shrink-0" />}
               </button>
-            )}
-            <button
-              onClick={handleOpenWorkspaceInExplorer}
-              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5"
-              title="Åpne mappen i systemets filutforsker"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Åpne i Filutforsker</span>
-            </button>
-            <button
-              onClick={handleCreateWorkspaceNow}
-              disabled={isCreatingWorkspace}
-              className="btn-primary py-1.5 px-3 text-[12px] flex items-center gap-1.5"
-              title="Opprett eller oppdater mappene på disken nå"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isCreatingWorkspace ? 'animate-spin' : ''}`} />
-              <span>{isCreatingWorkspace ? 'Oppretter...' : 'Synkroniser mapper'}</span>
-            </button>
+
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('nb')}
+                className={`p-3.5 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                  currentLang === 'nb'
+                    ? 'border-ui-accent bg-ui-surface-2 ring-1 ring-ui-accent'
+                    : 'border-ui-border bg-ui-bg hover:border-ui-muted'
+                }`}
+              >
+                <Globe className="w-4 h-4 text-ui-muted flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-ui-text">Norsk (Bokmål)</div>
+                  <div className="text-[10px] text-ui-muted">Norwegian translation</div>
+                </div>
+                {currentLang === 'nb' && <Check className="w-4 h-4 text-ui-accent flex-shrink-0" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Setup Wizard & History */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">
+                {t('settings.onboardingSection')}
+              </h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                {t('settings.redoOnboardingDesc')}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleResetOnboarding}
+                className="btn-secondary text-xs px-3.5 py-2 rounded-lg flex items-center gap-2 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-ui-muted" />
+                <span>{t('settings.redoOnboarding')}</span>
+              </button>
+
+              {onShowChangelog && (
+                <button
+                  type="button"
+                  onClick={onShowChangelog}
+                  className="btn-secondary text-xs px-3.5 py-2 rounded-lg flex items-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-ui-muted" />
+                  <span>{t('settings.viewChangelog')}</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Workspace folder checklist */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
-          {(settings.workspaceFolders || DEFAULT_WORKSPACE_FOLDERS).map((folder: CreativeFolderConfig) => (
-            <div
-              key={folder.folderName}
-              onClick={() => handleToggleWorkspaceFolder(folder.folderName)}
-              className={`p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-2.5 ${
-                folder.enabled
-                  ? 'bg-ui-base/80 border-ui-blue/40 shadow-sm'
-                  : 'bg-ui-base/30 border-ui-border opacity-50 hover:opacity-80'
-              }`}
-            >
-              <div className="mt-0.5 flex-shrink-0">{getFolderIcon(folder.folderName)}</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-white text-[12px] truncate">
-                    {folder.name}
-                  </span>
-                  <div
-                    className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-colors ${
-                      folder.enabled ? 'bg-ui-blue text-white' : 'border border-ui-faint'
-                    }`}
-                  >
-                    {folder.enabled && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                  </div>
-                </div>
-                <span className="text-[10px] text-ui-faint font-mono block mt-0.5">
-                  OpenArt/{folder.folderName}
-                </span>
-                <p className="text-[11px] text-ui-muted mt-1 line-clamp-2 leading-tight">
-                  {folder.description}
+      {/* TAB 2: FOLDERS */}
+      {activeTab === 'folders' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Workspace Root */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-semibold text-ui-text">
+                  {t('settings.workspaceSection')}
+                </h2>
+                <p className="text-xs text-ui-muted mt-0.5">
+                  {t('settings.workspaceDesc')}
                 </p>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* 2. Egendefinerte app- og prosjektstier */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-ui-blue" />
-            Konfigurerbare App- og Prosjektstier
-          </h2>
-          <p className="text-[12px] text-ui-muted">
-            Som standard finner Hub-en Blender og Krita sine logger automatisk. Hvis du bruker portable versjoner eller egendefinerte mapper, kan du overstyre stiene her.
-          </p>
-        </div>
-
-        <div className="space-y-3">
-          {/* Blender custom path */}
-          <div className="p-3.5 rounded-lg bg-ui-surface border border-ui-border space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Box className="w-4 h-4 text-orange-400" />
-                <span className="text-[13px] font-medium text-white">Blender Sti / Historikk</span>
-              </div>
-              {settings.customBlenderPath && (
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={() => handleUpdateSetting('customBlenderPath', null)}
-                  className="text-[11px] text-ui-faint hover:text-white flex items-center gap-1"
-                  title="Gå tilbake til automatisk oppdagelse"
+                  type="button"
+                  onClick={handleOpenWorkspaceInExplorer}
+                  className="btn-secondary text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  Bruk auto-oppdagelse
+                  <ExternalLink className="w-3.5 h-3.5 text-ui-muted" />
+                  <span>{t('settings.openInExplorer')}</span>
                 </button>
-              )}
+                <button
+                  type="button"
+                  disabled={isCreatingWorkspace}
+                  onClick={handleCreateWorkspaceNow}
+                  className="btn-primary text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCreatingWorkspace ? 'animate-spin' : ''}`} />
+                  <span>{isCreatingWorkspace ? t('common.loading') : t('settings.syncFolders')}</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={settings.customBlenderPath || ''}
-                placeholder="Automatisk oppdaget (f.eks. %APPDATA%\Blender Foundation\Blender\...\recent-files.txt)"
-                onChange={(e) => handleUpdateSetting('customBlenderPath', e.target.value || null)}
-                className="flex-1 h-8 bg-ui-base border border-ui-border rounded px-2.5 text-[12px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue font-mono"
-              />
+              <div className="flex-1 px-3 py-2 bg-ui-bg border border-ui-border rounded-lg text-xs font-mono text-ui-text truncate">
+                {effectiveWorkspacePath}
+              </div>
               <button
-                onClick={handlePickCustomBlender}
-                className="btn-secondary h-8 px-2.5 text-[11px] flex items-center gap-1.5 flex-shrink-0"
+                type="button"
+                onClick={handlePickWorkspaceRoot}
+                className="btn-secondary text-xs px-3 py-2 rounded-lg flex-shrink-0 cursor-pointer"
               >
-                <FolderPlus className="w-3.5 h-3.5 text-orange-400" />
-                <span>Velg fil...</span>
+                {t('settings.browseFile')}
               </button>
             </div>
           </div>
 
-          {/* Krita custom path */}
-          <div className="p-3.5 rounded-lg bg-ui-surface border border-ui-border space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Palette className="w-4 h-4 text-sky-400" />
-                <span className="text-[13px] font-medium text-white">Krita Sti / Historikk (kritarc)</span>
-              </div>
-              {settings.customKritaPath && (
-                <button
-                  onClick={() => handleUpdateSetting('customKritaPath', null)}
-                  className="text-[11px] text-ui-faint hover:text-white flex items-center gap-1"
-                  title="Gå tilbake til automatisk oppdagelse"
+          {/* Active Workspace Subfolders List */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-3 shadow-sm">
+            <h2 className="text-sm font-semibold text-ui-text">
+              {t('settings.foldersListTitle')}
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              {(settings.workspaceFolders || DEFAULT_WORKSPACE_FOLDERS).map((folder: CreativeFolderConfig) => (
+                <div
+                  key={folder.folderName}
+                  onClick={() => handleToggleWorkspaceFolder(folder.folderName)}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                    folder.enabled
+                      ? 'bg-ui-surface-2 border-ui-border-strong shadow-xs'
+                      : 'bg-ui-bg border-ui-border opacity-60 hover:opacity-100'
+                  }`}
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  Bruk auto-oppdagelse
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={settings.customKritaPath || ''}
-                placeholder="Automatisk oppdaget (f.eks. %LOCALAPPDATA%\kritarc eller ~/.config/kritarc)"
-                onChange={(e) => handleUpdateSetting('customKritaPath', e.target.value || null)}
-                className="flex-1 h-8 bg-ui-base border border-ui-border rounded px-2.5 text-[12px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue font-mono"
-              />
-              <button
-                onClick={handlePickCustomKrita}
-                className="btn-secondary h-8 px-2.5 text-[11px] flex items-center gap-1.5 flex-shrink-0"
-              >
-                <FolderPlus className="w-3.5 h-3.5 text-sky-400" />
-                <span>Velg fil...</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Projects custom path */}
-          <div className="p-3.5 rounded-lg bg-ui-surface border border-ui-border space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Folder className="w-4 h-4 text-emerald-400" />
-                <span className="text-[13px] font-medium text-white">Hovedmappe for Prosjekter</span>
-              </div>
-              {settings.customProjectsPath && (
-                <button
-                  onClick={() => handleUpdateSetting('customProjectsPath', null)}
-                  className="text-[11px] text-ui-faint hover:text-white flex items-center gap-1"
-                  title="Gå tilbake til standard ~/ArtCraftHub/Projects"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Bruk standard
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={settings.customProjectsPath || ''}
-                placeholder="Standard: ~/ArtCraftHub/Projects eller Dokumenter/OpenArt/Projects"
-                onChange={(e) => handleUpdateSetting('customProjectsPath', e.target.value || null)}
-                className="flex-1 h-8 bg-ui-base border border-ui-border rounded px-2.5 text-[12px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue font-mono"
-              />
-              <button
-                onClick={handlePickCustomProjects}
-                className="btn-secondary h-8 px-2.5 text-[11px] flex items-center gap-1.5 flex-shrink-0"
-              >
-                <FolderPlus className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Velg mappe...</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Standard mapper med enkle toggles */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-            <Folder className="w-4 h-4 text-ui-blue" />
-            Standardmapper (Toggles)
-          </h2>
-          <p className="text-[12px] text-ui-muted">
-            Velg hvilke av datamaskinens standardmapper Hub-en skal gjennomsøke etter kreative formater.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Bilder */}
-          <div
-            onClick={() => handleUpdateSetting('scanPictures', !settings.scanPictures)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanPictures
-                ? 'bg-ui-surface border-ui-blue/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanPictures ? 'bg-purple-500/20 text-purple-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <Image className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Bilder (Pictures)</span>
-                <span className="text-[11px] text-ui-muted">
-                  Illustrasjoner, teksturer, konsepter og foto
-                </span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanPictures ? 'bg-ui-blue' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanPictures ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Dokumenter */}
-          <div
-            onClick={() => handleUpdateSetting('scanDocuments', !settings.scanDocuments)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanDocuments
-                ? 'bg-ui-surface border-ui-blue/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanDocuments ? 'bg-blue-500/20 text-blue-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Dokumenter (Documents)</span>
-                <span className="text-[11px] text-ui-muted">
-                  OpenArt, Blender- og Krita-mapper
-                </span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanDocuments ? 'bg-ui-blue' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanDocuments ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Skrivebord */}
-          <div
-            onClick={() => handleUpdateSetting('scanDesktop', !settings.scanDesktop)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanDesktop
-                ? 'bg-ui-surface border-ui-blue/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanDesktop ? 'bg-teal-500/20 text-teal-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <Monitor className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Skrivebord (Desktop)</span>
-                <span className="text-[11px] text-ui-muted">
-                  Kreative filer lagt midlertidig på skrivebordet
-                </span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanDesktop ? 'bg-ui-blue' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanDesktop ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Nedlastinger */}
-          <div
-            onClick={() => handleUpdateSetting('scanDownloads', !settings.scanDownloads)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanDownloads
-                ? 'bg-ui-surface border-ui-blue/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanDownloads ? 'bg-amber-500/20 text-amber-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <Download className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Nedlastinger (Downloads)</span>
-                <span className="text-[11px] text-ui-muted">
-                  Nylig nedlastede 3D-modeller, børster og vektorer
-                </span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanDownloads ? 'bg-ui-blue' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanDownloads ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. App-historikk aktivering */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-orange-400" />
-            Aktive App-sensorer
-          </h2>
-          <p className="text-[12px] text-ui-muted">
-            Aktiver eller deaktiver automatisk lesing av nylige filer fra dine kreative apper.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Blender */}
-          <div
-            onClick={() => handleUpdateSetting('scanBlender', !settings.scanBlender)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanBlender
-                ? 'bg-ui-surface border-orange-500/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanBlender ? 'bg-orange-500/20 text-orange-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <Box className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Blender Historikk</span>
-                <span className="text-[11px] text-ui-muted">.blend fra recent-files.txt</span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanBlender ? 'bg-orange-500' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanBlender ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Krita */}
-          <div
-            onClick={() => handleUpdateSetting('scanKrita', !settings.scanKrita)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanKrita
-                ? 'bg-ui-surface border-sky-500/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanKrita ? 'bg-sky-500/20 text-sky-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <Palette className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Krita Historikk</span>
-                <span className="text-[11px] text-ui-muted">.kra fra kritarc</span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanKrita ? 'bg-sky-500' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanKrita ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* ArtCraft Smart-prosjekter */}
-          <div
-            onClick={() => handleUpdateSetting('scanArtcraftProjects', !settings.scanArtcraftProjects)}
-            className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
-              settings.scanArtcraftProjects
-                ? 'bg-ui-surface border-emerald-500/40 shadow-sm'
-                : 'bg-ui-surface/40 border-ui-border opacity-70 hover:opacity-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-md flex items-center justify-center ${
-                  settings.scanArtcraftProjects ? 'bg-emerald-500/20 text-emerald-400' : 'bg-ui-base text-ui-faint'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[13px] font-medium text-white block">Smart-Prosjekter</span>
-                <span className="text-[11px] text-ui-muted">OpenArt & Hub Projects</span>
-              </div>
-            </div>
-            <div
-              className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${
-                settings.scanArtcraftProjects ? 'bg-emerald-500' : 'bg-[#333]'
-              }`}
-            >
-              <div
-                className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  settings.scanArtcraftProjects ? 'translate-x-4' : 'translate-x-0'
-                }`}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Egendefinerte overvåkede mapper ("Watch Folders") */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-[15px] font-semibold text-white flex items-center gap-2">
-            <FolderPlus className="w-4 h-4 text-pink-400" />
-            Overvåkede mapper («Watch Folders»)
-          </h2>
-          <p className="text-[12px] text-ui-muted">
-            Har du en egen disk eller ekstern mappe der du lagrer 3D-modeller, tegninger eller oppdrag? Legg den til her.
-          </p>
-        </div>
-
-        {/* Add folder controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <button
-            onClick={handlePickFolder}
-            className="btn-secondary py-2 px-3 text-[13px] flex items-center justify-center gap-2"
-          >
-            <FolderPlus className="w-4 h-4 text-pink-400" />
-            <span>Bla gjennom og velg mappe...</span>
-          </button>
-
-          <form onSubmit={handleAddManualFolder} className="flex-1 flex items-center gap-2">
-            <input
-              type="text"
-              value={customInputPath}
-              onChange={(e) => setCustomInputPath(e.target.value)}
-              placeholder="Eller lim inn mappesti (f.eks. D:\3D_Prosjekter eller /home/bruker/Kunst)..."
-              className="flex-1 h-9 bg-ui-base border border-ui-border rounded-md px-3 text-[13px] text-ui-text placeholder-ui-faint focus:outline-none focus:border-ui-blue"
-            />
-            <button
-              type="submit"
-              disabled={!customInputPath.trim()}
-              className="btn-primary py-1.5 px-3 text-[12px] disabled:opacity-40"
-            >
-              Legg til
-            </button>
-          </form>
-        </div>
-
-        {/* Folders list */}
-        {settings.customFolders.length === 0 ? (
-          <div className="p-4 rounded-lg bg-ui-surface/30 border border-ui-border/60 text-center text-ui-faint text-[12px]">
-            Ingen egendefinerte mapper lagt til ennå. Klikk på «Bla gjennom» for å legge til en mappe.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {settings.customFolders.map((fPath) => (
-              <div
-                key={fPath}
-                className="flex items-center justify-between p-3 rounded-lg bg-ui-surface border border-ui-border/80 text-[13px]"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <Folder className="w-4 h-4 text-pink-400 flex-shrink-0" />
-                  <span className="font-mono text-[12px] text-ui-text truncate" title={fPath}>
-                    {fPath}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleRemoveFolder(fPath)}
-                  className="p-1.5 text-ui-faint hover:text-red-400 rounded transition-colors ml-2"
-                  title="Fjern mappe fra overvåking"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 6. Støyfiltrering & Sikkerhet */}
-      <section className="space-y-4 p-4 rounded-lg bg-ui-surface border border-ui-border">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <div>
-              <h3 className="text-[14px] font-semibold text-white">Smart støyreduksjon & System-svartelisting</h3>
-              <p className="text-[12px] text-ui-muted">
-                Hindrer at cache, ikoner, utviklermapper og systemfiler forurenser oversikten.
-              </p>
-            </div>
-          </div>
-
-          <div
-            onClick={() => handleUpdateSetting('filterNoise', !settings.filterNoise)}
-            className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-              settings.filterNoise ? 'bg-emerald-500' : 'bg-[#333]'
-            }`}
-          >
-            <div
-              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                settings.filterNoise ? 'translate-x-4' : 'translate-x-0'
-              }`}
-            />
-          </div>
-        </div>
-
-        {/* Dedicated Screenshots toggle */}
-        <div className="p-3 rounded-lg bg-ui-panel/60 border border-ui-border/70 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Camera className="w-4 h-4 text-pink-400 flex-shrink-0" />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-medium text-white">Filtrer bort skjermbilder (Screenshots & Skjermklipp)</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pink-500/15 text-pink-400 border border-pink-500/30">
-                  Anbefalt
-                </span>
-              </div>
-              <p className="text-[11.5px] text-ui-muted mt-0.5">
-                Utelater automatisk Windows-skjermbilder (Win+Shift+S, PrtScn) og mapper som Screenshots/Skjermbilder, slik at hjemskjermen bare viser reelle kunstverk og prosjekter.
-              </p>
-            </div>
-          </div>
-
-          <div
-            onClick={() => handleUpdateSetting('ignoreScreenshots', !settings.ignoreScreenshots)}
-            className={`w-10 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors flex-shrink-0 ${
-              settings.ignoreScreenshots ? 'bg-ui-blue' : 'bg-[#333]'
-            }`}
-          >
-            <div
-              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                settings.ignoreScreenshots ? 'translate-x-4' : 'translate-x-0'
-              }`}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-ui-border/60 text-[11px] text-ui-muted">
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Ignorerer AppData, Temp og Windows</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Ignorerer Screenshots & Skjermklipp</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Ignorerer ørsmå ikoner (&lt; 15 KB)</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. Oversikt over støttede filtyper */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Info className="w-4 h-4 text-ui-faint" />
-          <h2 className="text-[14px] font-semibold text-white">Støttede kreative filformater</h2>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-[12px]">
-          <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
-            <span className="font-semibold text-orange-400 block">Blender / 3D</span>
-            <p className="text-ui-muted font-mono text-[11px]">.blend, .fbx, .obj, .gltf, .glb, .stl</p>
-          </div>
-
-          <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
-            <span className="font-semibold text-sky-400 block">Krita / Digital maling</span>
-            <p className="text-ui-muted font-mono text-[11px]">.kra, .ora, .clip, .psd</p>
-          </div>
-
-          <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
-            <span className="font-semibold text-amber-400 block">VectorCraft / Vektor</span>
-            <p className="text-ui-muted font-mono text-[11px]">.svg, .eps, .ai</p>
-          </div>
-
-          <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
-            <span className="font-semibold text-cyan-400 block">Photocraft & Kunst</span>
-            <p className="text-ui-muted font-mono text-[11px]">.png, .jpg, .jpeg, .webp, .raw, .exr, .tiff</p>
-          </div>
-
-          <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
-            <span className="font-semibold text-pink-400 block">Film & Video</span>
-            <p className="text-ui-muted font-mono text-[11px]">.mp4, .mov, .mkv, .webm</p>
-          </div>
-
-          <div className="p-3 rounded-lg bg-ui-surface/60 border border-ui-border space-y-1">
-            <span className="font-semibold text-indigo-400 block">Sound & Publisering</span>
-            <p className="text-ui-muted font-mono text-[11px]">.wav, .mp3, .flac, .pdf, .idml, .fig</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Om OpenArt Hub & Oppdateringslogg */}
-      <section className="p-4 rounded-xl bg-ui-surface border border-ui-border shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-purple-900/30">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-semibold text-white">Om OpenArt Hub & Oppdateringslogg</h2>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
-                  v1.0.6
-                </span>
-              </div>
-              <p className="text-[12px] text-ui-muted mt-0.5">
-                Se alle nye funksjoner og forbedringer, eller start velkomst-oppsettet på nytt når som helst.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {onShowChangelog && (
-              <button
-                onClick={onShowChangelog}
-                className="btn-primary py-2 px-4 text-[12px] flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-purple-900/25 rounded-lg transition-all cursor-pointer"
-                title="Åpne oppdateringsloggen med alle nye funksjoner"
-              >
-                <Sparkles className="w-4 h-4 text-purple-200" />
-                <span>Se oppdateringslogg (Changelog)</span>
-              </button>
-            )}
-            <button
-              onClick={handleResetOnboarding}
-              className="btn-secondary py-2 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors cursor-pointer"
-              title="Kjør førstegangsoppsett og velkomst-skjerm på nytt"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Restart / Redo Onboarding</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 9. Lokal Feillogg & Diagnostikk */}
-      <section className="p-4 rounded-xl bg-ui-surface border border-ui-border shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-ui-border/60 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
-              <Terminal className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-[15px] font-semibold text-white">Lokal Feillogg & Diagnostikk</h2>
-                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-medium border border-emerald-500/25">
-                  100% Privat (Kun lokalt)
-                </span>
-                <span className="text-[10.5px] px-2 py-0.5 rounded-full bg-ui-bg text-ui-muted border border-ui-border">
-                  Maks 100 linjer
-                </span>
-              </div>
-              <p className="text-[12px] text-ui-muted mt-0.5">
-                Alle feilmeldinger og hendelser lagres lokalt på din PC og sendes aldri over nettet. Gamle logger overskrives automatisk for å beskytte diskplass.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={fetchDiagnosticLogs}
-              disabled={isLoadingLogs}
-              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors cursor-pointer disabled:opacity-50"
-              title="Last inn feilloggen på nytt"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingLogs ? 'animate-spin' : ''}`} />
-              <span>Oppdater</span>
-            </button>
-
-            <button
-              onClick={handleCopyAllLogs}
-              disabled={diagnosticLogs.length === 0}
-              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-ui-text hover:text-white transition-colors cursor-pointer disabled:opacity-50"
-              title="Kopier hele feilloggen til utklippstavlen"
-            >
-              {logCopiedAll ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Kopiert!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Kopier feillogg</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleClearAllLogs}
-              disabled={diagnosticLogs.length === 0}
-              className="btn-secondary py-1.5 px-3 text-[12px] flex items-center gap-1.5 text-rose-400 hover:text-rose-300 hover:border-rose-500/40 transition-colors cursor-pointer disabled:opacity-50"
-              title="Tøm alle lokale feillogger"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Tøm logg</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Diagnostic Logs List */}
-        <div className="space-y-2">
-          {diagnosticLogs.length === 0 ? (
-            <div className="p-6 rounded-lg bg-ui-bg/60 border border-ui-border text-center space-y-1">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
-              <p className="text-[13px] font-medium text-white">Ingen registrerte feil</p>
-              <p className="text-[11.5px] text-ui-muted">
-                Systemet og appene kjører som forventet. Dersom en feil oppstår under avinstallasjon, installasjon eller start, vil du finne den her.
-              </p>
-            </div>
-          ) : (
-            <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-              {diagnosticLogs.map((entry) => {
-                const isError = entry.level.toUpperCase() === 'ERROR';
-                const isWarn = entry.level.toUpperCase() === 'WARN';
-                const isCopied = copiedEntryId === entry.id;
-
-                return (
-                  <div
-                    key={entry.id}
-                    className={`p-3 rounded-lg border transition-colors ${
-                      isError
-                        ? 'bg-rose-950/20 border-rose-900/40'
-                        : isWarn
-                        ? 'bg-amber-950/20 border-amber-900/40'
-                        : 'bg-ui-bg/70 border-ui-border'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2.5 min-w-0">
-                        {isError ? (
-                          <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
-                        ) : isWarn ? (
-                          <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                        ) : (
-                          <Info className="w-4 h-4 text-sky-400 mt-0.5 flex-shrink-0" />
-                        )}
-
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span
-                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                                isError
-                                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                  : isWarn
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                              }`}
-                            >
-                              {entry.level}
-                            </span>
-
-                            <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-ui-surface border border-ui-border text-ui-text">
-                              {entry.source}
-                            </span>
-
-                            <span className="text-[11px] text-ui-faint font-mono">
-                              {entry.timestampStr}
-                            </span>
-                          </div>
-
-                          <p className="text-[12.5px] font-medium text-white break-words">
-                            {entry.message}
-                          </p>
-
-                          {entry.details && (
-                            <pre className="mt-1 p-2 rounded bg-black/40 border border-white/5 font-mono text-[11px] text-ui-muted whitespace-pre-wrap break-all select-all">
-                              {entry.details}
-                            </pre>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleCopyEntry(entry)}
-                        className="btn-secondary p-1.5 rounded text-[11px] flex items-center gap-1 text-ui-muted hover:text-white transition-colors flex-shrink-0 cursor-pointer"
-                        title="Kopier denne hendelsen"
-                      >
-                        {isCopied ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                  <div className="mt-0.5">{getFolderIcon(folder.folderName)}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-ui-text truncate">{folder.name}</div>
+                    <div className="text-[10px] text-ui-muted truncate mt-0.5 font-mono">
+                      {folder.folderName}/
                     </div>
                   </div>
-                );
-              })}
+                  <div
+                    className={`w-4 h-4 rounded flex items-center justify-center transition-colors ${
+                      folder.enabled
+                        ? 'bg-ui-accent text-white'
+                        : 'border border-ui-border bg-ui-surface'
+                    }`}
+                  >
+                    {folder.enabled && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Monitored System & Custom Paths */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">Monitored Locations</h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                Control which folders OpenArt Hub scans for recent creative files and project assets.
+              </p>
+            </div>
+
+            {/* Standard OS folders */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+              {[
+                { key: 'scanPictures' as const, label: 'Pictures' },
+                { key: 'scanDocuments' as const, label: 'Documents' },
+                { key: 'scanDesktop' as const, label: 'Desktop' },
+                { key: 'scanDownloads' as const, label: 'Downloads' },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className="flex items-center justify-between p-2.5 rounded-lg border border-ui-border bg-ui-bg cursor-pointer hover:bg-ui-surface-2 transition-colors"
+                >
+                  <span className="text-xs font-medium text-ui-text">{item.label}</span>
+                  <Switch
+                    checked={Boolean(settings[item.key])}
+                    onChange={(v) => handleUpdateSetting(item.key, v)}
+                  />
+                </label>
+              ))}
+            </div>
+
+            {/* Custom Folders */}
+            <div className="pt-2 border-t border-ui-border space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-ui-text">Custom Monitored Paths</span>
+                <button
+                  type="button"
+                  onClick={handlePickFolder}
+                  className="btn-secondary text-xs px-2.5 py-1 rounded-md flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Folder...</span>
+                </button>
+              </div>
+
+              {settings.customFolders.length > 0 ? (
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  {settings.customFolders.map((path) => (
+                    <div
+                      key={path}
+                      className="flex items-center justify-between p-2 rounded-lg bg-ui-bg border border-ui-border text-xs"
+                    >
+                      <span className="font-mono text-ui-text truncate flex-1 mr-2">{path}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFolder(path)}
+                        className="text-ui-muted hover:text-red-400 p-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[11px] text-ui-muted italic">
+                  No custom folders added yet.
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </section>
+      )}
+
+      {/* TAB 3: APPS */}
+      {activeTab === 'apps' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* App Executable Overrides */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-5 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">
+                {t('settings.appsSection')}
+              </h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                {t('settings.appsDesc')}
+              </p>
+            </div>
+
+            {/* Blender */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-ui-text">Blender Executable</span>
+                {settings.customBlenderPath && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateSetting('customBlenderPath', null)}
+                    className="text-ui-muted hover:text-red-400 text-[11px] cursor-pointer"
+                  >
+                    {t('settings.clearOverride')}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-3 py-2 bg-ui-bg border border-ui-border rounded-lg text-xs font-mono text-ui-text truncate">
+                  {settings.customBlenderPath || 'Auto-detected in Program Files / PATH'}
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePickCustomBlender}
+                  className="btn-secondary text-xs px-3 py-2 rounded-lg flex-shrink-0 cursor-pointer"
+                >
+                  {t('settings.browseFile')}
+                </button>
+              </div>
+            </div>
+
+            {/* Krita */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-ui-text">Krita Executable</span>
+                {settings.customKritaPath && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateSetting('customKritaPath', null)}
+                    className="text-ui-muted hover:text-red-400 text-[11px] cursor-pointer"
+                  >
+                    {t('settings.clearOverride')}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-3 py-2 bg-ui-bg border border-ui-border rounded-lg text-xs font-mono text-ui-text truncate">
+                  {settings.customKritaPath || 'Auto-detected in Program Files / PATH'}
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePickCustomKrita}
+                  className="btn-secondary text-xs px-3 py-2 rounded-lg flex-shrink-0 cursor-pointer"
+                >
+                  {t('settings.browseFile')}
+                </button>
+              </div>
+            </div>
+
+            {/* PhotoCraft & Studio Projects */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-ui-text">PhotoCraft & Smart Projects Root</span>
+                {settings.customProjectsPath && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateSetting('customProjectsPath', null)}
+                    className="text-ui-muted hover:text-red-400 text-[11px] cursor-pointer"
+                  >
+                    {t('settings.clearOverride')}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-3 py-2 bg-ui-bg border border-ui-border rounded-lg text-xs font-mono text-ui-text truncate">
+                  {settings.customProjectsPath || `${effectiveWorkspacePath}/Projects`}
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePickCustomProjects}
+                  className="btn-secondary text-xs px-3 py-2 rounded-lg flex-shrink-0 cursor-pointer"
+                >
+                  {t('settings.browseFile')}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Cache Management */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-ui-text">Local Cache & Storage</h2>
+                <p className="text-xs text-ui-muted mt-0.5">
+                  Clear generated thumbnail previews and temporary cache data.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearCache}
+                className="btn-secondary text-xs px-3.5 py-1.5 rounded-lg cursor-pointer"
+              >
+                Clear Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: ADVANCED */}
+      {activeTab === 'advanced' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          {/* Noise & Screenshot Filters */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-4 shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">
+                {t('settings.filteringSection')}
+              </h2>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-ui-bg border border-ui-border">
+                <div>
+                  <div className="text-xs font-medium text-ui-text">
+                    {t('settings.filterNoise')}
+                  </div>
+                  <div className="text-[11px] text-ui-muted mt-0.5">
+                    {t('settings.filterNoiseDesc')}
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.filterNoise}
+                  onChange={(v) => handleUpdateSetting('filterNoise', v)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-ui-bg border border-ui-border">
+                <div>
+                  <div className="text-xs font-medium text-ui-text">
+                    {t('settings.ignoreScreenshots')}
+                  </div>
+                  <div className="text-[11px] text-ui-muted mt-0.5">
+                    {t('settings.ignoreScreenshotsDesc')}
+                  </div>
+                </div>
+                <Switch
+                  checked={Boolean(settings.ignoreScreenshots)}
+                  onChange={(v) => handleUpdateSetting('ignoreScreenshots', v)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Diagnostics Log Viewer */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-ui-text">
+                  {t('settings.diagnosticsTitle')} ({diagnosticLogs.length})
+                </h2>
+                <p className="text-xs text-ui-muted mt-0.5">
+                  Internal runtime log for debugging launch, scan and network events.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyAllLogs}
+                  className="btn-secondary text-xs px-2.5 py-1 rounded-md flex items-center gap-1 cursor-pointer"
+                >
+                  {logCopiedAll ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                  <span>{logCopiedAll ? t('common.copied') : t('settings.copyLogs')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearAllLogs}
+                  className="btn-secondary text-xs px-2.5 py-1 rounded-md flex items-center gap-1 text-red-400 hover:text-red-300 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>{t('settings.clearLogs')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter pills */}
+            <div className="flex items-center gap-1.5 pt-1">
+              {(['all', 'ERROR', 'WARN', 'INFO'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => setLogFilter(lvl)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                    logFilter === lvl
+                      ? 'bg-ui-surface-2 text-ui-text border border-ui-border-strong font-medium'
+                      : 'text-ui-muted hover:text-ui-text'
+                  }`}
+                >
+                  {lvl.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            {/* Log Terminal Window */}
+            <div className="h-64 rounded-xl bg-ui-bg border border-ui-border overflow-y-auto p-3 font-mono text-[11px] space-y-2">
+              {filteredLogs.length > 0 ? (
+                filteredLogs.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="p-2 rounded-lg bg-ui-surface border border-ui-border flex items-start justify-between gap-2"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-[10px] text-ui-muted">
+                        <span>{entry.timestampStr}</span>
+                        <span
+                          className={`font-semibold uppercase ${
+                            entry.level === 'ERROR'
+                              ? 'text-red-400'
+                              : entry.level === 'WARN'
+                              ? 'text-amber-400'
+                              : 'text-ui-accent'
+                          }`}
+                        >
+                          [{entry.level}]
+                        </span>
+                        <span className="text-ui-muted">[{entry.source}]</span>
+                      </div>
+                      <div className="text-ui-text mt-0.5 break-words">{entry.message}</div>
+                      {entry.details && (
+                        <pre className="mt-1 text-[10px] text-ui-muted overflow-x-auto whitespace-pre-wrap">
+                          {entry.details}
+                        </pre>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyEntry(entry)}
+                      className="p-1 rounded text-ui-muted hover:text-ui-text flex-shrink-0 cursor-pointer"
+                      title="Copy entry"
+                    >
+                      {copiedEntryId === entry.id ? (
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="h-full flex items-center justify-center text-ui-muted">
+                  No diagnostic events logged.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reset All Settings */}
+          <div className="rounded-xl border border-ui-border bg-ui-surface p-5 flex items-center justify-between shadow-sm">
+            <div>
+              <h2 className="text-sm font-semibold text-ui-text">Reset Settings</h2>
+              <p className="text-xs text-ui-muted mt-0.5">
+                Restore default directories, theme, and scanning parameters.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetAllSettings}
+              className="btn-secondary text-xs px-3.5 py-1.5 rounded-lg text-red-400 hover:text-red-300 cursor-pointer"
+            >
+              Reset to Defaults
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

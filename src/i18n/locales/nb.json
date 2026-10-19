@@ -33,14 +33,18 @@
   "nav": {
     "home": "Hjem",
     "apps": "Alle apper",
+    "allApps": "Alle apper",
     "projects": "Prosjekter",
     "palettes": "Fargepaletter",
     "updates": "Oppdateringer",
-    "settings": "Innstillinger"
+    "settings": "Innstillinger",
+    "work": "Arbeid",
+    "configuration": "Konfigurasjon"
   },
   "home": {
     "title": "Hjem",
     "subtitle": "Ditt kreative skrivebord. Rask tilgang til installerte apper og nylig arbeid.",
+    "searchPlaceholder": "Søk i apper og filtyper...",
     "readyStatus": "Klar",
     "exploreApps": "Utforsk alle apper",
     "recentFilesTitle": "Nylige filer",
@@ -161,10 +165,14 @@
   "apps": {
     "title": "Alle apper",
     "subtitle": "{{count}} kreative verktøy tilgjengelig i suiten.",
+    "installedTitle": "Installert og klart",
     "installedHeading": "Installert og klart",
+    "availableTitle": "Tilgjengelig for nedlasting",
     "availableHeading": "Tilgjengelig for nedlasting",
     "searchPlaceholder": "Søk etter apper etter navn, kategori eller filtype...",
     "allCategories": "Alle kategorier",
+    "noResults": "Ingen verktøy funnet som passer med søket.",
+    "clearFilters": "Tøm filtre",
     "installNative": "Installer",
     "launchNative": "Åpne",
     "openWeb": "Åpne nettapp",
@@ -185,7 +193,17 @@
     "installedSection": "Oppdatert og klart",
     "availableSection": "Tilgjengelige oppdateringer",
     "whatsNew": "Hva er nytt",
-    "simulate": "Simuler oppdatering"
+    "simulate": "Simuler oppdatering",
+    "upToDate": "Oppdatert",
+    "allUpToDate": "Alle verktøy og Hub-en er oppdatert.",
+    "available": "Tilgjengelige oppdateringer",
+    "availableCount": "{{count}} oppdateringer tilgjengelig.",
+    "availableCount_one": "1 oppdatering tilgjengelig.",
+    "check": "Se etter oppdateringer",
+    "newHubVersion": "Ny Hub-versjon",
+    "updateHubNow": "Oppdater Hub nå",
+    "simulateDesc": "Test oppdateringsflyt med simulert pakke.",
+    "simulateButton": "Simuler oppdatering"
   },
   "palettes": {
     "title": "Fargepaletter",

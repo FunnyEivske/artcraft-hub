@@ -40,19 +40,20 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Search */}
       <div className="flex-1 flex justify-center">
-        <div className="relative w-full max-w-[460px]">
-          <Search className="w-4 h-4 text-ui-muted absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative w-full max-w-[460px] flex items-center">
+          <Search className="w-4 h-4 text-ui-muted absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('home.searchPlaceholder')}
-            className="w-full h-8 bg-ui-bg border border-ui-border rounded-full pl-9 pr-8 text-[13px] text-ui-text placeholder-ui-muted focus:outline-none focus:border-ui-accent transition-colors"
+            className="w-full h-8 bg-ui-bg border border-ui-border rounded-full pl-[34px] pr-[34px] text-[13px] text-ui-text placeholder-ui-muted focus:outline-none focus:border-ui-accent transition-colors"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ui-muted hover:text-ui-text"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-ui-muted hover:text-ui-text cursor-pointer"
               title={t('common.close')}
             >
               <X className="w-3.5 h-3.5" />

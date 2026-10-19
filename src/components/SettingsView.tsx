@@ -54,13 +54,13 @@ const Switch: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
     role="switch"
     aria-checked={checked}
     onClick={() => onChange(!checked)}
-    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer focus:outline-none flex-shrink-0 ${
+    className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ui-accent inline-flex items-center px-0.5 flex-shrink-0 ${
       checked ? 'bg-ui-accent' : 'bg-ui-surface-2 border border-ui-border'
     }`}
   >
     <span
-      className={`block w-3.5 h-3.5 rounded-full bg-white transition-transform duration-150 ${
-        checked ? 'translate-x-4.5' : 'translate-x-0.5'
+      className={`block w-4 h-4 rounded-full bg-white shadow-xs transition-transform duration-150 ease-out ${
+        checked ? 'translate-x-4' : 'translate-x-0'
       }`}
     />
   </button>
@@ -466,7 +466,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-xs font-medium border-b-2 transition-colors cursor-pointer outline-none focus:outline-none focus-visible:outline-none ${
               activeTab === tab.id
                 ? 'border-ui-accent text-ui-text font-medium'
                 : 'border-transparent text-ui-muted hover:text-ui-text'

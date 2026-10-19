@@ -33,14 +33,18 @@
   "nav": {
     "home": "Home",
     "apps": "All Apps",
+    "allApps": "All Apps",
     "projects": "Projects",
     "palettes": "Palettes",
     "updates": "Updates",
-    "settings": "Settings"
+    "settings": "Settings",
+    "work": "Work",
+    "configuration": "Configuration"
   },
   "home": {
     "title": "Home",
     "subtitle": "Your creative desk. Quick access to installed apps and recent work.",
+    "searchPlaceholder": "Search apps and file types...",
     "readyStatus": "Ready",
     "exploreApps": "Explore all apps",
     "recentFilesTitle": "Recent Files",
@@ -161,10 +165,14 @@
   "apps": {
     "title": "All Apps",
     "subtitle": "{{count}} creative tools available in the suite.",
+    "installedTitle": "Installed & Ready",
     "installedHeading": "Installed & Ready",
+    "availableTitle": "Available for Download",
     "availableHeading": "Available for Download",
     "searchPlaceholder": "Search apps by name, category, or file type...",
     "allCategories": "All Categories",
+    "noResults": "No creative tools found matching your search.",
+    "clearFilters": "Clear filters",
     "installNative": "Install",
     "launchNative": "Open",
     "openWeb": "Open Web App",
@@ -185,7 +193,17 @@
     "installedSection": "Up to Date",
     "availableSection": "Available Updates",
     "whatsNew": "What's New",
-    "simulate": "Simulate update"
+    "simulate": "Simulate update",
+    "upToDate": "Up to Date",
+    "allUpToDate": "All tools and the Hub are up to date.",
+    "available": "Available Updates",
+    "availableCount": "{{count}} updates available.",
+    "availableCount_one": "1 update available.",
+    "check": "Check for updates",
+    "newHubVersion": "New Hub Version",
+    "updateHubNow": "Update Hub Now",
+    "simulateDesc": "Test update flow with simulated payloads.",
+    "simulateButton": "Simulate Update"
   },
   "palettes": {
     "title": "Color Palettes",

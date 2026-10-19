@@ -94,7 +94,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
             </span>
           </div>
           <p className="text-xs text-ui-muted mt-1">
-            {t('apps.subtitle')}
+            {t('apps.subtitle', { count: apps.length })}
           </p>
         </div>
 

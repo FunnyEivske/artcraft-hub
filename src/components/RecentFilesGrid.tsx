@@ -357,15 +357,15 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
                   </div>
                 )}
 
-                {/* Real Media Type Badge (NO hardcoded "DOKUMENTER"!) */}
+                {/* Real Media Type Badge */}
                 <div className="absolute top-2 left-2 flex items-center gap-1.5 pointer-events-none">
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium border border-ui-border bg-ui-surface/90 text-ui-text backdrop-blur-sm">
+                  <span className="px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-[#111215]/90 text-white border border-white/20 backdrop-blur-md shadow-xs">
                     {mediaLabel}
                   </span>
                 </div>
 
                 {/* File size badge */}
-                <div className="absolute top-2 right-2 bg-ui-surface/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md text-[10px] text-ui-muted font-mono border border-ui-border pointer-events-none">
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10.5px] font-mono font-medium bg-[#111215]/90 text-white/95 border border-white/20 backdrop-blur-md shadow-xs pointer-events-none">
                   {formatFileSize(file.size_bytes)}
                 </div>
               </div>

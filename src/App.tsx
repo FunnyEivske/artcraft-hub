@@ -495,6 +495,7 @@ export function App() {
               onCheckUpdates={() => loadData(true)}
               onUpdateAll={handleUpdateAll}
               onInstall={handleInstall}
+              onLaunchNative={handleLaunchNative}
               onInstallHub={() => hubUpdate && handleInstall(createHubReleaseInfo(hubUpdate), 'native')}
               isChecking={isRefreshing}
               progressMap={progressMap}

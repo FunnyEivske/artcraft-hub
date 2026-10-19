@@ -13,6 +13,7 @@ const ABBREVIATIONS: Record<string, string> = {
   designcraft: 'Dc',
   figcraft: 'Fg',
   soundcraft: 'Sc',
+  cadcraft: 'Cd',
 };
 
 // Saturated, distinct, vivid studio colors
@@ -26,6 +27,7 @@ const VIVID_COLORS: Record<string, string> = {
   designcraft: '#e11d48', // Vivid Crimson Pink (DesignCraft)
   figcraft: '#10b981', // Vivid Emerald Green (FigCraft)
   soundcraft: '#6366f1', // Vivid Indigo (SoundCraft)
+  cadcraft: '#f97316', // Vivid CAD Orange (CADCraft)
   blender: '#ea580c', // Vivid Blender Orange
   krita: '#0284c7', // Vivid Krita Blue
 };

@@ -57,7 +57,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
           </p>
         ) : (
           <p className="text-[13px] text-ui-muted mt-1">
-            Komplett kreativ pakke med 9 ArtCraft-studioer samt Blender og Krita.
+            Komplett kreativ pakke med 10 ArtCraft-studioer (PhotoCraft, VectorCraft, CADCraft m.fl.) samt Blender og Krita.
           </p>
         )}
       </div>

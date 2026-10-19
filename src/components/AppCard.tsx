@@ -129,14 +129,13 @@ export const AppRow: React.FC<AppItemProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 w-[168px] justify-end">
-          {app.status === 'UpdateAvailable' ? (
+        <div className="flex items-center gap-1.5 justify-end">
+          <button className="btn-secondary" disabled={busy} onClick={() => onLaunchNative(app.app_id)}>
+            Åpne
+          </button>
+          {app.status === 'UpdateAvailable' && (
             <button className="btn-primary" disabled={busy} onClick={() => onInstall(app, 'native')}>
               Oppdater
-            </button>
-          ) : (
-            <button className="btn-secondary" disabled={busy} onClick={() => onLaunchNative(app.app_id)}>
-              Åpne
             </button>
           )}
           <AppMenu

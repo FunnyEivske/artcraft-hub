@@ -10,6 +10,7 @@ interface UpdateCenterViewProps {
   onCheckUpdates: () => void;
   onUpdateAll: () => void;
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
+  onLaunchNative?: (appId: string) => void;
   onInstallHub?: () => void;
   isChecking: boolean;
   progressMap: Record<string, DownloadProgressPayload>;
@@ -30,6 +31,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
   onCheckUpdates,
   onUpdateAll,
   onInstall,
+  onLaunchNative,
   onInstallHub,
   isChecking,
   progressMap,
@@ -128,9 +130,16 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <button className="btn-secondary" onClick={() => onInstall(app, 'native')}>
-                        Oppdater
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {onLaunchNative && (
+                          <button className="btn-secondary" onClick={() => onLaunchNative(app.app_id)}>
+                            Åpne
+                          </button>
+                        )}
+                        <button className="btn-primary" onClick={() => onInstall(app, 'native')}>
+                          Oppdater
+                        </button>
+                      </div>
                     )}
                   </div>
                   {app.release_notes && (

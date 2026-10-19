@@ -106,6 +106,16 @@ pub fn get_app_catalog() -> Vec<AppMetadata> {
             icon_name: "Volume2".into(),
         },
         AppMetadata {
+            id: "cadcraft".into(),
+            name: "CADCraft".into(),
+            alternative_to: "AutoCAD".into(),
+            category: "CAD & Teknisk".into(),
+            description: "Datastøttet konstruksjon (CAD), 2D/3D teknisk tegning, parametrisk geometri og DXF/DWG/STEP-støtte.".into(),
+            file_types: vec![".dxf".into(), ".dwg".into(), ".step".into(), ".stp".into(), ".iges".into(), ".igs".into(), ".svg".into()],
+            color_accent: "#f97316".into(),
+            icon_name: "Compass".into(),
+        },
+        AppMetadata {
             id: "blender".into(),
             name: "Blender".into(),
             alternative_to: "Maya, 3ds Max & Cinema 4D".into(),

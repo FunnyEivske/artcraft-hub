@@ -34,7 +34,7 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
     let hub_home = get_hub_home();
     let os = std::env::consts::OS;
 
-    // Check user's hub installation first: ~/ArtCraftHub/Apps/{app_id}/...
+    // 1. Check user's hub installation: ~/ArtCraftHub/Apps/{app_id}/...
     let hub_app_dir = hub_home.join("Apps").join(app_id);
     if hub_app_dir.exists() {
         if let Ok(entries) = fs::read_dir(&hub_app_dir) {
@@ -42,18 +42,25 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
                 let path = entry.path();
                 if path.is_file() {
                     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                    if (os == "windows" && ext.eq_ignore_ascii_case("exe"))
-                        || (os == "macos" && ext.eq_ignore_ascii_case("app"))
-                        || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.is_empty()))
-                    {
-                        return Some(path.to_string_lossy().to_string());
+                    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                    // Skip installers and dummy scripts
+                    if !file_name.contains("installer") && !file_name.contains("setup") && !file_name.ends_with(".msi") {
+                        if (os == "windows" && ext.eq_ignore_ascii_case("exe"))
+                            || (os == "macos" && ext.eq_ignore_ascii_case("app"))
+                            || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.is_empty()))
+                        {
+                            let file_len = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                            if file_len > 50_000 {
+                                return Some(path.to_string_lossy().to_string());
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    // Check system-wide paths for Blender & Krita
+    // 2. Check system-wide paths for Blender & Krita & Storytold Creative Suite
     match app_id {
         "blender" => {
             if os == "windows" {
@@ -134,7 +141,63 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
                 }
             }
         }
-        _ => {}
+        _ => {
+            // General Creative Suite apps (PhotoCraft, VectorCraft, FilmCraft, etc.)
+            let catalog = get_app_catalog();
+            let app_name = catalog
+                .iter()
+                .find(|a| a.id == app_id)
+                .map(|a| a.name.as_str())
+                .unwrap_or(app_id);
+
+            if os == "windows" {
+                let prog_files = [
+                    std::env::var("ProgramFiles").unwrap_or_else(|_| r"C:\Program Files".into()),
+                    std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| r"C:\Program Files (x86)".into()),
+                    format!(r"{}\Programs", std::env::var("LOCALAPPDATA").unwrap_or_default()),
+                ];
+
+                for base in &prog_files {
+                    if base.is_empty() {
+                        continue;
+                    }
+                    let p_base = PathBuf::from(base);
+                    let candidates = [
+                        p_base.join(app_name).join(format!("{}.exe", app_id)),
+                        p_base.join(app_name).join(format!("{}.exe", app_name)),
+                        p_base.join(app_id).join(format!("{}.exe", app_id)),
+                        p_base.join("Storytold").join(app_name).join(format!("{}.exe", app_id)),
+                        p_base.join("ArtCraft").join(app_name).join(format!("{}.exe", app_id)),
+                    ];
+                    for c in &candidates {
+                        if c.is_file() {
+                            return Some(c.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    format!("/Applications/{}.app/Contents/MacOS/{}", app_name, app_id),
+                    format!("/Applications/{}.app", app_name),
+                    format!("/Applications/{}.app", app_id),
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    format!("/usr/bin/{}", app_id),
+                    format!("/usr/local/bin/{}", app_id),
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
     }
 
     None
@@ -593,19 +656,41 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
 
                             match os {
                                 "windows" => {
-                                    if name.ends_with(".exe") || name.ends_with(".msi") {
-                                        native_url = d_url;
-                                        native_asset_name = Some(name.to_string());
+                                    let lower = name.to_lowercase();
+                                    if lower.ends_with(".exe") || lower.ends_with(".msi") {
+                                        let is_x64 = lower.contains("x64")
+                                            || lower.contains("x86_64")
+                                            || lower.contains("win64")
+                                            || lower.contains("amd64");
+                                        let is_arm = lower.contains("arm64") || lower.contains("aarch64");
+                                        let is_x86 = lower.contains("x86") || lower.contains("i686") || lower.contains("win32");
+
+                                        let should_pick = if native_url.is_none() {
+                                            true
+                                        } else if is_x64 {
+                                            true
+                                        } else if !is_arm && !is_x86 {
+                                            true
+                                        } else {
+                                            false
+                                        };
+
+                                        if should_pick {
+                                            native_url = d_url;
+                                            native_asset_name = Some(name.to_string());
+                                        }
                                     }
                                 }
                                 "macos" => {
-                                    if name.ends_with(".dmg") || name.ends_with(".pkg") {
+                                    let lower = name.to_lowercase();
+                                    if lower.ends_with(".dmg") || lower.ends_with(".pkg") {
                                         native_url = d_url;
                                         native_asset_name = Some(name.to_string());
                                     }
                                 }
                                 "linux" => {
-                                    if name.ends_with(".AppImage") || name.ends_with(".deb") {
+                                    let lower = name.to_lowercase();
+                                    if lower.ends_with(".appimage") || lower.ends_with(".deb") {
                                         native_url = d_url;
                                         native_asset_name = Some(name.to_string());
                                     }
@@ -1062,21 +1147,45 @@ pub async fn install_or_update_app(
         }
     } else {
         let os = std::env::consts::OS;
-        let file_name = match os {
-            "windows" => format!("{}.exe", app_id),
-            "macos" => format!("{}.app", app_id),
-            _ => format!("{}.AppImage", app_id),
+        let raw_name = download_url
+            .split('?')
+            .next()
+            .unwrap_or("")
+            .split('/')
+            .last()
+            .unwrap_or("");
+
+        let installer_name = if !raw_name.is_empty()
+            && (raw_name.ends_with(".msi")
+                || raw_name.ends_with(".exe")
+                || raw_name.ends_with(".dmg")
+                || raw_name.ends_with(".pkg")
+                || raw_name.ends_with(".AppImage")
+                || raw_name.ends_with(".deb"))
+        {
+            raw_name.to_string()
+        } else {
+            match os {
+                "windows" => format!("{}-setup.msi", app_id),
+                "macos" => format!("{}.dmg", app_id),
+                _ => format!("{}.AppImage", app_id),
+            }
         };
-        let target_file = apps_dir.join(&file_name);
+
+        let target_file = apps_dir.join(&installer_name);
 
         if !downloaded_bytes.is_empty() {
             let _ = fs::write(&target_file, &downloaded_bytes);
-        } else {
-            let starter_content = format!(
-                "#!/usr/bin/env sh\necho 'Running {} Native Studio'\n",
-                app_id
-            );
-            let _ = fs::write(&target_file, starter_content);
+        }
+
+        // Clean up any old broken dummy placeholder files (< 50KB)
+        let old_dummy = apps_dir.join(format!("{}.exe", app_id));
+        if old_dummy.exists() {
+            if let Ok(meta) = fs::metadata(&old_dummy) {
+                if meta.len() < 50_000 {
+                    let _ = fs::remove_file(&old_dummy);
+                }
+            }
         }
 
         #[cfg(unix)]
@@ -1089,7 +1198,35 @@ pub async fn install_or_update_app(
             }
         }
 
-        executable_path = Some(target_file.to_string_lossy().to_string());
+        // Launch the installer immediately so the user can complete the installation
+        #[cfg(target_os = "windows")]
+        {
+            if target_file.exists() {
+                let _ = std::process::Command::new("cmd")
+                    .args(["/C", "start", "", &target_file.to_string_lossy()])
+                    .spawn();
+            }
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            if target_file.exists() {
+                let _ = std::process::Command::new("open")
+                    .arg(&target_file)
+                    .spawn();
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            if target_file.exists() {
+                let _ = std::process::Command::new("xdg-open")
+                    .arg(&target_file)
+                    .spawn();
+            }
+        }
+
+        executable_path = detect_local_app_binary(&app_id);
     }
 
     let mut installed_map = get_installed_versions_map();
@@ -1112,16 +1249,16 @@ pub async fn install_or_update_app(
             total: 100,
             percent: 100.0,
             status: "completed".to_string(),
-            message: format!("{} er vellykket installert og klar til bruk!", app_id),
+            message: format!("Installasjonsprogram for {} er lastet ned og startet!", app_id),
         },
     );
 
-    Ok(format!("{} ble installert ({})", app_id, target_type))
+    Ok(format!("Installasjonsprogram for {} startet", app_id))
 }
 
 #[tauri::command]
 pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<String, String> {
-    // 1. Check if detected locally on system (e.g. Blender or Krita)
+    // 1. Check if detected locally on system (e.g. in Program Files or Apps directory)
     if let Some(exe_path) = detect_local_app_binary(&app_id) {
         let mut cmd = std::process::Command::new(&exe_path);
         if let Some(ref path) = file_path_optional {
@@ -1131,7 +1268,7 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
         return Ok(format!("Startet {}: {}", app_id, exe_path));
     }
 
-    // 2. Check ~/ArtCraftHub/Apps/{app_id}
+    // 2. Check ~/ArtCraftHub/Apps/{app_id} for a valid executable
     let hub_home = get_hub_home();
     let apps_dir = hub_home.join("Apps").join(&app_id);
     let os = std::env::consts::OS;
@@ -1143,36 +1280,86 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
     };
 
     if target_file.exists() {
-        let mut cmd = std::process::Command::new(&target_file);
-        if let Some(ref path) = file_path_optional {
-            cmd.arg(path);
-        }
-        cmd.spawn().map_err(|e| format!("Feil ved oppstart av {}: {}", app_id, e))?;
-        Ok(format!("Startet native app: {}", target_file.display()))
-    } else {
-        if let Some(ref path) = file_path_optional {
-            #[cfg(target_os = "windows")]
-            {
-                let _ = std::process::Command::new("cmd")
-                    .args(["/c", "start", "", path])
-                    .spawn();
-            }
-            #[cfg(target_os = "macos")]
-            {
-                let _ = std::process::Command::new("open").arg(path).spawn();
-            }
-            #[cfg(target_os = "linux")]
-            {
-                let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+        if let Ok(meta) = fs::metadata(&target_file) {
+            // Verify it's a real executable (> 50KB) and not a script/corrupted dummy
+            if meta.len() > 50_000 {
+                let mut cmd = std::process::Command::new(&target_file);
+                if let Some(ref path) = file_path_optional {
+                    cmd.arg(path);
+                }
+                cmd.spawn().map_err(|e| format!("Feil ved oppstart av {}: {}", app_id, e))?;
+                return Ok(format!("Startet native app: {}", target_file.display()));
             }
         }
-        Ok(format!("Applikasjon {} åpnet (simulatormodus / system-visning)", app_id))
     }
+
+    // 3. If an installer file exists in Apps/{app_id}, launch the installer so the user can finish installing
+    if apps_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&apps_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if (os == "windows" && (ext.eq_ignore_ascii_case("msi") || ext.eq_ignore_ascii_case("exe")))
+                    || (os == "macos" && (ext.eq_ignore_ascii_case("dmg") || ext.eq_ignore_ascii_case("pkg")))
+                    || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.eq_ignore_ascii_case("deb")))
+                {
+                    #[cfg(target_os = "windows")]
+                    let _ = std::process::Command::new("cmd")
+                        .args(["/C", "start", "", &path.to_string_lossy()])
+                        .spawn();
+                    #[cfg(target_os = "macos")]
+                    let _ = std::process::Command::new("open").arg(&path).spawn();
+                    #[cfg(target_os = "linux")]
+                    let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+
+                    return Ok(format!(
+                        "Startet installasjonsprogram for {}. Fullfør installasjonen for å starte appen.",
+                        app_id
+                    ));
+                }
+            }
+        }
+    }
+
+    // 4. Fallback to WebApp if available
+    let web_index = hub_home.join("WebApps").join(&app_id).join("index.html");
+    if web_index.exists() {
+        #[cfg(target_os = "windows")]
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", &web_index.to_string_lossy()])
+            .spawn();
+        #[cfg(target_os = "macos")]
+        let _ = std::process::Command::new("open").arg(&web_index).spawn();
+        #[cfg(target_os = "linux")]
+        let _ = std::process::Command::new("xdg-open").arg(&web_index).spawn();
+
+        return Ok(format!("Applikasjon {} åpnet som Web Studio", app_id));
+    }
+
+    if let Some(ref path) = file_path_optional {
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::process::Command::new("cmd")
+                .args(["/c", "start", "", path])
+                .spawn();
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open").arg(path).spawn();
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let _ = std::process::Command::new("xdg-open").arg(path).spawn();
+        }
+    }
+
+    Ok(format!("Applikasjon {} åpnet (system-visning)", app_id))
 }
 
 pub fn get_compatible_apps_for_ext(ext: &str) -> Vec<String> {
     match ext {
         ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" => vec!["blender".to_string(), "effectcraft".to_string()],
+        ".dxf" | ".dwg" | ".step" | ".stp" | ".iges" | ".igs" => vec!["cadcraft".to_string(), "blender".to_string()],
         ".kra" | ".ora" => vec!["krita".to_string(), "photocraft".to_string()],
         ".psd" => vec!["photocraft".to_string(), "krita".to_string(), "lightcraft".to_string()],
         ".png" | ".jpg" | ".jpeg" | ".webp" => vec!["photocraft".to_string(), "krita".to_string(), "lightcraft".to_string()],
@@ -1708,6 +1895,7 @@ fn create_recent_file_item(path: &Path, source_app: &str) -> Option<RecentProjec
     let compatible_apps = get_compatible_apps_for_ext(&ext);
     let recommended_app = match ext.as_str() {
         ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" => "blender".to_string(),
+        ".dxf" | ".dwg" | ".step" | ".stp" | ".iges" | ".igs" => "cadcraft".to_string(),
         ".kra" | ".ora" => "krita".to_string(),
         ".svg" | ".eps" | ".ai" => "vectorcraft".to_string(),
         ".mp4" | ".mov" | ".mkv" | ".webm" => "filmcraft".to_string(),
@@ -1999,7 +2187,14 @@ fn is_blacklisted_dir(dir_name: &str) -> bool {
     }
     matches!(
         lower.as_str(),
-        "node_modules"
+        "artcraft-hub"
+            | "openart-hub"
+            | "artcrafthub"
+            | "openart.hub"
+            | "src-tauri"
+            | "public"
+            | "assets"
+            | "node_modules"
             | "appdata"
             | "application support"
             | "windows"
@@ -2034,13 +2229,27 @@ fn is_path_blacklisted(path: &Path, allow_downloads: bool) -> bool {
     let path_str = path.to_string_lossy().to_lowercase();
     let parts: Vec<&str> = path_str.split(|c| c == '/' || c == '\\').collect();
 
-    for part in parts {
+    // Blacklist OpenArt Hub application / repository files
+    let hub_home_str = get_hub_home().to_string_lossy().to_lowercase();
+    if path_str.starts_with(&hub_home_str) {
+        // Only allow user files inside ~/ArtCraftHub/Projects, exclude WebApps/Apps/Assets/Settings
+        if !path_str.contains("projects") {
+            return true;
+        }
+    }
+
+    for part in &parts {
         if part.starts_with('.') && part.len() > 1 {
             return true;
         }
         if matches!(
-            part,
-            "appdata"
+            *part,
+            "artcraft-hub"
+                | "openart-hub"
+                | "artcrafthub"
+                | "openart.hub"
+                | "src-tauri"
+                | "appdata"
                 | "localappdata"
                 | "windows"
                 | "temp"
@@ -2056,6 +2265,9 @@ fn is_path_blacklisted(path: &Path, allow_downloads: bool) -> bool {
                 | "node_modules"
                 | "site-packages"
                 | "venv"
+                | "target"
+                | "dist"
+                | "build"
                 | "recovery"
                 | "screenshots"
                 | "skjermbilder"
@@ -2066,10 +2278,21 @@ fn is_path_blacklisted(path: &Path, allow_downloads: bool) -> bool {
         ) {
             return true;
         }
-        if !allow_downloads && (part == "downloads" || part == "nedlastinger") {
+        if !allow_downloads && (*part == "downloads" || *part == "nedlastinger") {
             return true;
         }
     }
+
+    // Explicitly exclude internal hub files like app-icon.svg, public/logo.svg, etc.
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    if (file_name == "app-icon.svg" || file_name == "logo.svg") && parts.iter().any(|&p| p.contains("artcraft") || p.contains("openart") || p == "public") {
+        return true;
+    }
+
     false
 }
 
@@ -2090,8 +2313,8 @@ fn is_screenshot_filename(file_name: &str) -> bool {
 fn is_creative_extension(ext: &str) -> bool {
     matches!(
         ext,
-        // Blender / 3D
-        ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" |
+        // Blender / 3D & CAD
+        ".blend" | ".fbx" | ".obj" | ".stl" | ".glb" | ".gltf" | ".dxf" | ".dwg" | ".step" | ".stp" | ".iges" | ".igs" |
         // Krita / Digital painting
         ".kra" | ".ora" | ".clip" | ".psd" |
         // Vector
@@ -2119,6 +2342,10 @@ fn scan_directory_for_creative_files(
         return;
     }
 
+    if is_path_blacklisted(dir, settings.scan_downloads) {
+        return;
+    }
+
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -2128,6 +2355,10 @@ fn scan_directory_for_creative_files(
                 .unwrap_or_default();
 
             if file_name.starts_with('.') {
+                continue;
+            }
+
+            if is_path_blacklisted(&path, settings.scan_downloads) {
                 continue;
             }
 

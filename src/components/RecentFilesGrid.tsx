@@ -211,12 +211,30 @@ export const RecentFilesGrid: React.FC<RecentFilesGridProps> = ({
     );
   };
 
-  const cleanFiles = files.filter((f) => !isScreenshot(f));
+  const isOpenArtHubFile = (f: RecentProjectFile): boolean => {
+    const path = f.file_path.toLowerCase();
+    const folder = f.folder.toLowerCase();
+    const name = f.file_name.toLowerCase();
+    return (
+      path.includes('artcraft-hub') ||
+      path.includes('openart-hub') ||
+      path.includes('artcrafthub') ||
+      folder === 'artcraft-hub' ||
+      folder === 'openart-hub' ||
+      folder === 'artcrafthub' ||
+      (folder === 'public' && path.includes('artcraft')) ||
+      name === 'app-icon.svg' ||
+      name === 'logo.svg' ||
+      ((name === 'krita.png' || name === 'krita.svg' || name === 'blender.svg') && (folder === 'public' || path.includes('artcraft')))
+    );
+  };
+
+  const cleanFiles = files.filter((f) => !isScreenshot(f) && !isOpenArtHubFile(f));
 
   // Filter files
   const filtered = cleanFiles.filter((f) => {
     if (filterType === 'Alle') return true;
-    if (filterType === '3D / Blender') return ['.blend', '.fbx', '.obj', '.gltf', '.glb', '.stl'].includes(f.extension.toLowerCase());
+    if (filterType === '3D / Blender') return ['.blend', '.fbx', '.obj', '.gltf', '.glb', '.stl', '.dxf', '.dwg', '.step', '.stp', '.iges', '.igs'].includes(f.extension.toLowerCase());
     if (filterType === 'Krita / Maling') return ['.kra', '.ora'].includes(f.extension.toLowerCase());
     if (filterType === 'Vektor') return ['.svg', '.eps', '.ai'].includes(f.extension.toLowerCase());
     if (filterType === 'Bilder') return ['.png', '.jpg', '.jpeg', '.webp', '.psd'].includes(f.extension.toLowerCase());

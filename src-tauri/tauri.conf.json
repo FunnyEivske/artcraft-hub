@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "OpenArt Hub",
-  "version": "1.0.1",
-  "identifier": "com.artcraft.hub",
+  "version": "1.0.2",
+  "identifier": "com.openart.hub",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "OpenArt Hub - ArtCraft Suite",
+        "title": "OpenArt Hub",
         "width": 1280,
         "height": 840,
         "minWidth": 960,
@@ -32,8 +32,8 @@
     "targets": "all",
     "copyright": "Copyright © 2026 OpenArt Creative Suite",
     "publisher": "OpenArt Team",
-    "shortDescription": "OpenArt Hub - Creative Desktop Suite",
-    "longDescription": "OpenArt Hub controls PhotoCraft, VectorCraft, FilmCraft, Blender, Krita and your creative projects with unified recent files and thumbnail engine.",
+    "shortDescription": "OpenArt Hub - Open-Source Offline Creative Suite",
+    "longDescription": "OpenArt Hub is a 100% open-source, offline-first, privacy-focused creative desktop suite and launcher for PhotoCraft, VectorCraft, CADCraft, FilmCraft, Blender, Krita and your local creative projects with unified recent files and thumbnail engine.",
     "icon": [
       "icons/32x32.png",
       "icons/64x64.png",

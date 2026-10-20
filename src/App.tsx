@@ -79,7 +79,7 @@ export function App() {
   const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
 
   // Changelog / What's New modal for updates
-  const CURRENT_HUB_VERSION = '1.0.12';
+  const CURRENT_HUB_VERSION = '1.0.13';
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [toastCopied, setToastCopied] = useState(false);
 
@@ -207,12 +207,17 @@ export function App() {
         }
       }
 
-      // Check onboarding state: ONLY show for genuine first-time installation!
+      // Check onboarding & suites setup state:
+      // On v1.0.13, all users who update to this version get prompted with the new suites setup!
       try {
         const scannerSet = await getScannerSettings();
+        const suitesSetupCompleted = localStorage.getItem('openart_suites_setup_v1_0_13') === 'true';
         const localCompleted = localStorage.getItem('artcraft_onboarding_completed') === 'true';
 
-        if (scannerSet.onboardingCompleted || localCompleted) {
+        if (!suitesSetupCompleted) {
+          setOnboardingSettings(scannerSet);
+          setShowOnboardingModal(true);
+        } else if (scannerSet.onboardingCompleted || localCompleted) {
           setShowOnboardingModal(false);
         } else {
           // Brand new installation!

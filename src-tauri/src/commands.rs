@@ -120,31 +120,246 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
     // 1. Check user's hub installation: ~/ArtCraftHub/Apps/{app_id}/...
     let hub_app_dir = hub_home.join("Apps").join(app_id);
     if hub_app_dir.exists() {
-        if let Ok(entries) = fs::read_dir(&hub_app_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if path.is_file() {
-                    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-                    let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
-                    // Skip installers and dummy scripts
-                    if !file_name.contains("installer") && !file_name.contains("setup") && !file_name.ends_with(".msi") {
-                        if (os == "windows" && ext.eq_ignore_ascii_case("exe"))
-                            || (os == "macos" && ext.eq_ignore_ascii_case("app"))
-                            || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.is_empty()))
-                        {
-                            let file_len = entry.metadata().map(|m| m.len()).unwrap_or(0);
-                            if file_len > 50_000 {
-                                return Some(path.to_string_lossy().to_string());
+        fn find_exe_in_dir(dir: &Path, os: &str, depth: usize) -> Option<String> {
+            if depth > 3 {
+                return None;
+            }
+            if let Ok(entries) = fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+                        // Skip installers and dummy scripts
+                        if !file_name.contains("installer") && !file_name.contains("setup") && !file_name.ends_with(".msi") {
+                            if (os == "windows" && ext.eq_ignore_ascii_case("exe"))
+                                || (os == "macos" && ext.eq_ignore_ascii_case("app"))
+                                || (os == "linux" && (ext.eq_ignore_ascii_case("appimage") || ext.is_empty()))
+                            {
+                                let file_len = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                                if file_len > 50_000 {
+                                    return Some(path.to_string_lossy().to_string());
+                                }
                             }
+                        }
+                    } else if path.is_dir() {
+                        if let Some(found) = find_exe_in_dir(&path, os, depth + 1) {
+                            return Some(found);
                         }
                     }
                 }
             }
+            None
+        }
+
+        if let Some(found) = find_exe_in_dir(&hub_app_dir, os, 0) {
+            return Some(found);
         }
     }
 
     // 2. Check system-wide paths for Blender & Krita & Storytold Creative Suite
     match app_id {
+        "obs" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\obs-studio\bin\64bit\obs64.exe",
+                    r"C:\Program Files\obs-studio\bin\32bit\obs32.exe",
+                    r"C:\Program Files (x86)\obs-studio\bin\64bit\obs64.exe",
+                    r"C:\Program Files (x86)\obs-studio\bin\32bit\obs32.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).is_file() {
+                        return Some(c.to_string());
+                    }
+                }
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let c = PathBuf::from(&local).join("Programs").join("obs-studio").join("bin").join("64bit").join("obs64.exe");
+                    if c.is_file() {
+                        return Some(c.to_string_lossy().to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/OBS.app/Contents/MacOS/OBS",
+                    "/Applications/OBS.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/obs",
+                    "/usr/local/bin/obs",
+                    "/var/lib/flatpak/exports/bin/com.obsproject.Studio",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
+        "sysmocap" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\SysMocap\SysMocap.exe",
+                    r"C:\Program Files (x86)\SysMocap\SysMocap.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).is_file() {
+                        return Some(c.to_string());
+                    }
+                }
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let c = PathBuf::from(&local).join("Programs").join("SysMocap").join("SysMocap.exe");
+                    if c.is_file() {
+                        return Some(c.to_string_lossy().to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/SysMocap.app/Contents/MacOS/SysMocap",
+                    "/Applications/SysMocap.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/sysmocap",
+                    "/usr/local/bin/sysmocap",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
+        "openvtuber" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\OpenVtuber\OpenVtuber.exe",
+                    r"C:\Program Files\OpenVtuber\openvtuber.exe",
+                    r"C:\Program Files (x86)\OpenVtuber\OpenVtuber.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).is_file() {
+                        return Some(c.to_string());
+                    }
+                }
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let c = PathBuf::from(&local).join("Programs").join("OpenVtuber").join("OpenVtuber.exe");
+                    if c.is_file() {
+                        return Some(c.to_string_lossy().to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/OpenVtuber.app/Contents/MacOS/OpenVtuber",
+                    "/Applications/OpenVtuber.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/openvtuber",
+                    "/usr/local/bin/openvtuber",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
+        "pyngtuber" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\PyNGtuber\PyNGtuber.exe",
+                    r"C:\Program Files\PyNGtuber\pyngtuber.exe",
+                    r"C:\Program Files (x86)\PyNGtuber\PyNGtuber.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).is_file() {
+                        return Some(c.to_string());
+                    }
+                }
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let c = PathBuf::from(&local).join("Programs").join("PyNGtuber").join("PyNGtuber.exe");
+                    if c.is_file() {
+                        return Some(c.to_string_lossy().to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/PyNGtuber.app/Contents/MacOS/PyNGtuber",
+                    "/Applications/PyNGtuber.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/pyngtuber",
+                    "/usr/local/bin/pyngtuber",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
+        "open-llm-vtuber" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\Open-LLM-VTuber\Open-LLM-VTuber.exe",
+                    r"C:\Program Files\Open-LLM-VTuber\run.bat",
+                    r"C:\Program Files (x86)\Open-LLM-VTuber\Open-LLM-VTuber.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).is_file() {
+                        return Some(c.to_string());
+                    }
+                }
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let c = PathBuf::from(&local).join("Programs").join("Open-LLM-VTuber").join("Open-LLM-VTuber.exe");
+                    if c.is_file() {
+                        return Some(c.to_string_lossy().to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/Open-LLM-VTuber.app/Contents/MacOS/Open-LLM-VTuber",
+                    "/Applications/Open-LLM-VTuber.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/open-llm-vtuber",
+                    "/usr/local/bin/open-llm-vtuber",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
         "blender" => {
             if os == "windows" {
                 let base = PathBuf::from(r"C:\Program Files\Blender Foundation");
@@ -847,11 +1062,15 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             continue;
         }
 
-        // Storytold Creative Suite & Audacity release checking
-        let repo = if app.id == "audacity" {
-            "audacity/audacity".to_string()
-        } else {
-            format!("storytold/{}", app.id)
+        // Storytold Creative Suite, Audacity, OBS & VTuber apps release checking
+        let repo = match app.id.as_str() {
+            "audacity" => "audacity/audacity".to_string(),
+            "obs" => "obsproject/obs-studio".to_string(),
+            "sysmocap" => "xianfei/SysMocap".to_string(),
+            "openvtuber" => "1996scarlet/OpenVtuber".to_string(),
+            "pyngtuber" => "Gemmstone/PyNGtuber".to_string(),
+            "open-llm-vtuber" => "Open-LLM-VTuber/Open-LLM-VTuber".to_string(),
+            _ => format!("storytold/{}", app.id),
         };
         let url = format!("https://api.github.com/repos/{}/releases/latest", repo);
         let resp = client
@@ -860,19 +1079,27 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             .send()
             .await;
 
-        let mut latest_ver = if app.id == "audacity" {
-            "v4.0.1".to_string()
-        } else {
-            "v1.0.0".to_string()
+        let mut latest_ver = match app.id.as_str() {
+            "audacity" => "v4.0.1".to_string(),
+            "obs" => "v30.2.3".to_string(),
+            "sysmocap" => "v0.3.3".to_string(),
+            "openvtuber" => "v1.2.0".to_string(),
+            "pyngtuber" => "v1.0.0".to_string(),
+            "open-llm-vtuber" => "v1.1.0".to_string(),
+            _ => "v1.0.0".to_string(),
         };
         let mut rel_name = format!("{} Release", app.name);
-        let mut notes = if app.id == "audacity" {
-            "Audacity åpen kildekode flerspors lydopptaker og redigerer for podkast, musikk og lyddesign.".to_string()
-        } else {
-            format!(
+        let mut notes = match app.id.as_str() {
+            "audacity" => "Audacity åpen kildekode flerspors lydopptaker og redigerer for podkast, musikk og lyddesign.".to_string(),
+            "obs" => "OBS Studio – Det fremste verktøyet for videoopptak, skjermopptak og sanntids direktesending til Twitch, YouTube og sosiale medier.".to_string(),
+            "sysmocap" => "SysMocap sanntids bevegelsesfangst for 3D-avatarer fra standard webkamera via VMC og VRM-protokoller.".to_string(),
+            "openvtuber" => "OpenVTuber åpen kildekode ansikts- og hodesporer designet for VRM-avatarer og direktesending.".to_string(),
+            "pyngtuber" => "PyNGTuber lynrask 2D-animator for PNGtuber-avatarer styrt av mikrofoninput.".to_string(),
+            "open-llm-vtuber" => "Open-LLM-VTuber helautomatisk AI-avatar med talegjenkjenning, intelligent LLM-dialog og leppesynk.".to_string(),
+            _ => format!(
                 "Offisiell release av {} fra storytold-organisasjonen med full støtte for {}, native ytelse og WebAssembly.",
                 app.name, app.category
-            )
+            ),
         };
         let mut published_date = "2026-10-14T00:00:00Z".to_string();
         let mut native_url: Option<String> = None;
@@ -909,7 +1136,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
                             match os {
                                 "windows" => {
                                     let lower = name.to_lowercase();
-                                    if lower.ends_with(".exe") || lower.ends_with(".msi") {
+                                    if lower.ends_with(".exe") || lower.ends_with(".msi") || (lower.ends_with(".zip") && (lower.contains("win") || lower.contains("windows"))) {
                                         let is_x64 = lower.contains("x64")
                                             || lower.contains("x86_64")
                                             || lower.contains("win64")
@@ -935,14 +1162,14 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
                                 }
                                 "macos" => {
                                     let lower = name.to_lowercase();
-                                    if lower.ends_with(".dmg") || lower.ends_with(".pkg") {
+                                    if lower.ends_with(".dmg") || lower.ends_with(".pkg") || (lower.ends_with(".zip") && (lower.contains("mac") || lower.contains("darwin"))) {
                                         native_url = d_url;
                                         native_asset_name = Some(name.to_string());
                                     }
                                 }
                                 "linux" => {
                                     let lower = name.to_lowercase();
-                                    if lower.ends_with(".appimage") || lower.ends_with(".deb") {
+                                    if lower.ends_with(".appimage") || lower.ends_with(".deb") || (lower.ends_with(".zip") && lower.contains("linux")) {
                                         native_url = d_url;
                                         native_asset_name = Some(name.to_string());
                                     }
@@ -956,36 +1183,84 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
         }
 
         if native_url.is_none() {
-            if app.id == "audacity" {
-                match os {
-                    "windows" => {
-                        native_asset_name = Some("audacity-win-4.0.1-x86_64.msi".into());
-                        native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-win-4.0.1-x86_64.msi".into());
-                    }
-                    "macos" => {
-                        native_asset_name = Some("audacity-macOS-4.0.1-universal.dmg".into());
-                        native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-macOS-4.0.1-universal.dmg".into());
-                    }
-                    _ => {
-                        native_asset_name = Some("audacity-linux-4.0.1-x86_64.AppImage".into());
-                        native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-linux-4.0.1-x86_64.AppImage".into());
+            match app.id.as_str() {
+                "audacity" => {
+                    match os {
+                        "windows" => {
+                            native_asset_name = Some("audacity-win-4.0.1-x86_64.msi".into());
+                            native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-win-4.0.1-x86_64.msi".into());
+                        }
+                        "macos" => {
+                            native_asset_name = Some("audacity-macOS-4.0.1-universal.dmg".into());
+                            native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-macOS-4.0.1-universal.dmg".into());
+                        }
+                        _ => {
+                            native_asset_name = Some("audacity-linux-4.0.1-x86_64.AppImage".into());
+                            native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-linux-4.0.1-x86_64.AppImage".into());
+                        }
                     }
                 }
-            } else {
-                let extension = match os {
-                    "windows" => "-setup.exe",
-                    "macos" => ".dmg",
-                    _ => ".AppImage",
-                };
-                native_asset_name = Some(format!("{}{}", app.id, extension));
-                native_url = Some(format!(
-                    "https://github.com/storytold/{}/releases/download/{}/{}{}",
-                    app.id, latest_ver, app.id, extension
-                ));
+                "obs" => {
+                    match os {
+                        "windows" => {
+                            native_asset_name = Some("OBS-Studio-30.2.3-Windows-Installer.exe".into());
+                            native_url = Some("https://github.com/obsproject/obs-studio/releases/download/30.2.3/OBS-Studio-30.2.3-Windows-Installer.exe".into());
+                        }
+                        "macos" => {
+                            native_asset_name = Some("OBS-Studio-30.2.3-macOS-Apple.dmg".into());
+                            native_url = Some("https://github.com/obsproject/obs-studio/releases/download/30.2.3/OBS-Studio-30.2.3-macOS-Apple.dmg".into());
+                        }
+                        _ => {
+                            native_asset_name = Some("OBS-Studio-30.2.3-Ubuntu-64bit.deb".into());
+                            native_url = Some("https://github.com/obsproject/obs-studio/releases/download/30.2.3/OBS-Studio-30.2.3-Ubuntu-64bit.deb".into());
+                        }
+                    }
+                }
+                "sysmocap" => {
+                    match os {
+                        "windows" => {
+                            native_asset_name = Some("SysMocap-v0.3.3-win64.zip".into());
+                            native_url = Some("https://github.com/xianfei/SysMocap/releases/download/v0.3.3/SysMocap-v0.3.3-win64.zip".into());
+                        }
+                        "macos" => {
+                            native_asset_name = Some("SysMocap-v0.3.3-macOS.zip".into());
+                            native_url = Some("https://github.com/xianfei/SysMocap/releases/download/v0.3.3/SysMocap-v0.3.3-macOS.zip".into());
+                        }
+                        _ => {
+                            native_asset_name = Some("SysMocap-v0.3.3-linux.zip".into());
+                            native_url = Some("https://github.com/xianfei/SysMocap/releases/download/v0.3.3/SysMocap-v0.3.3-linux.zip".into());
+                        }
+                    }
+                }
+                "openvtuber" => {
+                    native_asset_name = Some("OpenVtuber.zip".into());
+                    native_url = Some("https://github.com/1996scarlet/OpenVtuber/archive/refs/heads/master.zip".into());
+                }
+                "pyngtuber" => {
+                    native_asset_name = Some("PyNGtuber.zip".into());
+                    native_url = Some("https://github.com/Gemmstone/PyNGtuber/archive/refs/heads/main.zip".into());
+                }
+                "open-llm-vtuber" => {
+                    native_asset_name = Some("Open-LLM-VTuber.zip".into());
+                    native_url = Some("https://github.com/Open-LLM-VTuber/Open-LLM-VTuber/archive/refs/heads/main.zip".into());
+                }
+                _ => {
+                    let extension = match os {
+                        "windows" => "-setup.exe",
+                        "macos" => ".dmg",
+                        _ => ".AppImage",
+                    };
+                    native_asset_name = Some(format!("{}{}", app.id, extension));
+                    native_url = Some(format!(
+                        "https://github.com/storytold/{}/releases/download/{}/{}{}",
+                        app.id, latest_ver, app.id, extension
+                    ));
+                }
             }
         }
 
-        if web_url.is_none() && app.id != "audacity" {
+        let is_external = matches!(app.id.as_str(), "audacity" | "obs" | "sysmocap" | "openvtuber" | "pyngtuber" | "open-llm-vtuber");
+        if web_url.is_none() && !is_external {
             web_asset_name = Some(format!("{}-web.zip", app.id));
             web_url = Some(format!(
                 "https://github.com/storytold/{}/releases/download/{}/{}-web.zip",
@@ -1778,7 +2053,10 @@ pub async fn install_or_update_app(
             .last()
             .unwrap_or("");
 
-        let installer_name = if !raw_name.is_empty()
+        let is_zip = raw_name.ends_with(".zip");
+        let installer_name = if is_zip {
+            "archive.zip".to_string()
+        } else if !raw_name.is_empty()
             && (raw_name.ends_with(".msi")
                 || raw_name.ends_with(".exe")
                 || raw_name.ends_with(".dmg")
@@ -1821,8 +2099,20 @@ pub async fn install_or_update_app(
             }
         }
 
-        // Launch the installer and wait for user to finish or cancel setup
-        let installer_success = if target_file.exists() {
+        // Launch the installer (or extract zip) and wait for completion
+        let installer_success = if is_zip && target_file.exists() {
+            let zip_path = target_file.clone();
+            let app_dest = apps_dir.clone();
+            let _ = tokio::task::spawn_blocking(move || {
+                if let Ok(file) = File::open(&zip_path) {
+                    if let Ok(mut archive) = zip::ZipArchive::new(file) {
+                        let _ = archive.extract(&app_dest);
+                    }
+                }
+                let _ = fs::remove_file(&zip_path);
+            }).await;
+            true
+        } else if target_file.exists() {
             let path_clone = target_file.clone();
             let _ = app.emit(
                 "download-progress",

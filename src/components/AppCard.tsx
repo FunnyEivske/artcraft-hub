@@ -136,6 +136,16 @@ const AppMenu: React.FC<{
       ? 'https://krita.org/en/download/'
       : app.app_id === 'audacity'
       ? 'https://github.com/audacity/audacity/releases'
+      : app.app_id === 'obs'
+      ? 'https://github.com/obsproject/obs-studio/releases'
+      : app.app_id === 'sysmocap'
+      ? 'https://github.com/xianfei/SysMocap/releases'
+      : app.app_id === 'openvtuber'
+      ? 'https://github.com/1996scarlet/OpenVtuber'
+      : app.app_id === 'pyngtuber'
+      ? 'https://github.com/Gemmstone/PyNGtuber'
+      : app.app_id === 'open-llm-vtuber'
+      ? 'https://github.com/Open-LLM-VTuber/Open-LLM-VTuber'
       : `https://github.com/storytold/${app.app_id}/releases`;
 
   return (

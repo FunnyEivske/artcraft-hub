@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { LayoutList, LayoutGrid, X } from 'lucide-react';
+import { LayoutList, LayoutGrid, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppReleaseInfo, DownloadProgressPayload } from '../types';
 import { AppCard, AppRow } from './AppCard';
+import { getSelectedSuiteAppIds } from '../suites';
 
 interface AppHubViewProps {
   apps: AppReleaseInfo[];
@@ -24,12 +25,18 @@ interface FilterPill {
 
 const FILTER_PILLS: FilterPill[] = [
   { id: 'all', labelKey: 'common.all', fallback: 'All' },
-  { id: '3d', labelKey: 'mediaTypes.threeD', fallback: '3D', appIds: ['blender', 'cadcraft'] },
-  { id: 'painting', labelKey: 'mediaTypes.painting', fallback: 'Painting', appIds: ['krita'] },
+  {
+    id: 'vtuber',
+    labelKey: 'VTuber & Streaming',
+    fallback: 'VTuber & Streaming',
+    appIds: ['sysmocap', 'openvtuber', 'pyngtuber', 'open-llm-vtuber', 'obs'],
+  },
+  { id: 'video', labelKey: 'mediaTypes.video', fallback: 'Video', appIds: ['filmcraft', 'effectcraft', 'obs'] },
+  { id: 'audio', labelKey: 'mediaTypes.audio', fallback: 'Audio', appIds: ['soundcraft', 'audacity'] },
   { id: 'photo', labelKey: 'toolboxes.photo.title', fallback: 'Photo', appIds: ['photocraft', 'lightcraft'] },
+  { id: 'painting', labelKey: 'mediaTypes.painting', fallback: 'Painting', appIds: ['krita'] },
   { id: 'vector', labelKey: 'mediaTypes.vector', fallback: 'Vector', appIds: ['vectorcraft', 'figcraft'] },
-  { id: 'video', labelKey: 'mediaTypes.video', fallback: 'Video', appIds: ['filmcraft', 'effectcraft'] },
-  { id: 'audio', labelKey: 'mediaTypes.audio', fallback: 'Audio', appIds: ['soundcraft'] },
+  { id: '3d', labelKey: 'mediaTypes.threeD', fallback: '3D', appIds: ['blender', 'cadcraft'] },
   {
     id: 'office',
     labelKey: 'toolboxes.layout.title',
@@ -50,6 +57,23 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'rows' | 'grid'>('rows');
+  const [showUnselected, setShowUnselected] = useState(false);
+
+  // Read user's selected suites from setup
+  const selectedSuiteAppIds = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('openart_selected_suites');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return getSelectedSuiteAppIds(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return getSelectedSuiteAppIds([]);
+  }, []);
 
   const filteredApps = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -77,6 +101,10 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
 
   const installed = filteredApps.filter((a) => a.status !== 'NotInstalled');
   const available = filteredApps.filter((a) => a.status === 'NotInstalled');
+
+  // Split available apps: Primary (matching chosen suites) vs Unselected (hidden in collapsed section)
+  const mainAvailable = available.filter((a) => selectedSuiteAppIds.has(a.app_id));
+  const unselectedAvailable = available.filter((a) => !selectedSuiteAppIds.has(a.app_id));
 
   const itemProps = { onLaunchNative, onInstall, onUninstall };
 
@@ -198,18 +226,18 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
         </section>
       )}
 
-      {/* Available Apps Section */}
-      {available.length > 0 && (
+      {/* Available Apps Section (Selected in setup) */}
+      {mainAvailable.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-ui-muted">
-              {t('apps.availableTitle')} ({available.length})
+              {t('apps.availableTitle')} ({mainAvailable.length})
             </h2>
           </div>
 
           {viewMode === 'rows' ? (
             <div className="rounded-xl border border-ui-border bg-ui-surface divide-y divide-ui-border">
-              {available.map((app) => (
+              {mainAvailable.map((app) => (
                 <AppRow
                   key={app.app_id}
                   app={app}
@@ -220,7 +248,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
             </div>
           ) : (
             <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
-              {available.map((app) => (
+              {mainAvailable.map((app) => (
                 <AppCard
                   key={app.app_id}
                   app={app}
@@ -228,6 +256,71 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                   {...itemProps}
                 />
               ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Hidden / Collapsed section for apps unselected during setup */}
+      {unselectedAvailable.length > 0 && (
+        <section className="pt-2">
+          <button
+            type="button"
+            onClick={() => setShowUnselected((prev) => !prev)}
+            className="w-full flex items-center justify-between p-3.5 rounded-xl border border-ui-border bg-ui-surface/60 hover:bg-ui-surface transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-ui-surface-2 border border-ui-border flex items-center justify-center text-ui-muted group-hover:text-ui-text transition-colors">
+                {showUnselected ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </div>
+              <div className="text-left">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-ui-text">
+                    Flere verktøy du kan utforske
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-ui-surface-2 text-ui-muted border border-ui-border">
+                    {unselectedAvailable.length} apper
+                  </span>
+                </div>
+                <p className="text-[11px] text-ui-muted">
+                  Disse pakkene ble ikke valgt i oppsettet, men du kan installere og bruke dem når som helst.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-medium text-ui-accent group-hover:underline">
+              {showUnselected ? 'Skjul' : 'Vis alle apper'}
+            </span>
+          </button>
+
+          {showUnselected && (
+            <div className="mt-3 space-y-3 animate-in fade-in duration-200">
+              {viewMode === 'rows' ? (
+                <div className="rounded-xl border border-ui-border bg-ui-surface divide-y divide-ui-border">
+                  {unselectedAvailable.map((app) => (
+                    <AppRow
+                      key={app.app_id}
+                      app={app}
+                      progress={progressMap[app.app_id]}
+                      {...itemProps}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(260px,1fr))]">
+                  {unselectedAvailable.map((app) => (
+                    <AppCard
+                      key={app.app_id}
+                      app={app}
+                      progress={progressMap[app.app_id]}
+                      {...itemProps}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </section>

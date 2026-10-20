@@ -157,6 +157,131 @@ export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
     );
   }
 
+  // Official brand logo for OBS Studio
+  if (key === 'obs') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(59, 130, 246, 0.22) 0%, #090b10 100%)',
+          border: '1.5px solid #3b82f6',
+          boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.12)),
+        }}
+      >
+        <img
+          src="/obs.svg"
+          alt="OBS Studio"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(59, 130, 246, 0.6))"
+        />
+      </div>
+    );
+  }
+
+  // Official brand logo for SysMocap
+  if (key === 'sysmocap') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(6, 182, 212, 0.22) 0%, #090b10 100%)',
+          border: '1.5px solid #06b6d4',
+          boxShadow: '0 4px 14px rgba(6, 182, 212, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.12)),
+        }}
+      >
+        <img
+          src="/sysmocap.png"
+          alt="SysMocap"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(6, 182, 212, 0.6))"
+        />
+      </div>
+    );
+  }
+
+  // Official brand logo for OpenVTuber
+  if (key === 'openvtuber') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(236, 72, 153, 0.22) 0%, #090b10 100%)',
+          border: '1.5px solid #ec4899',
+          boxShadow: '0 4px 14px rgba(236, 72, 153, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.12)),
+        }}
+      >
+        <img
+          src="/openvtuber.png"
+          alt="OpenVTuber"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(236, 72, 153, 0.6))"
+        />
+      </div>
+    );
+  }
+
+  // Official brand logo for PyNGTuber
+  if (key === 'pyngtuber') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(168, 85, 247, 0.22) 0%, #090b10 100%)',
+          border: '1.5px solid #a855f7',
+          boxShadow: '0 4px 14px rgba(168, 85, 247, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.1)),
+        }}
+      >
+        <img
+          src="/pyngtuber.png"
+          alt="PyNGTuber"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(168, 85, 247, 0.6))"
+        />
+      </div>
+    );
+  }
+
+  // Official brand logo for Open-LLM-VTuber
+  if (key === 'open-llm-vtuber') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(139, 92, 246, 0.22) 0%, #090b10 100%)',
+          border: '1.5px solid #8b5cf6',
+          boxShadow: '0 4px 14px rgba(139, 92, 246, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.1)),
+        }}
+      >
+        <img
+          src="/open-llm-vtuber.png"
+          alt="Open-LLM-VTuber"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(139, 92, 246, 0.6))"
+        />
+      </div>
+    );
+  }
+
   // ArtCraft studios with Adobe-style typography (e.g. Pc, Vc, Fc)
   const accent = VIVID_COLORS[key] || app.color_accent || '#38bdf8';
   const abbr = appAbbreviation(app);

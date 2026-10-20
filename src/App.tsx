@@ -79,7 +79,7 @@ export function App() {
   const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
 
   // Changelog / What's New modal for updates
-  const CURRENT_HUB_VERSION = '1.0.11';
+  const CURRENT_HUB_VERSION = '1.0.12';
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [toastCopied, setToastCopied] = useState(false);
 

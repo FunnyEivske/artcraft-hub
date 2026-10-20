@@ -17,7 +17,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.11',
+  version = '1.0.12',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -42,7 +42,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-ui-muted mt-0.5">
-                Fikset oppdateringsinstallasjon & UAC-godkjenning, Audacity og forbedret grensesnitt.
+                Offisiell Audacity-logo, feilrettet oppdateringsinstallatør med UAC og renere grensesnitt.
               </p>
             </div>
           </div>
@@ -62,34 +62,34 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
           <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-accent/40 space-y-1.5">
             <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-ui-accent" />
-              Nytt i v1.0.11: Fikset oppdateringsprosess & UAC-støtte
+              Nytt i v1.0.12: Offisiell Audacity-logo & Fikset oppdateringsprosess
             </span>
             <p className="text-xs text-ui-muted leading-relaxed">
-              Rettet feilen der oppdateringen startet, men ingenting skjedde etterpå. OpenArt Hub laster nå ned den reelle installasjonsfilen (.exe / .msi) direkte fra GitHub Releases, validerer filintegriteten på disken, og starter installasjonsprogrammet med automatisk Windows UAC-administratorgodkjenning.
+              Versjon 1.0.12 tar i bruk den ekte, offisielle Audacity-merkevarelogoen (hodetelefoner med lydbølge) i stedet for tekstforkortelsen «Au», og løser oppdateringsproblemet: Installatøren lastes ned direkte fra GitHub Releases som ekte kjørbart program (.exe / .msi) og starter med automatisk Windows UAC-administratorgodkjenning.
             </p>
           </div>
 
           {/* Feature List */}
           <div className="space-y-3">
-            {/* 1. Oppdateringsprosess */}
+            {/* 1. Audacity Logo */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-accent/40 space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Play className="w-4 h-4 text-ui-accent" />
+                <span>Offisiell Audacity-logo integrert</span>
+              </div>
+              <p className="text-ui-muted leading-relaxed">
+                Audacity prydes nå med sitt offisielle merkevareikon på tvers av hele appen: i app-katalogen, på hjem-skjermen og i hurtigstart. Full støtte for .aup3-prosjekter og lydformater (.wav, .mp3, .flac, .ogg).
+              </p>
+            </div>
+
+            {/* 2. Oppdateringsprosess */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
                 <Sun className="w-4 h-4 text-ui-accent" />
                 <span>Feilrettet selvoppdaterer & UAC-administratoroppstart</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                Når du klikker oppdater, lastes den nyeste installatøren ned direkte. Hub-en starter deretter installasjonsprogrammet med nødvendige administratorrettigheter og lukkes automatisk så oppdateringen kan fullføres umiddelbart uten filkonflikter.
-              </p>
-            </div>
-
-            {/* 2. Audacity */}
-            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
-              <div className="flex items-center gap-2 text-ui-text font-medium">
-                <Play className="w-4 h-4 text-ui-accent" />
-                <span>Audacity integrert i app-katalogen</span>
-              </div>
-              <p className="text-ui-muted leading-relaxed">
-                Full støtte for det åpne lydopptaks- og redigeringsprogrammet Audacity, med automatisk sporing, åpning av .aup3-prosjektfiler og lydformater (.wav, .mp3, .flac, .ogg), samt direkte nedlasting fra offisielle utgivelser.
+                Når du klikker oppdater, lastes den nyeste installatøren ned direkte som en ekte installatørfil. Hub-en starter installasjonsprogrammet med nødvendige administratorrettigheter og lukkes automatisk slik at oppdateringen kan fullføres umiddelbart uten filkonflikter.
               </p>
             </div>
 

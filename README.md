@@ -6,7 +6,7 @@
 
 ### Open-Source, Offline-First & Privacy-Focused Creative Suite Desktop Hub
 **A free, private, open-source alternative to proprietary creative cloud launchers.**  
-Manage, launch, and organize your creative workflow across 10 open-source creative studios, Blender 3D, and Krita with zero telemetry and 100% local privacy.
+Manage, launch, and organize your creative workflow across 10 open-source creative studios, Blender 3D, Krita, and Audacity with zero telemetry and 100% local privacy.
 
 [![Latest Release](https://img.shields.io/github/v/release/FunnyEivske/OpenArt-Hub?style=for-the-badge&color=6366f1&logo=github)](https://github.com/FunnyEivske/OpenArt-Hub/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-38bdf8?style=for-the-badge&logo=linux)](https://github.com/FunnyEivske/OpenArt-Hub/releases/latest)
@@ -53,22 +53,23 @@ Download the latest stable release (**v1.0.4**) for your operating system:
 
 ## 🎨 Supported Creative Tools & Studios
 
-OpenArt Hub acts as the centralized launcher, updater, workspace organizer, and file bridge for **Blender 3D**, **Krita**, and the **10 ArtCraft Creative Studios** from the [`storytold`](https://github.com/storytold) organization:
+OpenArt Hub acts as the centralized launcher, updater, workspace organizer, and file bridge for **Blender 3D**, **Krita**, **Audacity**, and the **10 ArtCraft Creative Studios** from the [`storytold`](https://github.com/storytold) organization:
 
-| Tool / Studio | Name | Category | Alternative To | Supported File Formats | Accent Color |
-| :--- | :--- | :--- | :--- | :--- | :---: |
-| 📸 **`photocraft`** | **PhotoCraft** | Photo & Pixel | Adobe Photoshop | `.png`, `.jpg`, `.jpeg`, `.webp`, `.psd` | `Sky Cyan` |
-| ✒️ **`vectorcraft`** | **VectorCraft** | Vector & Pattern | Adobe Illustrator | `.svg`, `.eps`, `.ai` | `Amber Glow` |
-| 📐 **`cadcraft`** | **CADCraft** | CAD & Technical Drafting | AutoCAD | `.dxf`, `.dwg`, `.step`, `.stp`, `.iges`, `.igs`, `.svg` | `CAD Orange` |
-| 🎬 **`filmcraft`** | **FilmCraft** | Video Production | Adobe Premiere Pro | `.mp4`, `.mov`, `.mkv`, `.webm` | `Neon Rose` |
-| 🎞️ **`lightcraft`** | **LightCraft** | RAW & Color Grading | Adobe Lightroom | `.raw`, `.cr2`, `.nef`, `.dng`, `.jpg` | `Teal Light` |
-| 📑 **`pdfcraft`** | **PdfCraft** | Document & Forms | Adobe Acrobat Pro | `.pdf` | `Crimson Red` |
-| ✨ **`effectcraft`** | **EffectCraft** | VFX & Motion Graphics | Adobe After Effects | `.mp4`, `.mov`, `.json`, `.exr` | `Purple Glow` |
-| 📰 **`designcraft`** | **DesignCraft** | Layout & Publishing | Adobe InDesign | `.pdf`, `.svg`, `.idml` | `Ruby Rose` |
-| 📱 **`figcraft`** | **FigCraft** | UI/UX & Prototyping | Figma | `.svg`, `.png`, `.fig`, `.json` | `Emerald UI` |
-| 🎧 **`soundcraft`** | **SoundCraft** | Audio & Mastering | Adobe Audition | `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac` | `Indigo Wave` |
-| 🧊 **`blender`** | **Blender** | 3D, VFX & Animation | Autodesk Maya / 3ds Max | `.blend`, `.fbx`, `.obj`, `.gltf`, `.glb`, `.stl` | `Orange Flame` |
-| 🎨 **`krita`** | **Krita** | Digital Painting & 2D | Photoshop / Corel Painter | `.kra`, `.ora`, `.clip`, `.psd`, `.png` | `Sky Blue` |
+| Tool / Studio | Name | Category | Supported File Formats | Accent Color |
+| :--- | :--- | :--- | :--- | :---: |
+| 📸 **`photocraft`** | **PhotoCraft** | Photo & Pixel | `.png`, `.jpg`, `.jpeg`, `.webp`, `.psd` | `Sky Cyan` |
+| ✒️ **`vectorcraft`** | **VectorCraft** | Vector & Pattern | `.svg`, `.eps`, `.ai` | `Amber Glow` |
+| 📐 **`cadcraft`** | **CADCraft** | CAD & Technical Drafting | `.dxf`, `.dwg`, `.step`, `.stp`, `.iges`, `.igs`, `.svg` | `CAD Orange` |
+| 🎬 **`filmcraft`** | **FilmCraft** | Video Production | `.mp4`, `.mov`, `.mkv`, `.webm` | `Neon Rose` |
+| 🎞️ **`lightcraft`** | **LightCraft** | RAW & Color Grading | `.raw`, `.cr2`, `.nef`, `.dng`, `.jpg` | `Teal Light` |
+| 📑 **`pdfcraft`** | **PdfCraft** | Document & Forms | `.pdf` | `Crimson Red` |
+| ✨ **`effectcraft`** | **EffectCraft** | VFX & Motion Graphics | `.mp4`, `.mov`, `.json`, `.exr` | `Purple Glow` |
+| 📰 **`designcraft`** | **DesignCraft** | Layout & Publishing | `.pdf`, `.svg`, `.idml` | `Ruby Rose` |
+| 📱 **`figcraft`** | **FigCraft** | UI/UX & Prototyping | `.svg`, `.png`, `.fig`, `.json` | `Emerald UI` |
+| 🎧 **`soundcraft`** | **SoundCraft** | Audio & Mastering | `.wav`, `.mp3`, `.flac`, `.ogg`, `.aac` | `Indigo Wave` |
+| 🎙️ **`audacity`** | **Audacity** | Audio Recording & Podcast | `.aup3`, `.wav`, `.mp3`, `.flac`, `.ogg`, `.aiff` | `Royal Blue` |
+| 🧊 **`blender`** | **Blender** | 3D, VFX & Animation | `.blend`, `.fbx`, `.obj`, `.gltf`, `.glb`, `.stl` | `Orange Flame` |
+| 🎨 **`krita`** | **Krita** | Digital Painting & 2D | `.kra`, `.ora`, `.clip`, `.psd`, `.png` | `Sky Blue` |
 
 ---
 

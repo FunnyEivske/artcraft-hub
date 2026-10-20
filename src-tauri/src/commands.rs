@@ -224,6 +224,52 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
                 }
             }
         }
+        "audacity" => {
+            if os == "windows" {
+                let candidates = [
+                    r"C:\Program Files\Audacity\Audacity.exe",
+                    r"C:\Program Files\Audacity\audacity.exe",
+                    r"C:\Program Files (x86)\Audacity\Audacity.exe",
+                    r"C:\Program Files (x86)\Audacity\audacity.exe",
+                ];
+                for c in &candidates {
+                    if Path::new(c).is_file() {
+                        return Some(c.to_string());
+                    }
+                }
+                if let Ok(local) = std::env::var("LOCALAPPDATA") {
+                    let c = PathBuf::from(&local).join("Programs").join("Audacity").join("Audacity.exe");
+                    if c.is_file() {
+                        return Some(c.to_string_lossy().to_string());
+                    }
+                    let c2 = PathBuf::from(&local).join("Programs").join("Audacity").join("audacity.exe");
+                    if c2.is_file() {
+                        return Some(c2.to_string_lossy().to_string());
+                    }
+                }
+            } else if os == "macos" {
+                let candidates = [
+                    "/Applications/Audacity.app/Contents/MacOS/Audacity",
+                    "/Applications/Audacity.app",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            } else if os == "linux" {
+                let candidates = [
+                    "/usr/bin/audacity",
+                    "/usr/local/bin/audacity",
+                    "/var/lib/flatpak/exports/bin/org.audacityteam.Audacity",
+                ];
+                for c in &candidates {
+                    if Path::new(c).exists() {
+                        return Some(c.to_string());
+                    }
+                }
+            }
+        }
         _ => {
             // General Creative Suite apps (PhotoCraft, VectorCraft, FilmCraft, etc.)
             let catalog = get_app_catalog();
@@ -685,9 +731,11 @@ pub fn get_system_info() -> Result<SystemInfo, String> {
 #[tauri::command]
 pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
     let os = std::env::consts::OS;
-    let installed_map = get_installed_versions_map();
+    let mut installed_map = get_installed_versions_map();
+    let mut installed_map_dirty = false;
     let client = reqwest::Client::new();
     let catalog = get_app_catalog();
+    let hub_home = get_hub_home();
 
     let mut results = Vec::new();
 
@@ -695,7 +743,11 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
         // Handle Blender & Krita with their official distribution models
         if app.id == "blender" {
             let local_exe = detect_local_app_binary("blender");
-            let is_installed = local_exe.is_some() || installed_map.contains_key("blender");
+            let is_installed = local_exe.is_some();
+            if !is_installed && installed_map.contains_key("blender") {
+                installed_map.remove("blender");
+                installed_map_dirty = true;
+            }
             let detected_version = if is_installed {
                 Some("v5.x (System)".into())
             } else {
@@ -744,7 +796,11 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
 
         if app.id == "krita" {
             let local_exe = detect_local_app_binary("krita");
-            let is_installed = local_exe.is_some() || installed_map.contains_key("krita");
+            let is_installed = local_exe.is_some();
+            if !is_installed && installed_map.contains_key("krita") {
+                installed_map.remove("krita");
+                installed_map_dirty = true;
+            }
             let detected_version: Option<String> = if is_installed {
                 Some("v5.2.6 (System)".to_string())
             } else {
@@ -791,20 +847,33 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             continue;
         }
 
-        // Storytold ArtCraft Apps release checking
-        let url = format!("https://api.github.com/repos/storytold/{}/releases/latest", app.id);
+        // Storytold Creative Suite & Audacity release checking
+        let repo = if app.id == "audacity" {
+            "audacity/audacity".to_string()
+        } else {
+            format!("storytold/{}", app.id)
+        };
+        let url = format!("https://api.github.com/repos/{}/releases/latest", repo);
         let resp = client
             .get(&url)
             .header("User-Agent", "ArtCraft-Hub")
             .send()
             .await;
 
-        let mut latest_ver = "v1.0.0".to_string();
-        let mut rel_name = format!("{} v1.0.0 Release", app.name);
-        let mut notes = format!(
-            "Offisiell release av {} fra storytold-organisasjonen med full støtte for {}, native ytelse og WebAssembly.",
-            app.name, app.category
-        );
+        let mut latest_ver = if app.id == "audacity" {
+            "v4.0.1".to_string()
+        } else {
+            "v1.0.0".to_string()
+        };
+        let mut rel_name = format!("{} Release", app.name);
+        let mut notes = if app.id == "audacity" {
+            "Audacity åpen kildekode flerspors lydopptaker og redigerer for podkast, musikk og lyddesign.".to_string()
+        } else {
+            format!(
+                "Offisiell release av {} fra storytold-organisasjonen med full støtte for {}, native ytelse og WebAssembly.",
+                app.name, app.category
+            )
+        };
         let mut published_date = "2026-10-14T00:00:00Z".to_string();
         let mut native_url: Option<String> = None;
         let mut native_asset_name: Option<String> = None;
@@ -887,19 +956,36 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
         }
 
         if native_url.is_none() {
-            let extension = match os {
-                "windows" => "-setup.exe",
-                "macos" => ".dmg",
-                _ => ".AppImage",
-            };
-            native_asset_name = Some(format!("{}{}", app.id, extension));
-            native_url = Some(format!(
-                "https://github.com/storytold/{}/releases/download/{}/{}{}",
-                app.id, latest_ver, app.id, extension
-            ));
+            if app.id == "audacity" {
+                match os {
+                    "windows" => {
+                        native_asset_name = Some("audacity-win-4.0.1-x86_64.msi".into());
+                        native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-win-4.0.1-x86_64.msi".into());
+                    }
+                    "macos" => {
+                        native_asset_name = Some("audacity-macOS-4.0.1-universal.dmg".into());
+                        native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-macOS-4.0.1-universal.dmg".into());
+                    }
+                    _ => {
+                        native_asset_name = Some("audacity-linux-4.0.1-x86_64.AppImage".into());
+                        native_url = Some("https://github.com/audacity/audacity/releases/download/Audacity-4.0.1/audacity-linux-4.0.1-x86_64.AppImage".into());
+                    }
+                }
+            } else {
+                let extension = match os {
+                    "windows" => "-setup.exe",
+                    "macos" => ".dmg",
+                    _ => ".AppImage",
+                };
+                native_asset_name = Some(format!("{}{}", app.id, extension));
+                native_url = Some(format!(
+                    "https://github.com/storytold/{}/releases/download/{}/{}{}",
+                    app.id, latest_ver, app.id, extension
+                ));
+            }
         }
 
-        if web_url.is_none() {
+        if web_url.is_none() && app.id != "audacity" {
             web_asset_name = Some(format!("{}-web.zip", app.id));
             web_url = Some(format!(
                 "https://github.com/storytold/{}/releases/download/{}/{}-web.zip",
@@ -907,9 +993,29 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             ));
         }
 
-        // Fast, silent local detection (filesystem paths + installed_versions.json, zero processes)
-        let local_exe = detect_local_app_binary(&app.id);
-        let is_installed = local_exe.is_some() || installed_map.contains_key(&app.id);
+        // Real local binary detection (verified on disk)
+        let mut local_exe = detect_local_app_binary(&app.id);
+        if local_exe.is_none() {
+            if let Some(info) = installed_map.get(&app.id) {
+                if let Some(ref path) = info.executable_path {
+                    if Path::new(path).is_file() {
+                        local_exe = Some(path.clone());
+                    }
+                }
+            }
+        }
+
+        let is_web_installed = installed_map.get(&app.id).map_or(false, |info| {
+            info.target_type == "web" && hub_home.join("WebApps").join(&app.id).join("index.html").exists()
+        });
+
+        let is_installed = local_exe.is_some() || is_web_installed;
+
+        // If app is not found on disk, ensure any stale record in installed_map is removed!
+        if !is_installed && installed_map.contains_key(&app.id) {
+            installed_map.remove(&app.id);
+            installed_map_dirty = true;
+        }
 
         let (status, installed_version, installed_type) = if is_installed {
             let ver = if let Some(info) = installed_map.get(&app.id) {
@@ -959,6 +1065,10 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             installed_type,
             has_web_app,
         });
+    }
+
+    if installed_map_dirty {
+        save_installed_versions_map(&installed_map);
     }
 
     Ok(results)
@@ -1506,40 +1616,92 @@ pub async fn install_or_update_app(
             }
         }
 
-        // Launch the installer immediately so the user can complete the installation
-        #[cfg(target_os = "windows")]
-        {
-            if target_file.exists() {
-                let path_str = target_file.to_string_lossy().to_string();
-                if path_str.to_lowercase().ends_with(".msi") {
-                    let mut cmd = std::process::Command::new("msiexec");
-                    cmd.args(["/i", &path_str]);
-                    let _ = cmd.spawn();
-                } else {
-                    let _ = std::process::Command::new(&target_file).spawn();
+        // Launch the installer and wait for user to finish or cancel setup
+        let installer_success = if target_file.exists() {
+            let path_clone = target_file.clone();
+            let _ = app.emit(
+                "download-progress",
+                DownloadProgressPayload {
+                    app_id: app_id.clone(),
+                    downloaded: 100,
+                    total: 100,
+                    percent: 98.0,
+                    status: "installing".to_string(),
+                    message: format!("Installasjonsprogrammet kjører... Fullfør veiviseren for {}", app_id),
+                },
+            );
+
+            let res = tokio::task::spawn_blocking(move || -> bool {
+                #[cfg(target_os = "windows")]
+                {
+                    let path_str = path_clone.to_string_lossy().to_string();
+                    let status = if path_str.to_lowercase().ends_with(".msi") {
+                        let mut cmd = std::process::Command::new("msiexec");
+                        cmd.args(["/i", &path_str]);
+                        cmd.status()
+                    } else {
+                        std::process::Command::new(&path_clone).status()
+                    };
+                    match status {
+                        Ok(st) => st.success(),
+                        Err(_) => false,
+                    }
                 }
-            }
-        }
+                #[cfg(target_os = "macos")]
+                {
+                    let status = std::process::Command::new("open")
+                        .arg("-W")
+                        .arg(&path_clone)
+                        .status();
+                    match status {
+                        Ok(st) => st.success(),
+                        Err(_) => false,
+                    }
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    let status = std::process::Command::new("xdg-open")
+                        .arg(&path_clone)
+                        .status();
+                    match status {
+                        Ok(st) => st.success(),
+                        Err(_) => false,
+                    }
+                }
+            })
+            .await
+            .unwrap_or(false);
 
-        #[cfg(target_os = "macos")]
-        {
-            if target_file.exists() {
-                let _ = std::process::Command::new("open")
-                    .arg(&target_file)
-                    .spawn();
-            }
-        }
+            res
+        } else {
+            false
+        };
 
-        #[cfg(target_os = "linux")]
-        {
-            if target_file.exists() {
-                let _ = std::process::Command::new("xdg-open")
-                    .arg(&target_file)
-                    .spawn();
-            }
-        }
+        // Give filesystem a moment to flush file tables
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
 
         executable_path = detect_local_app_binary(&app_id);
+
+        if !installer_success || executable_path.is_none() {
+            let mut installed_map = get_installed_versions_map();
+            if installed_map.remove(&app_id).is_some() {
+                save_installed_versions_map(&installed_map);
+            }
+
+            let _ = app.emit(
+                "download-progress",
+                DownloadProgressPayload {
+                    app_id: app_id.clone(),
+                    downloaded: 0,
+                    total: 100,
+                    percent: 0.0,
+                    status: "error".to_string(),
+                    message: format!("Installasjonen av {} ble avbrutt eller ikke fullført.", app_id),
+                },
+            );
+
+            return Err(format!("Installasjonen av {} ble avbrutt eller ikke fullført.", app_id));
+        }
     }
 
     let mut installed_map = get_installed_versions_map();
@@ -1562,11 +1724,11 @@ pub async fn install_or_update_app(
             total: 100,
             percent: 100.0,
             status: "completed".to_string(),
-            message: format!("Installasjonsprogram for {} er lastet ned og startet!", app_id),
+            message: format!("{} er nå installert og klar til bruk!", app_id),
         },
     );
 
-    Ok(format!("Installasjonsprogram for {} startet", app_id))
+    Ok(format!("{} er nå installert og klar til bruk!", app_id))
 }
 
 #[tauri::command]

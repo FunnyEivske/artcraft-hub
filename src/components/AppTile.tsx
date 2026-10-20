@@ -17,6 +17,7 @@ const ABBREVIATIONS: Record<string, string> = {
   wordcraft: 'Wc',
   deckcraft: 'Dk',
   gridcraft: 'Gc',
+  audacity: 'Au',
 };
 
 // Saturated, distinct, vivid studio colors
@@ -36,6 +37,7 @@ const VIVID_COLORS: Record<string, string> = {
   gridcraft: '#16a34a', // Vivid Sheet Green (GridCraft)
   blender: '#ea580c', // Vivid Blender Orange
   krita: '#0284c7', // Vivid Krita Blue
+  audacity: '#2563eb', // Vivid Audacity Royal Blue
 };
 
 export const appAbbreviation = (app: Pick<AppReleaseInfo, 'app_id' | 'app_name'>) => {

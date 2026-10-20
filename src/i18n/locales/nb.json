@@ -185,10 +185,15 @@
     "launchNative": "Åpne",
     "openWeb": "Åpne nettapp",
     "version": "Versjon {{version}}",
-    "alternativeTo": "Alternativ til {{name}}"
+    "alternativeTo": "Alternativ til {{name}}",
+    "officialReleases": "Offisielle utgivelser",
+    "uninstall": "Avinstaller"
   },
   "updates": {
     "title": "Oppdateringer",
+    "viewNotes": "Vis versjonsnotater",
+    "hideNotes": "Skjul versjonsnotater",
+    "noNotes": "Ingen versjonsnotater tilgjengelig for denne versjonen.",
     "subtitle_zero": "Alle verktøy og Hub-en er oppdatert.",
     "subtitle_one": "{{count}} oppdatering tilgjengelig.",
     "subtitle_other": "{{count}} oppdateringer tilgjengelig.",

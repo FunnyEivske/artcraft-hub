@@ -173,7 +173,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
           </div>
 
           {viewMode === 'rows' ? (
-            <div className="rounded-xl border border-ui-border bg-ui-surface divide-y divide-ui-border overflow-hidden">
+            <div className="rounded-xl border border-ui-border bg-ui-surface divide-y divide-ui-border">
               {installed.map((app) => (
                 <AppRow
                   key={app.app_id}
@@ -208,7 +208,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
           </div>
 
           {viewMode === 'rows' ? (
-            <div className="rounded-xl border border-ui-border bg-ui-surface divide-y divide-ui-border overflow-hidden">
+            <div className="rounded-xl border border-ui-border bg-ui-surface divide-y divide-ui-border">
               {available.map((app) => (
                 <AppRow
                   key={app.app_id}

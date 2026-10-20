@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Ellipsis, ScrollText, ExternalLink, Download, Trash2, Play, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppReleaseInfo, DownloadProgressPayload } from '../types';
@@ -62,19 +63,66 @@ const AppMenu: React.FC<{
 }> = ({ app, onToggleNotes, notesOpen, onUninstall }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top?: number; bottom?: number; right: number }>({ right: 0 });
+
+  const calculatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuEstimatedHeight = 140;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const right = Math.max(8, window.innerWidth - rect.right);
+
+    if (spaceBelow < menuEstimatedHeight && rect.top > menuEstimatedHeight) {
+      // Position above button if near the bottom of viewport
+      setPosition({
+        bottom: window.innerHeight - rect.top + 4,
+        right,
+      });
+    } else {
+      // Position below button
+      setPosition({
+        top: rect.bottom + 4,
+        right,
+      });
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    calculatePosition();
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
+        setOpen(false);
+      }
     };
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', esc);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+
+    const handleScrollOrResize = () => {
+      setOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
     return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', esc);
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
     };
   }, [open]);
 
@@ -86,61 +134,80 @@ const AppMenu: React.FC<{
       ? 'https://www.blender.org/download/releases/'
       : app.app_id === 'krita'
       ? 'https://krita.org/en/download/'
+      : app.app_id === 'audacity'
+      ? 'https://github.com/audacity/audacity/releases'
       : `https://github.com/storytold/${app.app_id}/releases`;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         className="w-7 h-7 rounded-md flex items-center justify-center text-ui-muted hover:text-ui-text hover:bg-ui-surface-2 transition-colors cursor-pointer"
         title="More actions"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          if (!open) calculatePosition();
+          setOpen((o) => !o);
+        }}
       >
         <Ellipsis className="w-3.5 h-3.5" />
       </button>
-      {open && (
-        <div className="absolute right-0 top-8 z-30 w-52 py-1 rounded-xl bg-ui-surface border border-ui-border shadow-xl animate-in fade-in duration-100">
-          <button
-            type="button"
-            className={itemClass}
-            onClick={() => {
-              setOpen(false);
-              onToggleNotes();
-            }}
-          >
-            <ScrollText className="w-3.5 h-3.5 text-ui-muted" />
-            <span>{notesOpen ? t('updates.hideNotes') : t('updates.viewNotes')}</span>
-          </button>
-          <div className="my-1 border-t border-ui-border" />
-          <a
-            className={itemClass}
-            href={repoUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => setOpen(false)}
-          >
-            <ExternalLink className="w-3.5 h-3.5 text-ui-muted" />
-            <span>{t('apps.officialReleases')}</span>
-          </a>
 
-          {app.status !== 'NotInstalled' && onUninstall && (
-            <>
-              <div className="my-1 border-t border-ui-border" />
-              <button
-                type="button"
-                className={`${itemClass} text-red-400 hover:text-red-300 hover:bg-red-500/10`}
-                onClick={() => {
-                  setOpen(false);
-                  onUninstall(app);
-                }}
-              >
-                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                <span>{t('apps.uninstall')}</span>
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: position.top !== undefined ? `${position.top}px` : undefined,
+              bottom: position.bottom !== undefined ? `${position.bottom}px` : undefined,
+              right: `${position.right}px`,
+              zIndex: 9999,
+            }}
+            className="w-52 py-1 rounded-xl bg-ui-surface border border-ui-border shadow-2xl animate-in fade-in duration-100"
+          >
+            <button
+              type="button"
+              className={itemClass}
+              onClick={() => {
+                setOpen(false);
+                onToggleNotes();
+              }}
+            >
+              <ScrollText className="w-3.5 h-3.5 text-ui-muted" />
+              <span>{notesOpen ? t('updates.hideNotes') : t('updates.viewNotes')}</span>
+            </button>
+            <div className="my-1 border-t border-ui-border" />
+            <a
+              className={itemClass}
+              href={repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setOpen(false)}
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-ui-muted" />
+              <span>{t('apps.officialReleases')}</span>
+            </a>
+
+            {app.status !== 'NotInstalled' && onUninstall && (
+              <>
+                <div className="my-1 border-t border-ui-border" />
+                <button
+                  type="button"
+                  className={`${itemClass} text-red-400 hover:text-red-300 hover:bg-red-500/10`}
+                  onClick={() => {
+                    setOpen(false);
+                    onUninstall(app);
+                  }}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                  <span>{t('apps.uninstall')}</span>
+                </button>
+              </>
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
@@ -170,11 +237,6 @@ export const AppRow: React.FC<AppItemProps> = ({
             <span className="text-[13px] font-semibold text-ui-text truncate">
               {app.app_name}
             </span>
-            {app.alternative_to && (
-              <span className="text-[10px] text-ui-muted bg-ui-surface-2 px-1.5 py-0.5 rounded border border-ui-border hidden sm:inline truncate">
-                {t('apps.alternativeTo', { name: app.alternative_to })}
-              </span>
-            )}
             {hasUpdate && (
               <span className="text-[10px] font-medium text-ui-accent bg-ui-surface-2 px-1.5 py-0.5 rounded border border-ui-accent/40">
                 v{app.latest_version}

@@ -79,7 +79,7 @@ export function App() {
   const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
 
   // Changelog / What's New modal for updates
-  const CURRENT_HUB_VERSION = '1.0.9';
+  const CURRENT_HUB_VERSION = '1.0.10';
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [toastCopied, setToastCopied] = useState(false);
 
@@ -270,6 +270,11 @@ export function App() {
             setNotifyingUpdateApp((curr) => (curr?.app_id === payload.app_id ? null : curr));
           });
         }
+      } else if (payload.status === 'error') {
+        showToast(payload.message || 'Installasjon ble avbrutt eller feilet', 'error');
+        checkGithubReleases().then((updated) => {
+          setApps(updated);
+        });
       }
     });
 
@@ -311,10 +316,14 @@ export function App() {
           ? app.web_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`
           : app.native_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`;
 
-      showToast(`Laster ned og oppdaterer ${app.app_name}...`, 'info');
+      showToast(`Laster ned og forbereder ${app.app_name}...`, 'info');
       await installOrUpdateApp(app.app_id, downloadUrl, targetType, app.latest_version);
+      const updated = await checkGithubReleases();
+      setApps(updated);
     } catch (err) {
-      showToast(`Feil under installasjon: ${err}`, 'error');
+      showToast(`${err}`, 'error');
+      const updated = await checkGithubReleases();
+      setApps(updated);
     }
   };
 

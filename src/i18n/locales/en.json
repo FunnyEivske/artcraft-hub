@@ -185,10 +185,15 @@
     "launchNative": "Open",
     "openWeb": "Open Web App",
     "version": "Version {{version}}",
-    "alternativeTo": "Alternative to {{name}}"
+    "alternativeTo": "Alternative to {{name}}",
+    "officialReleases": "Official Releases",
+    "uninstall": "Uninstall"
   },
   "updates": {
     "title": "Updates",
+    "viewNotes": "View Release Notes",
+    "hideNotes": "Hide Release Notes",
+    "noNotes": "No release notes available for this version.",
     "subtitle_zero": "All tools and the Hub are up to date.",
     "subtitle_one": "{{count}} update available.",
     "subtitle_other": "{{count}} updates available.",

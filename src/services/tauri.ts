@@ -258,6 +258,22 @@ const MOCK_RELEASES: AppReleaseInfo[] = [
     status: 'NotInstalled',
     has_web_app: false,
   },
+  {
+    app_id: 'audacity',
+    app_name: 'Audacity',
+    alternative_to: '',
+    description: 'Verdens mest populære åpne lydredigerer for opptak, flersporslyd, podkast og musikkproduksjon.',
+    category: 'Lyd & Tale',
+    color_accent: '#2563eb',
+    icon_name: 'Headphones',
+    file_types: ['.aup3', '.wav', '.mp3', '.flac', '.ogg', '.aiff'],
+    latest_version: 'v4.0.1',
+    release_name: 'Audacity 4.0.1 Official',
+    release_notes: 'Audacity åpen kildekode flerspors lydopptaker og redigerer med profesjonell effektbehandling.',
+    published_at: '2026-10-14T00:00:00Z',
+    status: 'NotInstalled',
+    has_web_app: false,
+  },
 ];
 
 // No hardcoded sample projects - purely real data created by user or scanned from disk

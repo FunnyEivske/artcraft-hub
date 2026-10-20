@@ -19,7 +19,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.9',
+  version = '1.0.10',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -44,7 +44,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-ui-muted mt-0.5">
-                Intelligent app-oppstart, standardapper i Innstillinger og forbedret grensesnitt.
+                Audacity-integrasjon, ekte installasjonsverifisering og forbedret handlingsmeny.
               </p>
             </div>
           </div>
@@ -64,23 +64,23 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
           <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-border space-y-1.5">
             <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-ui-accent" />
-              Nytt i v1.0.9: Kompakt layout & Forbedret oppdateringssjekk
+              Nytt i v1.0.10: Audacity-støtte & Forbedret installasjon
             </span>
             <p className="text-xs text-ui-muted leading-relaxed">
-              OpenArt Hub har fått en omfattende optimalisering av proporsjoner: Topplinjen har rikelig med rom, app-rader og hurtigstart-kort er nå slanke og kompakte i Adobe CC-stil, og oppdateringsknappen finner automatisk nye versjoner fra GitHub selv under API-begrensninger.
+              OpenArt Hub inkluderer nå full støtte for det populære åpne lydprogrammet Audacity, venter på og verifiserer installatøren før programmer merkes som installert, og tegner 3-prikkers menyen over appen uten avskjæring.
             </p>
           </div>
 
           {/* Feature List */}
           <div className="space-y-3">
-            {/* Nytt i 1.0.9 */}
+            {/* Nytt i 1.0.10 */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-accent/30 space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
                 <Play className="w-4 h-4 text-ui-accent" />
-                <span>Kompakt Adobe CC-design & Hurtigstart</span>
+                <span>Audacity-integrasjon & Ekte installasjonskontroll</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                App-listen viser nå mange flere verktøy samtidig uten unødvendig scrolling. Hurtigstart på hjemskjermen er gjort om til elegante horisontale fliser, slik at prosjektene og de nylige filene dine er synlige rett under.
+                Last ned og start Audacity direkte fra Hub-en. Installasjonsprosessen venter nå på fullføring, slik at avbrutte installasjoner ikke feilaktig vises som installert.
               </p>
             </div>
 

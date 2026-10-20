@@ -165,6 +165,16 @@ pub fn get_app_catalog() -> Vec<AppMetadata> {
             color_accent: "#f43f5e".into(),
             icon_name: "Brush".into(),
         },
+        AppMetadata {
+            id: "audacity".into(),
+            name: "Audacity".into(),
+            alternative_to: "".into(),
+            category: "Lyd & Tale".into(),
+            description: "Verdens mest populære åpne lydredigerer for opptak, flersporslyd, podkast og musikkproduksjon.".into(),
+            file_types: vec![".aup3".into(), ".wav".into(), ".mp3".into(), ".flac".into(), ".ogg".into(), ".aiff".into()],
+            color_accent: "#2563eb".into(),
+            icon_name: "Headphones".into(),
+        },
     ]
 }
 

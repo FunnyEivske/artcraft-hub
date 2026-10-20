@@ -668,7 +668,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     {selectedSuites.length === 0
                       ? (isNorwegian ? 'Ingen valgt' : 'None')
                       : selectedSuites
-                          .map((id) => SUITE_DEFINITIONS.find((s) => s.id === id)?.nameNo || id)
+                          .map((id) => {
+                            const s = SUITE_DEFINITIONS.find((item) => item.id === id);
+                            return (isNorwegian ? s?.nameNo : s?.nameEn) || id;
+                          })
                           .join(', ')}
                   </span>
                 </div>

@@ -31,7 +31,10 @@
     "learnMore": "Lær mer",
     "openWith": "Åpne med",
     "availableToInstall": "Tilgjengelig for filtypen",
-    "default": "Standard"
+    "default": "Standard",
+    "gotIt": "Forstått",
+    "later": "Senere",
+    "updateNow": "Oppdater {{app}} nå"
   },
   "nav": {
     "home": "Hjem",
@@ -124,6 +127,7 @@
     "subfoldersPreview": "Undermapper som opprettes:",
     "customizeFolders": "Tilpass undermapper",
     "openHub": "Åpne Hub",
+    "setupWorkspace": "Klargjør arbeidsområde",
     "toolboxCount": "{{count}} av {{total}} verktøykasser valgt",
     "selectAll": "Velg alle",
     "deselectAll": "Tøm alle"
@@ -187,7 +191,9 @@
     "version": "Versjon {{version}}",
     "alternativeTo": "Alternativ til {{name}}",
     "officialReleases": "Offisielle utgivelser",
-    "uninstall": "Avinstaller"
+    "uninstall": "Avinstaller",
+    "unselectedTitle": "Flere verktøy du kan utforske",
+    "unselectedSubtitle": "Disse pakkene ble ikke valgt under oppsettet, men du kan installere og bruke dem når som helst."
   },
   "updates": {
     "title": "Oppdateringer",
@@ -237,5 +243,51 @@
     "version": "v{{version}}",
     "subtitle": "Oppdateringer og forbedringer siden forrige versjon",
     "primaryAction": "Kult, la oss skape!"
+  },
+  "appDescriptions": {
+    "photocraft": "Profesjonell RAW-bildebehandling, fargegradering og ikke-destruktiv pikselredigering.",
+    "vectorcraft": "Presisjonsgrafikk, vektorkurver, merkevarebygging, illustrasjon og SVG-arbeidsflyt.",
+    "filmcraft": "Tidslinjebasert videoredigering, klipping, flersporsmontasje og fargekorrigering.",
+    "lightcraft": "Lynrask RAW-fremkalling, katalogisering, batch-eksport og fotobibliotek.",
+    "pdfcraft": "Komplett PDF-verktøykasse for sammenslåing, signering, merking og skjemabehandling.",
+    "effectcraft": "Node-baserte visuelle effekter, bevegelsesgrafikk, komposittering og partikler.",
+    "designcraft": "Trykksaker, magasiner, hefter, e-bøker og profesjonell typografisk layout.",
+    "figcraft": "Interaktivt grensesnittdesign, designsystemer, auto-layout og levende prototyper.",
+    "soundcraft": "Digital lydarbeidsstasjon (DAW), støyreduksjon, mastering og flerspors lydopptak.",
+    "cadcraft": "Datastøttet konstruksjon (CAD), 2D/3D teknisk tegning, parametrisk geometri og DXF/DWG/STEP-støtte.",
+    "wordcraft": "Profesjonell tekstbehandling, rik tekst, Markdown-støtte, samarbeid og eksport til DOCX/PDF.",
+    "deckcraft": "Dynamiske presentasjoner, lysbildedesign, animerte overganger og eksport til PPTX/PDF.",
+    "gridcraft": "Kraftig regneark med formelmotor, datavisualisering, diagrammer og XLSX/CSV-støtte.",
+    "blender": "Ledende åpen kildekode-studio for 3D-modellering, sculpting, rigging, animasjon, VFX og rendering.",
+    "krita": "Profesjonelt digitalt maleprogram for konseptkunstnere, illustratører, tegneserieskapere og 2D-animatører.",
+    "audacity": "Verdens mest populære åpne lydredigerer for opptak, flersporslyd, podkast og musikkproduksjon.",
+    "sysmocap": "Sanntids 3D-bevegelsesfangst (MoCap) med standard webkamera for 3D-avatarer og VTubing via VRM/VMC.",
+    "openvtuber": "Åpen kildekode ansikts- og hodesporing for VRM-avatarer, skreddersydd for direktesending og VTubing.",
+    "pyngtuber": "Lettbeint 2D-reaktiv PNGtuber-applikasjon som animerer avataren din automatisk til stemmelyd.",
+    "open-llm-vtuber": "Interaktiv samtalebasert AI-VTuber med talegjenkjenning, LLM-intelligens og leppesynkronisering for VRM/Live2D.",
+    "obs": "Bransjestandarden for videoopptak, skjermopptak og profesjonell direktesending til alle plattformer."
+  },
+  "appCategories": {
+    "photocraft": "Foto & Retusjering",
+    "vectorcraft": "Vektor & Grafikk",
+    "filmcraft": "Video & VFX",
+    "lightcraft": "Foto & Bibliotek",
+    "pdfcraft": "PDF & Dokumenter",
+    "effectcraft": "VFX & Komposittering",
+    "designcraft": "Layout & Trykk",
+    "figcraft": "UI/UX & Prototyping",
+    "soundcraft": "Lyd & DAW",
+    "cadcraft": "CAD & Teknisk",
+    "wordcraft": "Tekst & Dokument",
+    "deckcraft": "Presentasjon",
+    "gridcraft": "Regneark & Data",
+    "blender": "3D & Animasjon",
+    "krita": "Digital Maling",
+    "audacity": "Lyd & Tale",
+    "sysmocap": "VTuber & Mocap",
+    "openvtuber": "VTuber & Mocap",
+    "pyngtuber": "VTuber & 2D",
+    "open-llm-vtuber": "VTuber & AI",
+    "obs": "Streaming & Video"
   }
 }

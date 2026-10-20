@@ -115,7 +115,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <h3 className="text-xs font-semibold text-ui-text truncate group-hover:text-ui-accent transition-colors">
                       {app.app_name}
                     </h3>
-                    <p className="text-[10.5px] text-ui-muted truncate">{app.category}</p>
+                    <p className="text-[10.5px] text-ui-muted truncate">
+                      {t(`appCategories.${app.app_id.toLowerCase()}`, { defaultValue: app.category })}
+                    </p>
                   </div>
                 </div>
 

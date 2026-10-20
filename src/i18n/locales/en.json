@@ -31,7 +31,10 @@
     "learnMore": "Learn more",
     "openWith": "Open with",
     "availableToInstall": "Available to install",
-    "default": "Default"
+    "default": "Default",
+    "gotIt": "Got it",
+    "later": "Later",
+    "updateNow": "Update {{app}} Now"
   },
   "nav": {
     "home": "Home",
@@ -124,6 +127,7 @@
     "subfoldersPreview": "Subfolders that will be created:",
     "customizeFolders": "Customize subfolders",
     "openHub": "Open Hub",
+    "setupWorkspace": "Setup workspace",
     "toolboxCount": "{{count}} of {{total}} toolboxes selected",
     "selectAll": "Select all",
     "deselectAll": "Clear all"
@@ -187,7 +191,9 @@
     "version": "Version {{version}}",
     "alternativeTo": "Alternative to {{name}}",
     "officialReleases": "Official Releases",
-    "uninstall": "Uninstall"
+    "uninstall": "Uninstall",
+    "unselectedTitle": "More tools to explore",
+    "unselectedSubtitle": "These suites were not selected during setup, but you can install and use them at any time."
   },
   "updates": {
     "title": "Updates",
@@ -237,5 +243,51 @@
     "version": "v{{version}}",
     "subtitle": "Updates and improvements since previous release",
     "primaryAction": "Got it, let's create!"
+  },
+  "appDescriptions": {
+    "photocraft": "Professional RAW photo editor, non-destructive color grading and image retouching.",
+    "vectorcraft": "Precision vector illustration, typography, icon design and SVG workflows.",
+    "filmcraft": "Timeline-based non-linear video editor for editing, color grading and cutdowns.",
+    "lightcraft": "High-throughput RAW cataloging, library batch management and image curation.",
+    "pdfcraft": "Complete PDF toolkit for merging, annotating, signing and form filling.",
+    "effectcraft": "Node-based visual effects, motion design, compositing and particle generation.",
+    "designcraft": "Editorial page layout, brochures, magazines, books and print typography.",
+    "figcraft": "Collaborative UI/UX vector design, design systems and interactive prototyping.",
+    "soundcraft": "Digital audio workstation (DAW) for multitrack recording, mixing and podcasting.",
+    "cadcraft": "Parametric 2D/3D CAD modeling, technical drawing and DXF/DWG/STEP support.",
+    "wordcraft": "Distraction-free document writing, rich text, Markdown and DOCX/PDF export.",
+    "deckcraft": "Dynamic slide deck presentations, motion transitions and PPTX export.",
+    "gridcraft": "Powerful spreadsheet engine with formulas, charting and XLSX/CSV support.",
+    "blender": "World-leading open source studio for 3D modeling, sculpting, animation, VFX and rendering.",
+    "krita": "Professional digital painting for concept artists, illustrators, comic artists and 2D animators.",
+    "audacity": "World's most popular open source multitrack audio recorder and sound editor.",
+    "sysmocap": "Real-time 3D motion capture via standard webcam for 3D avatars and VTubing via VRM/VMC.",
+    "openvtuber": "Open source face and head tracking for VRM avatars tailored for live streaming and VTubing.",
+    "pyngtuber": "Lightweight reactive 2D PNGtuber tool that animates your avatar to your microphone voice.",
+    "open-llm-vtuber": "Interactive conversational AI VTuber with voice recognition, LLM intelligence and lip-sync.",
+    "obs": "Industry standard for video recording, screen capture and live streaming to all platforms."
+  },
+  "appCategories": {
+    "photocraft": "Photo & Retouching",
+    "vectorcraft": "Vector & Graphics",
+    "filmcraft": "Video & VFX",
+    "lightcraft": "Photo & Library",
+    "pdfcraft": "PDF & Documents",
+    "effectcraft": "VFX & Compositing",
+    "designcraft": "Editorial & Layout",
+    "figcraft": "UI/UX & Prototyping",
+    "soundcraft": "Audio & DAW",
+    "cadcraft": "CAD & Technical",
+    "wordcraft": "Word & Text",
+    "deckcraft": "Slides & Presentation",
+    "gridcraft": "Spreadsheet & Data",
+    "blender": "3D & Animation",
+    "krita": "Digital Painting",
+    "audacity": "Audio & Voice",
+    "sysmocap": "VTuber & MoCap",
+    "openvtuber": "VTuber & MoCap",
+    "pyngtuber": "VTuber & 2D",
+    "open-llm-vtuber": "VTuber & AI",
+    "obs": "Streaming & Video"
   }
 }

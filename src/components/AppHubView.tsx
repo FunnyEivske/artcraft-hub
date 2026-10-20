@@ -88,10 +88,12 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
       }
 
       // Search query
+      const localizedDesc = t(`appDescriptions.${app.app_id.toLowerCase()}`, { defaultValue: '' });
       const matchesSearch =
         !query ||
         app.app_name.toLowerCase().includes(query) ||
         app.description.toLowerCase().includes(query) ||
+        localizedDesc.toLowerCase().includes(query) ||
         app.alternative_to.toLowerCase().includes(query) ||
         app.file_types.some((ext) => ext.toLowerCase().includes(query));
 
@@ -280,19 +282,19 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
               <div className="text-left">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-ui-text">
-                    Flere verktøy du kan utforske
+                    {t('apps.unselectedTitle')}
                   </span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-ui-surface-2 text-ui-muted border border-ui-border">
-                    {unselectedAvailable.length} apper
+                    {unselectedAvailable.length}
                   </span>
                 </div>
                 <p className="text-[11px] text-ui-muted">
-                  Disse pakkene ble ikke valgt i oppsettet, men du kan installere og bruke dem når som helst.
+                  {t('apps.unselectedSubtitle')}
                 </p>
               </div>
             </div>
             <span className="text-xs font-medium text-ui-accent group-hover:underline">
-              {showUnselected ? 'Skjul' : 'Vis alle apper'}
+              {showUnselected ? t('common.close') : t('apps.unselectedTitle')}
             </span>
           </button>
 

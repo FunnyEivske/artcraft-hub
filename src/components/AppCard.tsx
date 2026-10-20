@@ -253,7 +253,9 @@ export const AppRow: React.FC<AppItemProps> = ({
               </span>
             )}
           </div>
-          <div className="text-[11.5px] text-ui-muted truncate mt-0.5">{app.description}</div>
+          <div className="text-[11.5px] text-ui-muted truncate mt-0.5">
+            {t(`appDescriptions.${app.app_id.toLowerCase()}`, { defaultValue: app.description })}
+          </div>
         </div>
 
         {/* Version column */}
@@ -347,7 +349,9 @@ export const AppCard: React.FC<AppItemProps> = ({
             <div className="text-sm font-semibold text-ui-text leading-tight truncate">
               {app.app_name}
             </div>
-            <div className="text-[11px] text-ui-muted mt-0.5 truncate">{app.category}</div>
+            <div className="text-[11px] text-ui-muted mt-0.5 truncate">
+              {t(`appCategories.${app.app_id.toLowerCase()}`, { defaultValue: app.category })}
+            </div>
           </div>
           <AppMenu
             app={app}
@@ -358,7 +362,7 @@ export const AppCard: React.FC<AppItemProps> = ({
         </div>
 
         <p className="mt-3 text-xs leading-relaxed text-ui-muted line-clamp-2">
-          {app.description}
+          {t(`appDescriptions.${app.app_id.toLowerCase()}`, { defaultValue: app.description })}
         </p>
 
         {notesOpen && <ReleaseNotes app={app} />}

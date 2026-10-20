@@ -2,8 +2,6 @@ import React from 'react';
 import {
   Sparkles,
   X,
-  Palette,
-  FolderPlus,
   Play,
   Sun,
   Globe,
@@ -19,7 +17,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.10',
+  version = '1.0.11',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -44,7 +42,7 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-ui-muted mt-0.5">
-                Audacity-integrasjon, ekte installasjonsverifisering og forbedret handlingsmeny.
+                Fikset oppdateringsinstallasjon & UAC-godkjenning, Audacity og forbedret grensesnitt.
               </p>
             </div>
           </div>
@@ -61,92 +59,70 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
         {/* Changelog Content */}
         <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
           {/* Highlight Banner */}
-          <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-border space-y-1.5">
+          <div className="p-4 rounded-xl bg-ui-surface-2 border border-ui-accent/40 space-y-1.5">
             <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-ui-accent" />
-              Nytt i v1.0.10: Audacity-støtte & Forbedret installasjon
+              Nytt i v1.0.11: Fikset oppdateringsprosess & UAC-støtte
             </span>
             <p className="text-xs text-ui-muted leading-relaxed">
-              OpenArt Hub inkluderer nå full støtte for det populære åpne lydprogrammet Audacity, venter på og verifiserer installatøren før programmer merkes som installert, og tegner 3-prikkers menyen over appen uten avskjæring.
+              Rettet feilen der oppdateringen startet, men ingenting skjedde etterpå. OpenArt Hub laster nå ned den reelle installasjonsfilen (.exe / .msi) direkte fra GitHub Releases, validerer filintegriteten på disken, og starter installasjonsprogrammet med automatisk Windows UAC-administratorgodkjenning.
             </p>
           </div>
 
           {/* Feature List */}
           <div className="space-y-3">
-            {/* Nytt i 1.0.10 */}
-            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-accent/30 space-y-1">
-              <div className="flex items-center gap-2 text-ui-text font-medium">
-                <Play className="w-4 h-4 text-ui-accent" />
-                <span>Audacity-integrasjon & Ekte installasjonskontroll</span>
-              </div>
-              <p className="text-ui-muted leading-relaxed">
-                Last ned og start Audacity direkte fra Hub-en. Installasjonsprosessen venter nå på fullføring, slik at avbrutte installasjoner ikke feilaktig vises som installert.
-              </p>
-            </div>
-
-            {/* 1. Mørkt & Lyst tema */}
-            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+            {/* 1. Oppdateringsprosess */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-accent/40 space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
                 <Sun className="w-4 h-4 text-ui-accent" />
-                <span>Mørkt & Lyst tema med lynrask veksling</span>
+                <span>Feilrettet selvoppdaterer & UAC-administratoroppstart</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                Nyt ekte papirlys bakgrunn (#f6f5f3) eller dyp matt mørk (#17171a) med automatisk synkronisering mot operativsystemet ditt og umiddelbar forhåndsvisning.
+                Når du klikker oppdater, lastes den nyeste installatøren ned direkte. Hub-en starter deretter installasjonsprogrammet med nødvendige administratorrettigheter og lukkes automatisk så oppdateringen kan fullføres umiddelbart uten filkonflikter.
               </p>
             </div>
 
-            {/* 2. Flerspråklig */}
-            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
-              <div className="flex items-center gap-2 text-ui-text font-medium">
-                <Globe className="w-4 h-4 text-ui-accent" />
-                <span>Flerspråklig støtte (English & Norsk)</span>
-              </div>
-              <p className="text-ui-muted leading-relaxed">
-                Appen støtter nå full oversettelse på både engelsk (standard) og norsk bokmål. Bytter automatisk eller etter dine ønsker i Innstillinger.
-              </p>
-            </div>
-
-            {/* 3. 4-stegs Onboarding Wizard */}
-            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
-              <div className="flex items-center gap-2 text-ui-text font-medium">
-                <FolderPlus className="w-4 h-4 text-ui-accent" />
-                <span>4-stegs velkomstveiviser for verktøykasser & mapper</span>
-              </div>
-              <p className="text-ui-muted leading-relaxed">
-                Ny rolig velkomstskjerm lar deg velge hva du skaper (Foto, Maling, Vektor, 3D, Video, Lyd, Dokumenter) og setter opp tilpassede mapper automatisk i Dokumenter/OpenArt.
-              </p>
-            </div>
-
-            {/* 4. App-agnostisk Hjem & Klikkbare Prosjektkort */}
+            {/* 2. Audacity */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
                 <Play className="w-4 h-4 text-ui-accent" />
-                <span>Hurtigstart & Klikkbare Filer (16:9 forhåndsvisning)</span>
+                <span>Audacity integrert i app-katalogen</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                Hjem-skjermen viser nå kun apper som faktisk er installert. Filer har fått korrekte mediatype-merker (Bilde, Vektor, 3D, Video, Audio) i stedet for den gamle mappelappen, og hele kortet kan klikkes for å åpne filen direkte.
+                Full støtte for det åpne lydopptaks- og redigeringsprogrammet Audacity, med automatisk sporing, åpning av .aup3-prosjektfiler og lydformater (.wav, .mp3, .flac, .ogg), samt direkte nedlasting fra offisielle utgivelser.
               </p>
             </div>
 
-            {/* 5. 4-faners Innstillinger */}
+            {/* 3. Ekte installasjonskontroll */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
                 <Sliders className="w-4 h-4 text-ui-accent" />
-                <span>Organisert 4-faners Innstillinger</span>
+                <span>Ekte installasjonskontroll & Filverifisering</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                Rent oppdelt i Generelt, Mapper, Apper og Avansert. Styr overvåkede mapper, overstyr kjørbare filer for Blender/Krita og inspiser lokale diagnostikklogger.
+                OpenArt Hub venter nå på at installasjonsprogrammer fullføres, og verifiserer at den kjørbare filen faktisk eksisterer på disken før en app markeres som installert. Avbrutte installasjoner fjernes automatisk.
               </p>
             </div>
 
-            {/* 6. Palett-eksport */}
+            {/* 4. Overlappende handlingsmeny */}
             <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
               <div className="flex items-center gap-2 text-ui-text font-medium">
-                <Palette className="w-4 h-4 text-ui-accent" />
-                <span>Palett-eksport til installerte apper</span>
+                <Sparkles className="w-4 h-4 text-ui-accent" />
+                <span>3-prikkers meny tegnes over appen uten avskjæring</span>
               </div>
               <p className="text-ui-muted leading-relaxed">
-                Eksporter delte fargepaletter direkte i Krita (.gpl), PhotoCraft, CSS-variabler eller JSON-format med ett klikk.
+                Handlingsmenyen åpnes i en React-portal over alle andre elementer med høyeste lagprioritet (z-index), og flipper oppover når knappen er nær bunnen av vinduet.
+              </p>
+            </div>
+
+            {/* 5. Oversettelser & Rent grensesnitt */}
+            <div className="p-3.5 rounded-xl bg-ui-bg border border-ui-border space-y-1">
+              <div className="flex items-center gap-2 text-ui-text font-medium">
+                <Globe className="w-4 h-4 text-ui-accent" />
+                <span>Fikset menytekster & Fjernet «Alternativ til»-merkelapper</span>
+              </div>
+              <p className="text-ui-muted leading-relaxed">
+                Alle elementer i 3-prikkers menyen vises med ren tekst på gjeldende språk uten synlige nøkkelnavn, og «Alternativ til»-merkelappene er fjernet for et minimalistisk utseende.
               </p>
             </div>
           </div>

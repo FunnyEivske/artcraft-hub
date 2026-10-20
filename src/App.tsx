@@ -79,7 +79,7 @@ export function App() {
   const [onboardingSettings, setOnboardingSettings] = useState<ScannerSettings | null>(null);
 
   // Changelog / What's New modal for updates
-  const CURRENT_HUB_VERSION = '1.0.10';
+  const CURRENT_HUB_VERSION = '1.0.11';
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [toastCopied, setToastCopied] = useState(false);
 
@@ -303,9 +303,9 @@ export function App() {
   const handleInstall = async (app: AppReleaseInfo, targetType: 'native' | 'web') => {
     try {
       if (app.app_id === 'openart-hub' || app.app_id === 'artcraft-hub') {
-        const downloadUrl = app.native_download_url || 'https://github.com/FunnyEivske/artcraft-hub/releases/latest';
         const osExt = systemInfo?.os === 'macos' ? 'OpenArtHub.dmg' : systemInfo?.os === 'linux' ? 'OpenArtHub.AppImage' : 'OpenArtHub-Setup.exe';
         const fileName = app.native_asset_name || osExt;
+        const downloadUrl = app.native_download_url || `https://github.com/FunnyEivske/artcraft-hub/releases/download/v${app.latest_version}/${fileName}`;
         showToast('Laster ned nyeste OpenArt Hub...', 'info');
         await downloadAndInstallHubUpdate(downloadUrl, fileName);
         return;

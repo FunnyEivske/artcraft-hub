@@ -1302,7 +1302,9 @@ pub async fn download_and_install_hub_update(
     let updates_dir = hub_home.join("Updates");
     fs::create_dir_all(&updates_dir).map_err(|e| e.to_string())?;
 
-    let target_file = updates_dir.join(&file_name);
+    let os = std::env::consts::OS;
+    let mut resolved_url = download_url.trim().to_string();
+    let mut resolved_file_name = file_name.trim().to_string();
 
     let _ = app.emit(
         "download-progress",
@@ -1312,130 +1314,340 @@ pub async fn download_and_install_hub_update(
             total: 100,
             percent: 5.0,
             status: "starting".to_string(),
-            message: "Klargjør nedlasting av OpenArt Hub oppdatering...".to_string(),
+            message: "Finner installasjonsfil for OpenArt Hub...".to_string(),
         },
     );
 
-    let client = reqwest::Client::new();
-    let response = client
-        .get(&download_url)
-        .header("User-Agent", "OpenArt-Hub")
-        .send()
-        .await;
+    // If download_url points to a GitHub webpage or doesn't end with a binary installer extension
+    let is_web_page = resolved_url.contains("/releases/latest")
+        || resolved_url.contains("/releases/tag/")
+        || (!resolved_url.ends_with(".exe")
+            && !resolved_url.ends_with(".msi")
+            && !resolved_url.ends_with(".dmg")
+            && !resolved_url.ends_with(".AppImage")
+            && !resolved_url.ends_with(".deb"));
+
+    if is_web_page {
+        let client_api = reqwest::Client::new();
+        let mut found = false;
+
+        // 1. Try GitHub API
+        if let Ok(resp) = client_api
+            .get("https://api.github.com/repos/FunnyEivske/artcraft-hub/releases/latest")
+            .header("User-Agent", "OpenArt-Hub")
+            .send()
+            .await
+        {
+            if resp.status().is_success() {
+                if let Ok(json_data) = resp.json::<serde_json::Value>().await {
+                    if let Some(assets) = json_data.get("assets").and_then(|v| v.as_array()) {
+                        for asset in assets {
+                            let name = asset.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                            let d_url = asset
+                                .get("browser_download_url")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
+                            match os {
+                                "windows" => {
+                                    if name.ends_with(".exe") {
+                                        if let Some(u) = d_url {
+                                            resolved_url = u;
+                                            resolved_file_name = name.to_string();
+                                            found = true;
+                                            break;
+                                        }
+                                    } else if name.ends_with(".msi") && !resolved_url.ends_with(".exe") {
+                                        if let Some(u) = d_url {
+                                            resolved_url = u;
+                                            resolved_file_name = name.to_string();
+                                            found = true;
+                                        }
+                                    }
+                                }
+                                "macos" => {
+                                    if name.ends_with(".dmg") {
+                                        if let Some(u) = d_url {
+                                            resolved_url = u;
+                                            resolved_file_name = name.to_string();
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                "linux" => {
+                                    if name.ends_with(".AppImage") || name.ends_with(".deb") {
+                                        if let Some(u) = d_url {
+                                            resolved_url = u;
+                                            resolved_file_name = name.to_string();
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. If API was rate limited or didn't find asset, query GitHub web redirect for latest tag
+        if !found {
+            let no_redirect_client = reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                .build()
+                .unwrap_or_default();
+
+            if let Ok(web_resp) = no_redirect_client
+                .get("https://github.com/FunnyEivske/artcraft-hub/releases/latest")
+                .send()
+                .await
+            {
+                if let Some(location) = web_resp.headers().get("location").and_then(|l| l.to_str().ok()) {
+                    if let Some(tag) = location.split("/tag/").nth(1) {
+                        let tag_name = tag.trim().to_string();
+                        let clean_tag = tag_name.trim_start_matches('v');
+                        match os {
+                            "windows" => {
+                                resolved_file_name = format!("OpenArt.Hub_{}_x64-setup.exe", clean_tag);
+                                resolved_url = format!(
+                                    "https://github.com/FunnyEivske/artcraft-hub/releases/download/{}/{}",
+                                    tag_name, resolved_file_name
+                                );
+                            }
+                            "macos" => {
+                                resolved_file_name = format!("OpenArt.Hub_{}_x64.dmg", clean_tag);
+                                resolved_url = format!(
+                                    "https://github.com/FunnyEivske/artcraft-hub/releases/download/{}/{}",
+                                    tag_name, resolved_file_name
+                                );
+                            }
+                            _ => {
+                                resolved_file_name = format!("OpenArt.Hub_{}_amd64.AppImage", clean_tag);
+                                resolved_url = format!(
+                                    "https://github.com/FunnyEivske/artcraft-hub/releases/download/{}/{}",
+                                    tag_name, resolved_file_name
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let target_file = updates_dir.join(&resolved_file_name);
+
+    let client = reqwest::Client::builder()
+        .user_agent("OpenArt-Hub")
+        .build()
+        .unwrap_or_default();
+
+    let response = client.get(&resolved_url).send().await;
 
     let mut downloaded_bytes = Vec::new();
     let mut success_download = false;
 
     if let Ok(resp) = response {
         if resp.status().is_success() {
-            let total_size = resp.content_length().unwrap_or(30_000_000);
-            let mut stream = resp.bytes_stream();
-            let mut current_bytes = 0u64;
+            let content_type = resp
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+                .to_lowercase();
 
-            while let Some(chunk) = stream.next().await {
-                if let Ok(bytes) = chunk {
-                    current_bytes += bytes.len() as u64;
-                    downloaded_bytes.extend_from_slice(&bytes);
-                    let percent = ((current_bytes as f32 / total_size as f32) * 100.0).min(95.0);
+            // Guard against receiving an HTML error/webpage instead of installer binary
+            if !content_type.contains("text/html") {
+                let total_size = resp.content_length().unwrap_or(30_000_000);
+                let mut stream = resp.bytes_stream();
+                let mut current_bytes = 0u64;
 
-                    let _ = app.emit(
-                        "download-progress",
-                        DownloadProgressPayload {
-                            app_id: "openart-hub".to_string(),
-                            downloaded: current_bytes,
-                            total: total_size,
-                            percent,
-                            status: "downloading".to_string(),
-                            message: format!(
-                                "Laster ned oppdatering... {:.1} MB / {:.1} MB",
-                                current_bytes as f64 / 1_048_576.0,
-                                total_size as f64 / 1_048_576.0
-                            ),
-                        },
-                    );
+                while let Some(chunk) = stream.next().await {
+                    if let Ok(bytes) = chunk {
+                        current_bytes += bytes.len() as u64;
+                        downloaded_bytes.extend_from_slice(&bytes);
+                        let percent = ((current_bytes as f32 / total_size as f32) * 100.0).min(95.0);
+
+                        let _ = app.emit(
+                            "download-progress",
+                            DownloadProgressPayload {
+                                app_id: "openart-hub".to_string(),
+                                downloaded: current_bytes,
+                                total: total_size,
+                                percent,
+                                status: "downloading".to_string(),
+                                message: format!(
+                                    "Laster ned oppdatering... {:.1} MB / {:.1} MB",
+                                    current_bytes as f64 / 1_048_576.0,
+                                    total_size as f64 / 1_048_576.0
+                                ),
+                            },
+                        );
+                    }
+                }
+                if downloaded_bytes.len() >= 2_000_000 {
+                    success_download = true;
                 }
             }
-            success_download = true;
         }
     }
 
-    if !success_download {
-        let simulated_total = 45_000_000u64;
-        let steps = [15.0, 35.0, 60.0, 85.0, 95.0];
-        for p in steps {
-            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
-            let current = ((p / 100.0) * simulated_total as f32) as u64;
+    if !success_download || downloaded_bytes.len() < 2_000_000 {
+        let err_msg = "Kunne ikke laste ned oppdateringspakken automatisk. Åpner utgivelsessiden i nettleseren...".to_string();
+        let _ = app.emit(
+            "download-progress",
+            DownloadProgressPayload {
+                app_id: "openart-hub".to_string(),
+                downloaded: 0,
+                total: 100,
+                percent: 0.0,
+                status: "error".to_string(),
+                message: err_msg.clone(),
+            },
+        );
+        #[cfg(target_os = "windows")]
+        {
+            let mut cmd = std::process::Command::new("cmd");
+            cmd.args(["/C", "start", "", "https://github.com/FunnyEivske/artcraft-hub/releases/latest"]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            let _ = cmd.spawn();
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let _ = std::process::Command::new("open")
+                .arg("https://github.com/FunnyEivske/artcraft-hub/releases/latest")
+                .spawn();
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let _ = std::process::Command::new("xdg-open")
+                .arg("https://github.com/FunnyEivske/artcraft-hub/releases/latest")
+                .spawn();
+        }
+        return Err(err_msg);
+    }
+
+    // Windows binary header validation
+    #[cfg(target_os = "windows")]
+    {
+        let is_exe = resolved_file_name.to_lowercase().ends_with(".exe") && downloaded_bytes.starts_with(b"MZ");
+        let is_msi = resolved_file_name.to_lowercase().ends_with(".msi") && downloaded_bytes.starts_with(&[0xD0, 0xCF, 0x11, 0xE0]);
+        if !is_exe && !is_msi {
+            let err_msg = "Den nedlastede filen er ikke en gyldig Windows-installasjonspakke.".to_string();
             let _ = app.emit(
                 "download-progress",
                 DownloadProgressPayload {
                     app_id: "openart-hub".to_string(),
-                    downloaded: current,
-                    total: simulated_total,
-                    percent: p,
-                    status: "downloading".to_string(),
-                    message: format!(
-                        "Laster ned oppdateringspakke... {:.1} MB",
-                        current as f64 / 1_048_576.0
-                    ),
+                    downloaded: 0,
+                    total: 100,
+                    percent: 0.0,
+                    status: "error".to_string(),
+                    message: err_msg.clone(),
                 },
             );
+            return Err(err_msg);
         }
-    } else {
-        let _ = fs::write(&target_file, &downloaded_bytes);
     }
+
+    fs::write(&target_file, &downloaded_bytes)
+        .map_err(|e| format!("Kunne ikke lagre oppdateringsfil: {}", e))?;
 
     let _ = app.emit(
         "download-progress",
         DownloadProgressPayload {
             app_id: "openart-hub".to_string(),
-            downloaded: 100,
-            total: 100,
+            downloaded: downloaded_bytes.len() as u64,
+            total: downloaded_bytes.len() as u64,
             percent: 100.0,
             status: "completed".to_string(),
-            message: "Oppdatering lastet ned! Starter installasjon...".to_string(),
+            message: "Oppdatering lastet ned! Starter installasjonsprogrammet...".to_string(),
         },
     );
 
     #[cfg(target_os = "windows")]
     {
-        if target_file.exists() {
-            let path_str = target_file.to_string_lossy().to_string();
-            if path_str.to_lowercase().ends_with(".msi") {
-                let mut cmd = std::process::Command::new("msiexec");
-                cmd.args(["/i", &path_str]);
-                let _ = cmd.spawn();
-            } else {
-                let _ = std::process::Command::new(&target_file).spawn();
+        let path_str = target_file.to_string_lossy().to_string();
+        let spawn_result = if path_str.to_lowercase().ends_with(".msi") {
+            let mut cmd = std::process::Command::new("msiexec");
+            cmd.args(["/i", &path_str]);
+            cmd.spawn()
+        } else {
+            // Using cmd /C start "" "<path>" launches the installer through Windows Shell,
+            // which triggers the UAC elevation prompt and displays the installation wizard!
+            let mut cmd = std::process::Command::new("cmd");
+            cmd.args(["/C", "start", "", &path_str]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.spawn()
+        };
+
+        match spawn_result {
+            Ok(_) => {
+                let app_handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                    app_handle.exit(0);
+                });
+                return Ok("Oppdateringsinstallatør startet. OpenArt Hub lukkes straks for å fullføre oppdateringen.".to_string());
+            }
+            Err(e) => {
+                let err_msg = format!("Kunne ikke starte installasjonsprogrammet: {}", e);
+                let _ = app.emit(
+                    "download-progress",
+                    DownloadProgressPayload {
+                        app_id: "openart-hub".to_string(),
+                        downloaded: 0,
+                        total: 100,
+                        percent: 0.0,
+                        status: "error".to_string(),
+                        message: err_msg.clone(),
+                    },
+                );
+                return Err(err_msg);
             }
         }
     }
 
     #[cfg(target_os = "macos")]
     {
-        if target_file.exists() {
-            let _ = std::process::Command::new("open")
-                .arg(&target_file)
-                .spawn();
+        let spawn_result = std::process::Command::new("open")
+            .arg(&target_file)
+            .spawn();
+
+        if spawn_result.is_ok() {
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                app_handle.exit(0);
+            });
+            return Ok("Oppdateringsinstallatør startet.".to_string());
+        } else {
+            return Err("Kunne ikke starte installasjonsprogrammet på macOS.".to_string());
         }
     }
 
     #[cfg(target_os = "linux")]
     {
-        if target_file.exists() {
-            let _ = std::process::Command::new("xdg-open")
-                .arg(&target_file)
-                .spawn();
+        let spawn_result = std::process::Command::new("xdg-open")
+            .arg(&target_file)
+            .spawn();
+
+        if spawn_result.is_ok() {
+            let app_handle = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+                app_handle.exit(0);
+            });
+            return Ok("Oppdateringsinstallatør startet.".to_string());
+        } else {
+            return Err("Kunne ikke starte installasjonsprogrammet på Linux.".to_string());
         }
     }
 
-    // Lukker gjeldende OpenArt Hub-prosess slik at installasjonsprogrammet kan erstatte filene uten fillås
-    let app_handle = app.clone();
-    tauri::async_runtime::spawn(async move {
-        tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-        app_handle.exit(0);
-    });
-
-    Ok("Oppdateringsinstallatør startet. OpenArt Hub lukkes straks for å fullføre oppdateringen.".to_string())
+    #[allow(unreachable_code)]
+    Ok("Oppdateringsinstallatør startet.".to_string())
 }
 
 #[tauri::command]
@@ -1507,27 +1719,20 @@ pub async fn install_or_update_app(
         }
     }
 
-    if !success_download {
-        let simulated_total = 38_500_000u64;
-        let steps = [15.0, 35.0, 60.0, 85.0, 95.0];
-        for p in steps {
-            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
-            let current = ((p / 100.0) * simulated_total as f32) as u64;
-            let _ = app.emit(
-                "download-progress",
-                DownloadProgressPayload {
-                    app_id: app_id.clone(),
-                    downloaded: current,
-                    total: simulated_total,
-                    percent: p,
-                    status: "downloading".to_string(),
-                    message: format!(
-                        "Laster ned installasjonspakke... {:.1} MB",
-                        current as f64 / 1_048_576.0
-                    ),
-                },
-            );
-        }
+    if !success_download || downloaded_bytes.is_empty() {
+        let err_msg = format!("Kunne ikke laste ned {} fra {}. Filen er utilgjengelig.", app_id, download_url);
+        let _ = app.emit(
+            "download-progress",
+            DownloadProgressPayload {
+                app_id: app_id.clone(),
+                downloaded: 0,
+                total: 100,
+                percent: 0.0,
+                status: "error".to_string(),
+                message: format!("Nedlasting av {} feilet eller filen er ikke tilgjengelig.", app_id),
+            },
+        );
+        return Err(err_msg);
     }
 
     let _ = app.emit(
@@ -1640,7 +1845,10 @@ pub async fn install_or_update_app(
                         cmd.args(["/i", &path_str]);
                         cmd.status()
                     } else {
-                        std::process::Command::new(&path_clone).status()
+                        let mut cmd = std::process::Command::new("cmd");
+                        cmd.args(["/C", "start", "/wait", "", &path_str]);
+                        cmd.creation_flags(CREATE_NO_WINDOW);
+                        cmd.status()
                     };
                     match status {
                         Ok(st) => st.success(),

@@ -131,6 +131,32 @@ export const AppTile: React.FC<AppTileProps> = ({ app, size = 40 }) => {
     );
   }
 
+  // Official brand logo for Audacity
+  if (key === 'audacity') {
+    return (
+      <div
+        aria-hidden
+        className="flex-shrink-0 flex items-center justify-center select-none transition-transform hover:scale-105"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: Math.round(size * 0.22),
+          background: 'linear-gradient(145deg, rgba(37, 99, 235, 0.25) 0%, #0a0d14 100%)',
+          border: '1.5px solid #2563eb',
+          boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35), inset 0 1px 1px rgba(255,255,255,0.25)',
+          padding: Math.max(2, Math.round(size * 0.1)),
+        }}
+      >
+        <img
+          src={loadError ? '/audacity.png' : '/audacity.svg'}
+          alt="Audacity"
+          className="w-full h-full object-contain filter drop-shadow(0 1px 4px rgba(37, 99, 235, 0.6))"
+          onError={() => setLoadError(true)}
+        />
+      </div>
+    );
+  }
+
   // ArtCraft studios with Adobe-style typography (e.g. Pc, Vc, Fc)
   const accent = VIVID_COLORS[key] || app.color_accent || '#38bdf8';
   const abbr = appAbbreviation(app);

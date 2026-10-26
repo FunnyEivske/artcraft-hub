@@ -17,7 +17,7 @@ interface ChangelogModalProps {
 }
 
 export const ChangelogModal: React.FC<ChangelogModalProps> = ({
-  version = '1.0.13',
+  version = '1.0.14',
   onClose,
   onOpenOnboarding,
 }) => {
@@ -44,8 +44,8 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
               </div>
               <p className="text-xs text-ui-muted mt-0.5">
                 {isNorwegian
-                  ? '5 nye apper, VTuber & Streaming, modulære verktøypakker og ny veiviser.'
-                  : '5 new apps, VTuber & Streaming, modular suite setup, and expanded tool catalog.'}
+                  ? 'Installasjonskø, prioritert Hub-oppdatering og PhotoCraft v0.16.0-støtte.'
+                  : 'Install queue, prioritized Hub updates, and official PhotoCraft v0.16.0 support.'}
               </p>
             </div>
           </div>
@@ -66,13 +66,13 @@ export const ChangelogModal: React.FC<ChangelogModalProps> = ({
             <span className="font-semibold text-ui-text flex items-center gap-2 text-sm">
               <Sparkles className="w-4 h-4 text-ui-accent" />
               {isNorwegian
-                ? 'Nytt i v1.0.13: 5 nye apper, VTuber & Streaming og modulært oppsett'
-                : 'New in v1.0.13: 5 New Apps, VTuber & Streaming, and Modular Suite Setup'}
+                ? 'Nytt i v1.0.14: Installasjonskø, prioritert Hub-oppdatering og PhotoCraft'
+                : 'New in v1.0.14: Sequential Install Queue, Prioritized Hub Updates, and PhotoCraft'}
             </span>
             <p className="text-xs text-ui-muted leading-relaxed">
               {isNorwegian
-                ? 'Versjon 1.0.13 utvider OpenArt-økosystemet med 5 populære apper: SysMocap, OpenVTuber, PyNGTuber, Open-LLM-VTuber og OBS Studio. Et helt nytt førstegangsoppsett lar deg velge akkurat de verktøypakkene du trenger, med en skjult sammenleggbar seksjon i app-oversikten for resten av katalogen!'
-                : 'Version 1.0.13 expands the OpenArt ecosystem with 5 popular applications: SysMocap, OpenVTuber, PyNGTuber, Open-LLM-VTuber, and OBS Studio. A brand new modular setup allows you to select exactly the suites you need, with an expandable section in All Apps for the rest of the catalog!'}
+                ? 'Versjon 1.0.14 introduserer en komplett installasjons- og oppdateringskø slik at apper installeres én etter én uten kollisjoner. OpenArt Hub har alltid høyeste prioritet, og PhotoCraft henter nå offisielle v0.16.0-pakker direkte fra storytold!'
+                : 'Version 1.0.14 introduces a robust install and update queue so apps download and install sequentially without conflicts. OpenArt Hub self-updates are always prioritized first, and PhotoCraft now pulls official v0.16.0 releases directly from storytold!'}
             </p>
           </div>
 

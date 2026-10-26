@@ -149,7 +149,7 @@ const AppMenu: React.FC<{
       : app.app_id === 'open-llm-vtuber'
       ? 'https://github.com/Open-LLM-VTuber/Open-LLM-VTuber'
       : app.app_id === 'photocraft'
-      ? 'https://github.com/storytold/artcraft/releases'
+      ? 'https://github.com/storytold/photocraft/releases'
       : `https://github.com/storytold/${app.app_id}/releases`;
 
   return (

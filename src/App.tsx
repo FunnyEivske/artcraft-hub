@@ -423,12 +423,22 @@ export function App() {
   };
 
   const handleUpdateAll = () => {
-    const toUpdate = apps.filter((a) => a.status === 'UpdateAvailable');
-    if (toUpdate.length === 0) {
-      showToast('Alle installerte apper er oppdatert', 'info');
+    const suiteUpdates = apps.filter((a) => a.status === 'UpdateAvailable');
+    const hubNeedsUpdate = Boolean(hubUpdate?.updateAvailable);
+
+    if (suiteUpdates.length === 0 && !hubNeedsUpdate) {
+      showToast('Alle installerte apper og Hub-en er oppdatert', 'info');
       return;
     }
-    enqueueBatch(toUpdate, 'native');
+
+    const batch: AppReleaseInfo[] = [];
+    if (hubNeedsUpdate && hubUpdate) {
+      // OpenArt Hub ALWAYS has top priority
+      batch.push(createHubReleaseInfo(hubUpdate));
+    }
+    batch.push(...suiteUpdates);
+
+    enqueueBatch(batch, 'native');
   };
 
   const handleLaterUpdate = (app: AppReleaseInfo) => {

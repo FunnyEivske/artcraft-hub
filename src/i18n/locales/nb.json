@@ -232,6 +232,10 @@
     "check": "Se etter oppdateringer",
     "newHubVersion": "Ny Hub-versjon",
     "updateHubNow": "Oppdater Hub nå",
+    "updatingHubNow": "Oppdaterer Hub...",
+    "hubPriorityBadge": "Høyeste prioritet",
+    "hubPriorityHint": "Oppdateres alltid først",
+    "queuedPriority": "I kø (Prioritet #{{pos}})",
     "simulateDesc": "Test oppdateringsflyt med simulert pakke.",
     "simulateButton": "Simuler oppdatering"
   },

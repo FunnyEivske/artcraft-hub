@@ -96,7 +96,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
             <span>{isChecking ? t('updates.checking') : t('updates.check')}</span>
           </button>
 
-          {updates.length > 0 && (
+          {totalCount > 0 && (
             <button
               type="button"
               className="btn-primary text-xs px-3.5 py-1.5 rounded-lg cursor-pointer"
@@ -136,37 +136,78 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
         </div>
       )}
 
-      {/* Hub Self Update Banner */}
-      {hubUpdate?.updateAvailable && (
-        <div className="p-4 rounded-xl border border-ui-accent/40 bg-ui-surface flex items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-lg bg-ui-surface-2 border border-ui-border flex items-center justify-center flex-shrink-0">
-              <BrandLogo size={24} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-ui-text">
-                  OpenArt Hub v{hubUpdate.latestVersion}
-                </h3>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-ui-accent text-white">
-                  {t('updates.newHubVersion')}
-                </span>
+      {/* Hub Self Update Banner (Always given highest priority) */}
+      {hubUpdate?.updateAvailable && (() => {
+        const isHubBusy = activeItem?.appId === 'openart-hub' || activeItem?.appId === 'artcraft-hub';
+        const hubQueuePos = getQueuePosition ? (getQueuePosition('openart-hub') || getQueuePosition('artcraft-hub')) : 0;
+
+        return (
+          <div className="p-4 rounded-xl border border-indigo-500/40 bg-ui-surface flex items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center flex-shrink-0 text-indigo-400">
+                <BrandLogo size={24} />
               </div>
-              <p className="text-xs text-ui-muted mt-0.5 font-mono">
-                v{hubUpdate.currentVersion} → v{hubUpdate.latestVersion}
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-ui-text">
+                    OpenArt Hub v{hubUpdate.latestVersion}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-500 text-white shadow-xs">
+                    {t('updates.newHubVersion')}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-400" />
+                    {t('updates.hubPriorityBadge') || 'Høyeste prioritet'}
+                  </span>
+                </div>
+                <p className="text-xs text-ui-muted mt-0.5 font-mono">
+                  v{hubUpdate.currentVersion} → v{hubUpdate.latestVersion} • <span className="text-emerald-400/90 font-sans font-medium">{t('updates.hubPriorityHint') || 'Oppdateres alltid først'}</span>
+                </p>
+              </div>
             </div>
+
+            {isHubBusy ? (
+              <button
+                type="button"
+                disabled
+                className="btn-secondary text-xs h-8 px-4 rounded-lg flex items-center gap-1.5 opacity-80 cursor-not-allowed"
+              >
+                <RefreshCw className="w-4 h-4 animate-spin text-ui-accent" />
+                <span>{t('updates.updatingHubNow') || 'Oppdaterer Hub...'}</span>
+              </button>
+            ) : hubQueuePos > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                  <span>{t('updates.queuedPriority', { pos: hubQueuePos }) || `I kø (Prioritet #${hubQueuePos})`}</span>
+                </span>
+                {onCancelQueued && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onCancelQueued('openart-hub');
+                      onCancelQueued('artcraft-hub');
+                    }}
+                    className="p-1 rounded text-ui-muted hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    title={t('updates.removeFromQueue')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={onInstallHub}
+                className="btn-primary text-xs h-8 px-4 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <ArrowDownCircle className="w-4 h-4" />
+                <span>{t('updates.updateHubNow')}</span>
+              </button>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={onInstallHub}
-            className="btn-primary text-xs h-8 px-4 rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
-          >
-            <ArrowDownCircle className="w-4 h-4" />
-            <span>{t('updates.updateHubNow')}</span>
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Pending Updates Section */}
       {updates.length > 0 && (

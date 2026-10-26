@@ -232,6 +232,10 @@
     "check": "Check for updates",
     "newHubVersion": "New Hub Version",
     "updateHubNow": "Update Hub Now",
+    "updatingHubNow": "Updating Hub...",
+    "hubPriorityBadge": "Highest Priority",
+    "hubPriorityHint": "Always updated first",
+    "queuedPriority": "In Queue (Priority #{{pos}})",
     "simulateDesc": "Test update flow with simulated payloads.",
     "simulateButton": "Simulate Update"
   },

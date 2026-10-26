@@ -17,6 +17,10 @@ export interface UseInstallQueueOptions {
   onShowToast: (msg: string, type: 'success' | 'info' | 'error') => void;
 }
 
+export const isHubApp = (appId: string): boolean => {
+  return appId === 'openart-hub' || appId === 'artcraft-hub';
+};
+
 export function useInstallQueue({
   onPerformInstall,
   onRefreshCatalog,
@@ -38,8 +42,10 @@ export function useInstallQueue({
   // Enqueue a single app
   const enqueue = useCallback(
     (app: AppReleaseInfo, targetType: 'native' | 'web' = 'native') => {
+      const isPriority = isHubApp(app.app_id);
+
       // Validate availability
-      if (targetType === 'native' && !app.native_download_url && app.app_id !== 'openart-hub' && app.app_id !== 'artcraft-hub') {
+      if (targetType === 'native' && !app.native_download_url && !isPriority) {
         onShowToastRef.current(`Installasjonspakken for «${app.app_name}» er ikke utgitt ennå.`, 'info');
         return;
       }
@@ -60,14 +66,37 @@ export function useInstallQueue({
           enqueuedAt: Date.now(),
         };
 
+        if (isPriority) {
+          // OpenArt Hub ALWAYS takes priority: insert before first non-hub item in waiting line
+          const firstNonHubIdx = prev.findIndex((i) => !isHubApp(i.appId));
+          const nextQueue =
+            firstNonHubIdx >= 0
+              ? [...prev.slice(0, firstNonHubIdx), newItem, ...prev.slice(firstNonHubIdx)]
+              : [...prev, newItem];
+
+          if (activeItem || isRunningRef.current) {
+            onShowToastRef.current(
+              `OpenArt Hub har høyeste prioritet og er flyttet fremst i oppdateringskøen.`,
+              'info'
+            );
+          } else {
+            onShowToastRef.current(
+              `Starter oppdatering av OpenArt Hub (høyeste prioritet)...`,
+              'info'
+            );
+          }
+          return nextQueue;
+        }
+
+        const nextQueue = [...prev, newItem];
         if (activeItem || isRunningRef.current) {
           onShowToastRef.current(
-            `Lagt til i installasjonskø: ${app.app_name} (plass ${prev.length + 1})`,
+            `Lagt til i installasjonskø: ${app.app_name} (plass ${nextQueue.length})`,
             'info'
           );
         }
 
-        return [...prev, newItem];
+        return nextQueue;
       });
     },
     [activeItem]
@@ -83,35 +112,67 @@ export function useInstallQueue({
         if (activeItem) existingIds.add(activeItem.appId);
         prev.forEach((item) => existingIds.add(item.appId));
 
-        const toAdd: QueueItem[] = [];
+        const priorityToAdd: QueueItem[] = [];
+        const regularToAdd: QueueItem[] = [];
+
         for (const app of apps) {
           if (existingIds.has(app.app_id)) continue;
-          if (targetType === 'native' && !app.native_download_url && app.app_id !== 'openart-hub' && app.app_id !== 'artcraft-hub') {
+          const isPriority = isHubApp(app.app_id);
+          if (targetType === 'native' && !app.native_download_url && !isPriority) {
             continue;
           }
 
           existingIds.add(app.app_id);
-          toAdd.push({
+          const item: QueueItem = {
             id: `${app.app_id}-${Date.now()}-${Math.random()}`,
             appId: app.app_id,
             app,
             targetType,
             status: 'queued',
             enqueuedAt: Date.now(),
-          });
+          };
+
+          if (isPriority) {
+            priorityToAdd.push(item);
+          } else {
+            regularToAdd.push(item);
+          }
         }
 
-        if (toAdd.length === 0) {
+        const totalAdded = priorityToAdd.length + regularToAdd.length;
+        if (totalAdded === 0) {
           onShowToastRef.current('Ingen nye apper å legge til i køen.', 'info');
           return prev;
         }
 
-        onShowToastRef.current(
-          `Lagt til ${toAdd.length} ${toAdd.length === 1 ? 'app' : 'apper'} i installasjonskøen.`,
-          'info'
-        );
+        // Always place Hub items ahead of regular items
+        const firstNonHubIdx = prev.findIndex((i) => !isHubApp(i.appId));
+        let updatedQueue: QueueItem[];
 
-        return [...prev, ...toAdd];
+        if (priorityToAdd.length > 0) {
+          if (firstNonHubIdx >= 0) {
+            updatedQueue = [
+              ...prev.slice(0, firstNonHubIdx),
+              ...priorityToAdd,
+              ...prev.slice(firstNonHubIdx),
+              ...regularToAdd,
+            ];
+          } else {
+            updatedQueue = [...prev, ...priorityToAdd, ...regularToAdd];
+          }
+          onShowToastRef.current(
+            `Lagt til ${totalAdded} oppdateringer (OpenArt Hub prioritert først).`,
+            'info'
+          );
+        } else {
+          updatedQueue = [...prev, ...regularToAdd];
+          onShowToastRef.current(
+            `Lagt til ${totalAdded} ${totalAdded === 1 ? 'app' : 'apper'} i installasjonskøen.`,
+            'info'
+          );
+        }
+
+        return updatedQueue;
       });
     },
     [activeItem]

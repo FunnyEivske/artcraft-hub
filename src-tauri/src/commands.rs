@@ -1081,7 +1081,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             "openvtuber" => "1996scarlet/OpenVtuber".to_string(),
             "pyngtuber" => "Gemmstone/PyNGtuber".to_string(),
             "open-llm-vtuber" => "Open-LLM-VTuber/Open-LLM-VTuber".to_string(),
-            "photocraft" => "storytold/artcraft".to_string(),
+            "photocraft" => "storytold/photocraft".to_string(),
             _ => format!("storytold/{}", app.id),
         };
         let url = format!("https://api.github.com/repos/{}/releases/latest", repo);
@@ -1098,7 +1098,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             "openvtuber" => "v1.2.0".to_string(),
             "pyngtuber" => "v1.0.0".to_string(),
             "open-llm-vtuber" => "v1.1.0".to_string(),
-            "photocraft" => "v0.41.0".to_string(),
+            "photocraft" => "v0.16.0".to_string(),
             _ => "v1.0.0".to_string(),
         };
         let mut rel_name = format!("{} Release", app.name);
@@ -1265,17 +1265,21 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
                 "photocraft" => {
                     match os {
                         "windows" => {
-                            native_asset_name = Some("ArtCraft_0.41.0_x64-setup.exe".into());
-                            native_url = Some("https://github.com/storytold/artcraft/releases/download/artcraft-v0.41.0/ArtCraft_0.41.0_x64-setup.exe".into());
+                            native_asset_name = Some("photocraft-0.16.0-windows-x64.msi".into());
+                            native_url = Some("https://github.com/storytold/photocraft/releases/download/v0.16.0/photocraft-0.16.0-windows-x64.msi".into());
                         }
                         "macos" => {
-                            native_asset_name = Some("ArtCraft_0.41.0_universal.dmg".into());
-                            native_url = Some("https://github.com/storytold/artcraft/releases/download/artcraft-v0.41.0/ArtCraft_0.41.0_universal.dmg".into());
+                            native_asset_name = Some("photocraft-0.16.0-macos-universal.dmg".into());
+                            native_url = Some("https://github.com/storytold/photocraft/releases/download/v0.16.0/photocraft-0.16.0-macos-universal.dmg".into());
                         }
                         _ => {
-                            native_asset_name = Some("ArtCraft_0.41.0_x64-setup.exe".into());
-                            native_url = Some("https://github.com/storytold/artcraft/releases/download/artcraft-v0.41.0/ArtCraft_0.41.0_x64-setup.exe".into());
+                            native_asset_name = Some("photocraft-0.16.0-linux-x86_64.AppImage".into());
+                            native_url = Some("https://github.com/storytold/photocraft/releases/download/v0.16.0/photocraft-0.16.0-linux-x86_64.AppImage".into());
                         }
+                    }
+                    if web_url.is_none() {
+                        web_asset_name = Some("photocraft-web-0.16.0.zip".into());
+                        web_url = Some("https://github.com/storytold/photocraft/releases/download/v0.16.0/photocraft-web-0.16.0.zip".into());
                     }
                 }
                 _ => {

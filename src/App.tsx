@@ -40,6 +40,7 @@ import {
 } from './services/tauri';
 import { CheckCircle2, AlertCircle, Copy, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useInstallQueue } from './services/installQueue';
 
 const RECENT_APPS_KEY = 'openart_recent_launched_apps';
 const SNOOZE_PREFIX = 'openart_snoozed_update_';
@@ -305,31 +306,62 @@ export function App() {
     }
   };
 
-  const handleInstall = async (app: AppReleaseInfo, targetType: 'native' | 'web') => {
-    try {
-      if (app.app_id === 'openart-hub' || app.app_id === 'artcraft-hub') {
-        const osExt = systemInfo?.os === 'macos' ? 'OpenArtHub.dmg' : systemInfo?.os === 'linux' ? 'OpenArtHub.AppImage' : 'OpenArtHub-Setup.exe';
-        const fileName = app.native_asset_name || osExt;
-        const downloadUrl = app.native_download_url || `https://github.com/FunnyEivske/artcraft-hub/releases/download/v${app.latest_version}/${fileName}`;
-        showToast('Laster ned nyeste OpenArt Hub...', 'info');
-        await downloadAndInstallHubUpdate(downloadUrl, fileName);
-        return;
+  const executeSingleInstall = useCallback(
+    async (app: AppReleaseInfo, targetType: 'native' | 'web') => {
+      try {
+        if (app.app_id === 'openart-hub' || app.app_id === 'artcraft-hub') {
+          const osExt =
+            systemInfo?.os === 'macos'
+              ? 'OpenArtHub.dmg'
+              : systemInfo?.os === 'linux'
+              ? 'OpenArtHub.AppImage'
+              : 'OpenArtHub-Setup.exe';
+          const fileName = app.native_asset_name || osExt;
+          const downloadUrl =
+            app.native_download_url ||
+            `https://github.com/FunnyEivske/artcraft-hub/releases/download/v${app.latest_version}/${fileName}`;
+          showToast('Laster ned nyeste OpenArt Hub...', 'info');
+          await downloadAndInstallHubUpdate(downloadUrl, fileName);
+          return;
+        }
+
+        const downloadUrl =
+          targetType === 'web'
+            ? app.web_download_url
+            : app.native_download_url;
+
+        if (!downloadUrl) {
+          throw new Error(`Installasjonspakken for «${app.app_name}» er ikke tilgjengelig ennå.`);
+        }
+
+        showToast(`Laster ned og forbereder ${app.app_name}...`, 'info');
+        await installOrUpdateApp(app.app_id, downloadUrl, targetType, app.latest_version);
+        showToast(`«${app.app_name}» er nå installert og klar til bruk!`, 'success');
+      } catch (err) {
+        showToast(`${err}`, 'error');
       }
+    },
+    [systemInfo]
+  );
 
-      const downloadUrl =
-        targetType === 'web'
-          ? app.web_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`
-          : app.native_download_url || `https://github.com/storytold/${app.app_id}/releases/latest`;
-
-      showToast(`Laster ned og forbereder ${app.app_name}...`, 'info');
-      await installOrUpdateApp(app.app_id, downloadUrl, targetType, app.latest_version);
+  const {
+    waitingQueue,
+    activeItem,
+    enqueue,
+    enqueueBatch,
+    cancelQueued,
+    getQueuePosition,
+  } = useInstallQueue({
+    onPerformInstall: executeSingleInstall,
+    onRefreshCatalog: async () => {
       const updated = await checkGithubReleases();
       setApps(updated);
-    } catch (err) {
-      showToast(`${err}`, 'error');
-      const updated = await checkGithubReleases();
-      setApps(updated);
-    }
+    },
+    onShowToast: showToast,
+  });
+
+  const handleInstall = (app: AppReleaseInfo, targetType: 'native' | 'web' = 'native') => {
+    enqueue(app, targetType);
   };
 
   const handleUninstall = async (app: AppReleaseInfo) => {
@@ -390,17 +422,13 @@ export function App() {
     }
   };
 
-  const handleUpdateAll = async () => {
+  const handleUpdateAll = () => {
     const toUpdate = apps.filter((a) => a.status === 'UpdateAvailable');
     if (toUpdate.length === 0) {
       showToast('Alle installerte apper er oppdatert', 'info');
       return;
     }
-
-    showToast(`Oppdaterer ${toUpdate.length} apper...`, 'info');
-    for (const app of toUpdate) {
-      await handleInstall(app, 'native');
-    }
+    enqueueBatch(toUpdate, 'native');
   };
 
   const handleLaterUpdate = (app: AppReleaseInfo) => {
@@ -509,6 +537,8 @@ export function App() {
               onInstall={handleInstall}
               onUninstall={handleUninstall}
               progressMap={progressMap}
+              getQueuePosition={getQueuePosition}
+              onCancelQueued={cancelQueued}
             />
           )}
 
@@ -549,6 +579,10 @@ export function App() {
               progressMap={progressMap}
               onSimulateUpdate={handleSimulateUpdate}
               onShowChangelog={() => setShowChangelogModal(true)}
+              getQueuePosition={getQueuePosition}
+              onCancelQueued={cancelQueued}
+              activeItem={activeItem}
+              waitingCount={waitingQueue.length}
             />
           )}
 

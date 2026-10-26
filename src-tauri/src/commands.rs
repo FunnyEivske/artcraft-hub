@@ -18,6 +18,7 @@ use std::os::windows::process::CommandExt;
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 const MAX_DIAGNOSTIC_ENTRIES: usize = 100;
+static INSTALL_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 fn format_unix_timestamp(secs: u64) -> String {
     let days = secs / 86400;
@@ -511,6 +512,10 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
                         p_base.join(app_name).join(format!("{}.exe", app_name)),
                         p_base.join(app_id).join(format!("{}.exe", app_id)),
                         p_base.join(app_id).join(format!("{}.exe", app_name)),
+                        p_base.join("ArtCraft").join("ArtCraft.exe"),
+                        p_base.join("ArtCraft").join("artcraft.exe"),
+                        p_base.join("PhotoCraft").join("PhotoCraft.exe"),
+                        p_base.join("PhotoCraft").join("photocraft.exe"),
                         p_base.join("Storytold").join(app_name).join(format!("{}.exe", app_id)),
                         p_base.join("Storytold").join(app_name).join(format!("{}.exe", app_name)),
                         p_base.join("ArtCraft").join(app_name).join(format!("{}.exe", app_id)),
@@ -529,6 +534,10 @@ pub fn detect_local_app_binary(app_id: &str) -> Option<String> {
                     format!("/Applications/{}.app/Contents/MacOS/{}", app_name, app_id),
                     format!("/Applications/{}.app", app_name),
                     format!("/Applications/{}.app", app_id),
+                    "/Applications/ArtCraft.app/Contents/MacOS/ArtCraft".to_string(),
+                    "/Applications/ArtCraft.app".to_string(),
+                    "/Applications/PhotoCraft.app/Contents/MacOS/PhotoCraft".to_string(),
+                    "/Applications/PhotoCraft.app".to_string(),
                 ];
                 for c in &candidates {
                     if Path::new(c).exists() {
@@ -621,8 +630,10 @@ pub fn find_windows_installed_app(app_name: &str, app_id: &str) -> Option<Window
                         }
 
                         let n_low = name.to_lowercase();
-                        if (n_low.contains(&name_lower) || n_low.contains(&id_lower))
-                            && (!uninstall.is_empty() || !location.is_empty())
+                        let matches_app = n_low.contains(&name_lower)
+                            || n_low.contains(&id_lower)
+                            || (id_lower == "photocraft" && n_low.contains("artcraft"));
+                        if matches_app && (!uninstall.is_empty() || !location.is_empty())
                         {
                             return Some(WindowsInstalledApp {
                                 display_name: name,
@@ -1070,6 +1081,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             "openvtuber" => "1996scarlet/OpenVtuber".to_string(),
             "pyngtuber" => "Gemmstone/PyNGtuber".to_string(),
             "open-llm-vtuber" => "Open-LLM-VTuber/Open-LLM-VTuber".to_string(),
+            "photocraft" => "storytold/artcraft".to_string(),
             _ => format!("storytold/{}", app.id),
         };
         let url = format!("https://api.github.com/repos/{}/releases/latest", repo);
@@ -1086,6 +1098,7 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             "openvtuber" => "v1.2.0".to_string(),
             "pyngtuber" => "v1.0.0".to_string(),
             "open-llm-vtuber" => "v1.1.0".to_string(),
+            "photocraft" => "v0.41.0".to_string(),
             _ => "v1.0.0".to_string(),
         };
         let mut rel_name = format!("{} Release", app.name);
@@ -1111,7 +1124,12 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
             if response.status().is_success() {
                 if let Ok(json_data) = response.json::<serde_json::Value>().await {
                     if let Some(tag) = json_data.get("tag_name").and_then(|v| v.as_str()) {
-                        latest_ver = tag.to_string();
+                        let clean = tag
+                            .trim_start_matches(&format!("{}-", app.id))
+                            .trim_start_matches("artcraft-")
+                            .trim_start_matches("Audacity-")
+                            .trim_start_matches('v');
+                        latest_ver = format!("v{}", clean);
                     }
                     if let Some(n) = json_data.get("name").and_then(|v| v.as_str()) {
                         rel_name = n.to_string();
@@ -1244,28 +1262,35 @@ pub async fn check_github_releases() -> Result<Vec<AppReleaseInfo>, String> {
                     native_asset_name = Some("Open-LLM-VTuber.zip".into());
                     native_url = Some("https://github.com/Open-LLM-VTuber/Open-LLM-VTuber/archive/refs/heads/main.zip".into());
                 }
+                "photocraft" => {
+                    match os {
+                        "windows" => {
+                            native_asset_name = Some("ArtCraft_0.41.0_x64-setup.exe".into());
+                            native_url = Some("https://github.com/storytold/artcraft/releases/download/artcraft-v0.41.0/ArtCraft_0.41.0_x64-setup.exe".into());
+                        }
+                        "macos" => {
+                            native_asset_name = Some("ArtCraft_0.41.0_universal.dmg".into());
+                            native_url = Some("https://github.com/storytold/artcraft/releases/download/artcraft-v0.41.0/ArtCraft_0.41.0_universal.dmg".into());
+                        }
+                        _ => {
+                            native_asset_name = Some("ArtCraft_0.41.0_x64-setup.exe".into());
+                            native_url = Some("https://github.com/storytold/artcraft/releases/download/artcraft-v0.41.0/ArtCraft_0.41.0_x64-setup.exe".into());
+                        }
+                    }
+                }
                 _ => {
-                    let extension = match os {
-                        "windows" => "-setup.exe",
-                        "macos" => ".dmg",
-                        _ => ".AppImage",
-                    };
-                    native_asset_name = Some(format!("{}{}", app.id, extension));
-                    native_url = Some(format!(
-                        "https://github.com/storytold/{}/releases/download/{}/{}{}",
-                        app.id, latest_ver, app.id, extension
-                    ));
+                    // Apps that do not have a published release package yet should have None
+                    // so the UI clearly displays "Coming soon" instead of broken 404 links.
+                    native_asset_name = None;
+                    native_url = None;
                 }
             }
         }
 
-        let is_external = matches!(app.id.as_str(), "audacity" | "obs" | "sysmocap" | "openvtuber" | "pyngtuber" | "open-llm-vtuber");
+        let is_external = matches!(app.id.as_str(), "audacity" | "obs" | "sysmocap" | "openvtuber" | "pyngtuber" | "open-llm-vtuber" | "photocraft");
         if web_url.is_none() && !is_external {
-            web_asset_name = Some(format!("{}-web.zip", app.id));
-            web_url = Some(format!(
-                "https://github.com/storytold/{}/releases/download/{}/{}-web.zip",
-                app.id, latest_ver, app.id
-            ));
+            web_asset_name = None;
+            web_url = None;
         }
 
         // Real local binary detection (verified on disk)
@@ -1573,6 +1598,7 @@ pub async fn download_and_install_hub_update(
     download_url: String,
     file_name: String,
 ) -> Result<String, String> {
+    let _lock = INSTALL_MUTEX.lock().await;
     let hub_home = get_hub_home();
     let updates_dir = hub_home.join("Updates");
     fs::create_dir_all(&updates_dir).map_err(|e| e.to_string())?;
@@ -1933,6 +1959,24 @@ pub async fn install_or_update_app(
     target_type: String,
     version: String,
 ) -> Result<String, String> {
+    let _lock = INSTALL_MUTEX.lock().await;
+
+    if download_url.trim().is_empty() {
+        let err_msg = format!("Installasjonspakken for «{}» er ikke tilgjengelig ennå.", app_id);
+        let _ = app.emit(
+            "download-progress",
+            DownloadProgressPayload {
+                app_id: app_id.clone(),
+                downloaded: 0,
+                total: 100,
+                percent: 0.0,
+                status: "error".to_string(),
+                message: err_msg.clone(),
+            },
+        );
+        return Err(err_msg);
+    }
+
     let hub_home = get_hub_home();
     let apps_dir = hub_home.join("Apps").join(&app_id);
     let webapps_dir = hub_home.join("WebApps").join(&app_id);
@@ -2247,8 +2291,22 @@ pub fn launch_app(app_id: String, file_path_optional: Option<String>) -> Result<
     let os = std::env::consts::OS;
 
     let target_file = match os {
-        "windows" => apps_dir.join(format!("{}.exe", app_id)),
-        "macos" => apps_dir.join(format!("{}.app", app_id)),
+        "windows" => {
+            let primary = apps_dir.join(format!("{}.exe", app_id));
+            if !primary.exists() && app_id == "photocraft" {
+                apps_dir.join("ArtCraft.exe")
+            } else {
+                primary
+            }
+        }
+        "macos" => {
+            let primary = apps_dir.join(format!("{}.app", app_id));
+            if !primary.exists() && app_id == "photocraft" {
+                apps_dir.join("ArtCraft.app")
+            } else {
+                primary
+            }
+        }
         _ => apps_dir.join(format!("{}.AppImage", app_id)),
     };
 

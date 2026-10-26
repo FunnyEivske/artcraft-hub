@@ -14,6 +14,8 @@ interface AppHubViewProps {
   onInstall: (app: AppReleaseInfo, targetType: 'native' | 'web') => void;
   onUninstall?: (app: AppReleaseInfo) => void;
   progressMap: Record<string, DownloadProgressPayload>;
+  getQueuePosition?: (appId: string) => number;
+  onCancelQueued?: (appId: string) => void;
 }
 
 interface FilterPill {
@@ -53,6 +55,8 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   onInstall,
   onUninstall,
   progressMap,
+  getQueuePosition,
+  onCancelQueued,
 }) => {
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -108,7 +112,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
   const mainAvailable = available.filter((a) => selectedSuiteAppIds.has(a.app_id));
   const unselectedAvailable = available.filter((a) => !selectedSuiteAppIds.has(a.app_id));
 
-  const itemProps = { onLaunchNative, onInstall, onUninstall };
+  const itemProps = { onLaunchNative, onInstall, onUninstall, onCancelQueued };
 
   return (
     <div className="max-w-[1120px] pb-12 space-y-6">
@@ -209,6 +213,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                   key={app.app_id}
                   app={app}
                   progress={progressMap[app.app_id]}
+                  queuePosition={getQueuePosition?.(app.app_id)}
                   {...itemProps}
                 />
               ))}
@@ -220,6 +225,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                   key={app.app_id}
                   app={app}
                   progress={progressMap[app.app_id]}
+                  queuePosition={getQueuePosition?.(app.app_id)}
                   {...itemProps}
                 />
               ))}
@@ -244,6 +250,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                   key={app.app_id}
                   app={app}
                   progress={progressMap[app.app_id]}
+                  queuePosition={getQueuePosition?.(app.app_id)}
                   {...itemProps}
                 />
               ))}
@@ -255,6 +262,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                   key={app.app_id}
                   app={app}
                   progress={progressMap[app.app_id]}
+                  queuePosition={getQueuePosition?.(app.app_id)}
                   {...itemProps}
                 />
               ))}
@@ -307,6 +315,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                       key={app.app_id}
                       app={app}
                       progress={progressMap[app.app_id]}
+                      queuePosition={getQueuePosition?.(app.app_id)}
                       {...itemProps}
                     />
                   ))}
@@ -318,6 +327,7 @@ export const AppHubView: React.FC<AppHubViewProps> = ({
                       key={app.app_id}
                       app={app}
                       progress={progressMap[app.app_id]}
+                      queuePosition={getQueuePosition?.(app.app_id)}
                       {...itemProps}
                     />
                   ))}

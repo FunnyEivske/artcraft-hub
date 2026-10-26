@@ -1,10 +1,11 @@
 import React from 'react';
-import { RefreshCw, CheckCircle2, ArrowDownCircle, Sparkles } from 'lucide-react';
+import { RefreshCw, CheckCircle2, ArrowDownCircle, Sparkles, Clock, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppReleaseInfo, DownloadProgressPayload, HubUpdateInfo } from '../types';
 import { AppTile } from './AppTile';
 import { BrandLogo } from './BrandLogo';
 import { formatDate } from '../services/date';
+import { QueueItem } from '../services/installQueue';
 
 interface UpdateCenterViewProps {
   apps: AppReleaseInfo[];
@@ -18,6 +19,10 @@ interface UpdateCenterViewProps {
   progressMap: Record<string, DownloadProgressPayload>;
   onSimulateUpdate?: () => void;
   onShowChangelog?: () => void;
+  getQueuePosition?: (appId: string) => number;
+  onCancelQueued?: (appId: string) => void;
+  activeItem?: QueueItem | null;
+  waitingCount?: number;
 }
 
 export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
@@ -32,6 +37,10 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
   progressMap,
   onSimulateUpdate,
   onShowChangelog,
+  getQueuePosition,
+  onCancelQueued,
+  activeItem,
+  waitingCount = 0,
 }) => {
   const { t } = useTranslation();
   const updates = apps.filter((a) => a.status === 'UpdateAvailable');
@@ -99,6 +108,34 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
         </div>
       </div>
 
+      {/* Active Install & Update Queue Banner */}
+      {(activeItem || waitingCount > 0) && (
+        <div className="p-3.5 rounded-xl border border-ui-accent/30 bg-ui-surface flex items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-ui-accent/15 border border-ui-accent/30 flex items-center justify-center flex-shrink-0 text-ui-accent">
+              <RefreshCw className="w-4 h-4 animate-spin text-ui-accent" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-ui-text">
+                  {activeItem
+                    ? t('updates.queueRunning', { app: activeItem.app.app_name })
+                    : t('updates.queueFinalizing')}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-ui-accent text-white">
+                  {waitingCount > 0 ? t('updates.queueRemaining', { count: waitingCount }) : t('updates.queueLast')}
+                </span>
+              </div>
+              <p className="text-[11px] text-ui-muted mt-0.5 font-mono">
+                {waitingCount > 0
+                  ? t('updates.queueRemaining', { count: waitingCount })
+                  : t('updates.queueFinalizing')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hub Self Update Banner */}
       {hubUpdate?.updateAvailable && (
         <div className="p-4 rounded-xl border border-ui-accent/40 bg-ui-surface flex items-center justify-between gap-4 shadow-sm animate-in fade-in duration-200">
@@ -142,6 +179,7 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
             {updates.map((app) => {
               const p = progressMap[app.app_id];
               const busy = p && p.percent < 100 && p.status !== 'error';
+              const queuePos = getQueuePosition ? getQueuePosition(app.app_id) : 0;
 
               return (
                 <div key={app.app_id} className="p-4 hover:bg-ui-surface-2/40 transition-colors">
@@ -174,6 +212,23 @@ export const UpdateCenterView: React.FC<UpdateCenterViewProps> = ({
                             style={{ width: `${p.percent}%` }}
                           />
                         </div>
+                      </div>
+                    ) : queuePos > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs px-2.5 py-1 rounded-md bg-ui-surface-2 text-amber-500 border border-amber-500/30 flex items-center gap-1.5 font-mono">
+                          <Clock className="w-3.5 h-3.5 animate-pulse text-amber-500" />
+                          <span>{t('updates.inQueue', { pos: queuePos })}</span>
+                        </span>
+                        {onCancelQueued && (
+                          <button
+                            type="button"
+                            className="p-1 rounded text-ui-muted hover:text-red-400 hover:bg-ui-surface-2 transition-colors cursor-pointer"
+                            title={t('updates.removeFromQueue')}
+                            onClick={() => onCancelQueued(app.app_id)}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
